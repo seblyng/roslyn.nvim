@@ -200,13 +200,6 @@ function M.setup(config)
                 return
             end
 
-            vim.api.nvim_create_user_command("CSTarget", function()
-                vim.ui.select(all_sln_files, { prompt = "Select target solution: " }, function(sln_file)
-                    known_solutions[sln_directory] = sln_file
-                    wrap_roslyn(sln_file, roslyn_config)
-                end)
-            end, { desc = "Selects the sln file for the current buffer" })
-
             if #all_sln_files == 1 then
                 wrap_roslyn(all_sln_files[1], roslyn_config)
                 known_solutions[sln_directory] = all_sln_files[1]
@@ -226,6 +219,14 @@ function M.setup(config)
                 "Multiple sln files found. You can use `CSTarget` to select target for buffer",
                 vim.log.levels.INFO
             )
+
+            vim.api.nvim_buf_create_user_command(opt.buf, "CSTarget", function()
+                vim.ui.select(all_sln_files, { prompt = "Select target solution: " }, function(sln_file)
+                    known_solutions[sln_directory] = sln_file
+                    wrap_roslyn(sln_file, roslyn_config)
+                    vim.api.nvim_buf_del_user_command(opt.buf, "CSTarget")
+                end)
+            end, { desc = "Selects the sln file for the " .. opt.buf .. " buffer" })
         end,
     })
 end
