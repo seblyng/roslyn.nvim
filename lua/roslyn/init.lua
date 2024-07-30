@@ -61,10 +61,11 @@ local known_solutions = {}
 ---@param config? vim.lsp.ClientConfig
 ---@param filewatching boolean
 local function lsp_start(pipe, target, config, filewatching)
+    local sln_directory = vim.fs.dirname(target)
     config = config or {}
     config.name = "roslyn"
     config.cmd = vim.lsp.rpc.connect(pipe)
-    config.root_dir = vim.fs.dirname(target)
+    config.root_dir = sln_directory
     config.capabilities = get_default_capabilities(filewatching)
     config.handlers = vim.tbl_deep_extend("force", {
         ["client/registerCapability"] = require("roslyn.hacks").with_filtered_watchers(
@@ -105,6 +106,13 @@ local function lsp_start(pipe, target, config, filewatching)
         local commands = require("roslyn.commands")
         commands.fix_all_code_action(client)
         commands.nested_code_action(client)
+    end
+
+    config.on_exit = function(_, _, _)
+        known_solutions[sln_directory] = nil
+        if #known_solutions == 0 then
+            server.stop_server()
+        end
     end
 
     vim.lsp.start(config)
