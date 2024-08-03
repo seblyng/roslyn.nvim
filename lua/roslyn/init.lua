@@ -107,7 +107,7 @@ local function lsp_start(pipe, root_with_files, config, filewatching)
     }, config.handlers or {})
     config.on_init = function(client)
         local target = known_solutions[root_with_files.directory]
-        if target and target:match(".sln$") then
+        if target and target:match("%.sln$") then
             vim.notify("Initializing Roslyn client for " .. target, vim.log.levels.INFO)
             client.notify("solution/open", {
                 solution = vim.uri_from_fname(target),
@@ -219,10 +219,6 @@ local function start_with_solution(bufnr, cmd, sln, roslyn_config)
     end, { desc = "Selects the sln file for the buffer: " .. bufnr })
 end
 
-local function start_with_projects(cmd, csproj, roslyn_config)
-    return wrap_roslyn(cmd, csproj, roslyn_config)
-end
-
 ---@param config? RoslynNvimConfig
 function M.setup(config)
     vim.treesitter.language.register("c_sharp", "csharp")
@@ -255,7 +251,7 @@ function M.setup(config)
 
             local csproj = utils.get_directory_with_files(opt.buf, "csproj")
             if csproj then
-                return start_with_projects(cmd, csproj, roslyn_config)
+                return wrap_roslyn(cmd, csproj, roslyn_config)
             end
         end,
     })
