@@ -68,14 +68,14 @@ end
 local known_solutions = {}
 
 ---@param pipe string
----@param root_with_files RoslynNvimDirectoryWithFiles
+---@param root_dir string
 ---@param roslyn_config InternalRoslynNvimConfig
 ---@param on_init fun(client: vim.lsp.Client)
-local function lsp_start(pipe, root_with_files, roslyn_config, on_init)
+local function lsp_start(pipe, root_dir, roslyn_config, on_init)
     local config = vim.deepcopy(roslyn_config.config)
     config.name = "roslyn"
     config.cmd = vim.lsp.rpc.connect(pipe)
-    config.root_dir = root_with_files.directory
+    config.root_dir = root_dir
     config.handlers = vim.tbl_deep_extend("force", {
         ["client/registerCapability"] = require("roslyn.hacks").with_filtered_watchers(
             vim.lsp.handlers["client/registerCapability"],
@@ -115,7 +115,7 @@ local function lsp_start(pipe, root_with_files, roslyn_config, on_init)
     end
 
     config.on_exit = function(_, _, _)
-        known_solutions[root_with_files.directory] = nil
+        known_solutions[root_dir] = nil
         if vim.tbl_count(known_solutions) == 0 then
             server.stop_server()
         end
@@ -163,12 +163,12 @@ local M = {}
 
 ---Runs roslyn server (if not running already) and then lsp_start
 ---@param cmd string[]
----@param root_with_files RoslynNvimDirectoryWithFiles
+---@param root_dir string
 ---@param roslyn_config InternalRoslynNvimConfig
 ---@param on_init fun(client: vim.lsp.Client)
-local function wrap_roslyn(cmd, root_with_files, roslyn_config, on_init)
+local function wrap_roslyn(cmd, root_dir, roslyn_config, on_init)
     server.start_server(cmd, function(pipe_name)
-        lsp_start(pipe_name, root_with_files, roslyn_config, on_init)
+        lsp_start(pipe_name, root_dir, roslyn_config, on_init)
     end)
 end
 
@@ -188,7 +188,7 @@ local function start_with_solution(bufnr, cmd, sln, roslyn_config)
 
     -- If we only find one solution file, just start the server with that file
     if #sln.files == 1 then
-        return wrap_roslyn(cmd, sln, roslyn_config, on_init(sln.files[1]))
+        return wrap_roslyn(cmd, sln.directory, roslyn_config, on_init(sln.files[1]))
     end
 
     -- Prefer cached solution file, and fallback to trying to predict which one to use
@@ -197,7 +197,7 @@ local function start_with_solution(bufnr, cmd, sln, roslyn_config)
     local sln_file = known_solutions[sln.directory] or utils.predict_sln_file(bufnr, sln)
     if sln_file then
         known_solutions[sln.directory] = sln_file
-        wrap_roslyn(cmd, sln, roslyn_config, on_init(sln_file))
+        wrap_roslyn(cmd, sln.directory, roslyn_config, on_init(sln_file))
     end
 
     -- Notify once per directory. `notify_once` caches it per message, and if we include the directory in the message
@@ -213,7 +213,7 @@ local function start_with_solution(bufnr, cmd, sln, roslyn_config)
     vim.api.nvim_buf_create_user_command(bufnr, "CSTarget", function()
         vim.ui.select(sln.files, { prompt = "Select target solution: " }, function(file)
             known_solutions[sln.directory] = file
-            wrap_roslyn(cmd, sln, roslyn_config, on_init(file))
+            wrap_roslyn(cmd, sln.directory, roslyn_config, on_init(file))
         end)
     end, { desc = "Selects the sln file for the buffer: " .. bufnr })
 end
@@ -222,7 +222,7 @@ end
 ---@param csproj RoslynNvimDirectoryWithFiles
 ---@param roslyn_config InternalRoslynNvimConfig
 local function start_with_projects(cmd, csproj, roslyn_config)
-    wrap_roslyn(cmd, csproj, roslyn_config, function(client)
+    wrap_roslyn(cmd, csproj.directory, roslyn_config, function(client)
         vim.notify("Initializing Roslyn client for projects", vim.log.levels.INFO)
         client.notify("project/open", {
             projects = vim.tbl_map(function(file)
