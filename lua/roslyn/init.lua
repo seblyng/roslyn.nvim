@@ -1,13 +1,20 @@
 local server = require("roslyn.server")
+local utils = require("roslyn.slnutils")
 
----@param bufname string
-local function bufname_valid(bufname)
-    return bufname:match("^/")
-        or bufname:match("^[a-zA-Z]:")
-        or bufname:match("^zipfile://")
-        or bufname:match("^tarfile:")
+---@param buf number
+---@return boolean
+local function valid_buffer(buf)
+    local bufname = vim.api.nvim_buf_get_name(buf)
+    return vim.bo[buf].buftype ~= "nofile"
+        and (
+            bufname:match("^/")
+            or bufname:match("^[a-zA-Z]:")
+            or bufname:match("^zipfile://")
+            or bufname:match("^tarfile:")
+        )
 end
 
+---@return string
 local function get_mason_installation()
     local mason_installation = vim.fs.joinpath(vim.fn.stdpath("data") --[[@as string]], "mason", "bin", "roslyn")
     return vim.uv.os_uname().sysname == "Windows_NT" and string.format("%s.cmd", mason_installation)
@@ -63,18 +70,18 @@ end
 local known_solutions = {}
 
 ---@param pipe string
----@param target string
----@param config vim.lsp.ClientConfig
----@param filewatching boolean
-local function lsp_start(pipe, target, config, filewatching)
-    local sln_directory = vim.fs.dirname(target)
+---@param root_dir string
+---@param roslyn_config InternalRoslynNvimConfig
+---@param on_init fun(client: vim.lsp.Client)
+local function lsp_start(pipe, root_dir, roslyn_config, on_init)
+    local config = vim.deepcopy(roslyn_config.config)
     config.name = "roslyn"
     config.cmd = vim.lsp.rpc.connect(pipe)
-    config.root_dir = sln_directory
+    config.root_dir = root_dir
     config.handlers = vim.tbl_deep_extend("force", {
         ["client/registerCapability"] = require("roslyn.hacks").with_filtered_watchers(
             vim.lsp.handlers["client/registerCapability"],
-            filewatching
+            roslyn_config.filewatching
         ),
         ["workspace/projectInitializationComplete"] = function()
             vim.notify("Roslyn project initialization complete", vim.log.levels.INFO)
@@ -102,10 +109,7 @@ local function lsp_start(pipe, target, config, filewatching)
         end,
     }, config.handlers or {})
     config.on_init = function(client)
-        vim.notify("Initializing Roslyn client for " .. target, vim.log.levels.INFO)
-        client.notify("solution/open", {
-            ["solution"] = vim.uri_from_fname(target),
-        })
+        on_init(client)
 
         local commands = require("roslyn.commands")
         commands.fix_all_code_action(client)
@@ -113,7 +117,7 @@ local function lsp_start(pipe, target, config, filewatching)
     end
 
     config.on_exit = function(_, _, _)
-        known_solutions[sln_directory] = nil
+        known_solutions[root_dir] = nil
         if vim.tbl_count(known_solutions) == 0 then
             server.stop_server()
         end
@@ -161,11 +165,72 @@ local M = {}
 
 ---Runs roslyn server (if not running already) and then lsp_start
 ---@param cmd string[]
----@param sln_file string
+---@param root_dir string
 ---@param roslyn_config InternalRoslynNvimConfig
-local function wrap_roslyn(cmd, sln_file, roslyn_config)
+---@param on_init fun(client: vim.lsp.Client)
+local function wrap_roslyn(cmd, root_dir, roslyn_config, on_init)
     server.start_server(cmd, function(pipe_name)
-        lsp_start(pipe_name, sln_file, roslyn_config.config, roslyn_config.filewatching)
+        lsp_start(pipe_name, root_dir, roslyn_config, on_init)
+    end)
+end
+
+---@param bufnr number
+---@param cmd string[]
+---@param sln RoslynNvimDirectoryWithFiles
+---@param roslyn_config InternalRoslynNvimConfig
+local function start_with_solution(bufnr, cmd, sln, roslyn_config)
+    local function on_init(target)
+        return function(client)
+            vim.notify("Initializing Roslyn client for " .. target, vim.log.levels.INFO)
+            client.notify("solution/open", {
+                solution = vim.uri_from_fname(target),
+            })
+        end
+    end
+
+    -- If we only find one solution file, just start the server with that file
+    if #sln.files == 1 then
+        return wrap_roslyn(cmd, sln.directory, roslyn_config, on_init(sln.files[1]))
+    end
+
+    -- Prefer cached solution file, and fallback to trying to predict which one to use
+    -- before starting the server. Cache the selected solution since we have multiple
+    -- solutions here
+    local sln_file = known_solutions[sln.directory] or utils.predict_sln_file(bufnr, sln)
+    if sln_file then
+        known_solutions[sln.directory] = sln_file
+        wrap_roslyn(cmd, sln.directory, roslyn_config, on_init(sln_file))
+    end
+
+    -- Notify once per directory. `notify_once` caches it per message, and if we include the directory in the message
+    -- then it will print it once per directory we find multiple solutions for
+    vim.notify_once(
+        string.format(
+            "Multiple sln files found for %s. Use `CSTarget` to select or change target for buffer",
+            sln.directory
+        ),
+        vim.log.levels.INFO
+    )
+
+    vim.api.nvim_buf_create_user_command(bufnr, "CSTarget", function()
+        vim.ui.select(sln.files, { prompt = "Select target solution: " }, function(file)
+            known_solutions[sln.directory] = file
+            wrap_roslyn(cmd, sln.directory, roslyn_config, on_init(file))
+        end)
+    end, { desc = "Selects the sln file for the buffer: " .. bufnr })
+end
+
+---@param cmd string[]
+---@param csproj RoslynNvimDirectoryWithFiles
+---@param roslyn_config InternalRoslynNvimConfig
+local function start_with_projects(cmd, csproj, roslyn_config)
+    wrap_roslyn(cmd, csproj.directory, roslyn_config, function(client)
+        vim.notify("Initializing Roslyn client for projects", vim.log.levels.INFO)
+        client.notify("project/open", {
+            projects = vim.tbl_map(function(file)
+                return vim.uri_from_fname(file)
+            end, csproj.files),
+        })
     end)
 end
 
@@ -190,56 +255,19 @@ function M.setup(config)
         group = vim.api.nvim_create_augroup("Roslyn", { clear = true }),
         pattern = { "cs" },
         callback = function(opt)
-            local bufname = vim.api.nvim_buf_get_name(opt.buf)
-
-            if vim.bo["buftype"] == "nofile" or not bufname_valid(bufname) then
+            if not valid_buffer(opt.buf) then
                 return
             end
 
-            local sln_directory = require("roslyn.slnutils").get_sln_directory(opt.buf)
-
-            if not sln_directory then
-                return
+            local sln = utils.get_directory_with_files(opt.buf, "sln")
+            if sln then
+                return start_with_solution(opt.buf, cmd, sln, roslyn_config)
             end
 
-            -- Roslyn is already running, so just call `vim.lsp.start` to handle everything
-            if known_solutions[sln_directory] then
-                wrap_roslyn(cmd, known_solutions[sln_directory], roslyn_config)
-                return
+            local csproj = utils.get_directory_with_files(opt.buf, "csproj")
+            if csproj then
+                return start_with_projects(cmd, csproj, roslyn_config)
             end
-
-            local all_sln_files = require("roslyn.slnutils").get_all_sln_files(opt.buf)
-
-            if not all_sln_files then
-                return
-            end
-
-            if #all_sln_files == 1 then
-                wrap_roslyn(cmd, all_sln_files[1], roslyn_config)
-                known_solutions[sln_directory] = all_sln_files[1]
-
-                return
-            end
-
-            -- Multiple sln files found, let's try to predict which one is the correct one for the current buffer
-            local predicted_sln_file = require("roslyn.slnutils").predict_sln_file(opt.buf)
-
-            if predicted_sln_file then
-                wrap_roslyn(cmd, predicted_sln_file, roslyn_config)
-                known_solutions[sln_directory] = predicted_sln_file
-            end
-
-            vim.notify_once(
-                "Multiple sln files found. You can use `CSTarget` to select target for buffer",
-                vim.log.levels.INFO
-            )
-
-            vim.api.nvim_buf_create_user_command(opt.buf, "CSTarget", function()
-                vim.ui.select(all_sln_files, { prompt = "Select target solution: " }, function(sln_file)
-                    known_solutions[sln_directory] = sln_file
-                    wrap_roslyn(cmd, sln_file, roslyn_config)
-                end)
-            end, { desc = "Selects the sln file for the buffer: " .. opt.buf })
         end,
     })
 end

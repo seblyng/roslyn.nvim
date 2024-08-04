@@ -22,23 +22,33 @@ end
 
 local M = {}
 
----@param buffer integer
----@return string?
-function M.get_sln_directory(buffer)
-    return vim.fs.root(buffer, function(name)
-        return name:match("%.sln$") ~= nil
-    end)
-end
+---@class RoslynNvimDirectoryWithFiles
+---@field directory string
+---@field files string[]
 
+---Gets the directory containing `ext`, and all the files in that directory with `ext`
 ---@param buffer integer
----@return string[]?
-function M.get_all_sln_files(buffer)
-    local sln_dir = M.get_sln_directory(buffer)
-    if not sln_dir then
+---@param ext "sln" | "csproj"
+---@return RoslynNvimDirectoryWithFiles?
+function M.get_directory_with_files(buffer, ext)
+    local directory = vim.fs.root(buffer, function(name)
+        return name:match(string.format("%%.%s$", ext)) ~= nil
+    end)
+
+    if not directory then
         return nil
     end
 
-    return vim.fn.glob(vim.fs.joinpath(sln_dir, "*.sln"), true, true)
+    -- Probably redundant check, but doesn't hurt
+    local files = vim.fn.glob(vim.fs.joinpath(directory, string.format("*.%s", ext)), true, true)
+    if not files then
+        return nil
+    end
+
+    return {
+        directory = directory,
+        files = files,
+    }
 end
 
 --- Find a path to sln file that is likely to be the one that the current buffer
@@ -47,31 +57,17 @@ end
 --- The prediction assumes that the nearest csproj file (in one of parent dirs from buffer)
 --- should be a part of the sln file that the user intended to open.
 ---@param buffer integer
+---@param sln RoslynNvimDirectoryWithFiles
 ---@return string?
-function M.predict_sln_file(buffer)
-    local sln_files = M.get_all_sln_files(buffer)
-
-    if not sln_files then
+function M.predict_sln_file(buffer, sln)
+    local csproj = M.get_directory_with_files(buffer, "csproj")
+    if not csproj or #csproj.files > 1 then
         return nil
     end
 
-    local csproj_dir = vim.fs.root(buffer, function(name)
-        return name:match("%.csproj$") ~= nil
-    end)
+    local csproj_filename = vim.fn.fnamemodify(csproj.files[1], ":t")
 
-    if not csproj_dir then
-        return nil
-    end
-
-    local csproj_files = vim.fn.glob(vim.fs.joinpath(csproj_dir, "*.csproj"), true, true)
-
-    if #csproj_files > 1 then
-        return nil
-    end
-
-    local csproj_filename = vim.fn.fnamemodify(csproj_files[1], ":t")
-
-    return get_filepath_containing_string(sln_files, csproj_filename)
+    return get_filepath_containing_string(sln.files, csproj_filename)
 end
 
 return M
