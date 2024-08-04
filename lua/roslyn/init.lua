@@ -2,6 +2,7 @@ local server = require("roslyn.server")
 local utils = require("roslyn.slnutils")
 
 ---@param buf number
+---@return boolean
 local function valid_buffer(buf)
     local bufname = vim.api.nvim_buf_get_name(buf)
     return vim.bo[buf].buftype ~= "nofile"
@@ -13,6 +14,7 @@ local function valid_buffer(buf)
         )
 end
 
+---@return string
 local function get_mason_installation()
     local mason_installation = vim.fs.joinpath(vim.fn.stdpath("data") --[[@as string]], "mason", "bin", "roslyn")
     return vim.uv.os_uname().sysname == "Windows_NT" and string.format("%s.cmd", mason_installation)
