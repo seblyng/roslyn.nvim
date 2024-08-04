@@ -135,20 +135,7 @@ require("roslyn").setup({
 
 ## Usage
 
-1. The plugin will look for a `.sln` file in the parent
-   directories of cwd, until it finds one.
-2. If only one `.sln` file is found, it will be used to start the server.
-   If multiple `.sln`s are found, you have to run `CSTarget` to choose the proper solution file.
-3. You should see two notifications, if everything goes well. The first one will say
-   `Roslyn client initialized for target <target>`. It means the server is
-   running and it has started to index your `sln`. The second one will say
-   `Roslyn project initialization complete`. It means that the server has finished indexing of
-   your `sln`.
-4. The LSP features (like Go To Definition) will be available only after the mentioned notifications get shown.
-
-## Notes
-
-- Roslyn requires that `.csproj` projects are referenced by the matched `.sln` it discovers. Otherwise, it won't discover and load suggestions for `.cs` files under the `.csproj`. Make sure you add your projects to the `.sln` (`dotnet sln add <path-to-csproj>`) or Roslyn won't load up properly!
+If you have multiple solutions, this plugin tries to guess which one to use. If it doesn't manage to guess, or that it is wrong, you can change the target with `:CSTarget` command
 
 ## Features
 
