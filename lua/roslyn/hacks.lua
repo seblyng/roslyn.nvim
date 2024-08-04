@@ -26,7 +26,7 @@ function M.with_filtered_watchers(handler, filewatching)
                         if base_uri ~= nil then
                             local base_dir = vim.uri_to_fname(base_uri)
                             -- use luv to check if baseDir is a directory
-                            local stat = vim.loop.fs_stat(base_dir)
+                            local stat = vim.uv.fs_stat(base_dir)
                             return stat ~= nil and stat.type == "directory"
                         end
                     end
