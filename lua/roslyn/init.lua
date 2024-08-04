@@ -72,7 +72,7 @@ local known_solutions = {}
 ---@param roslyn_config InternalRoslynNvimConfig
 ---@param on_init fun(client: vim.lsp.Client)
 local function lsp_start(pipe, root_with_files, roslyn_config, on_init)
-    local config = roslyn_config.config
+    local config = vim.deepcopy(roslyn_config.config)
     config.name = "roslyn"
     config.cmd = vim.lsp.rpc.connect(pipe)
     config.root_dir = root_with_files.directory
