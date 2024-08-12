@@ -236,9 +236,7 @@ end
 
 ---@param config? RoslynNvimConfig
 function M.setup(config)
-    pcall(function()
-        vim.treesitter.language.register("c_sharp", "csharp")
-    end)
+    vim.treesitter.language.register("c_sharp", "csharp")
 
     ---@type InternalRoslynNvimConfig
     local default_config = {
