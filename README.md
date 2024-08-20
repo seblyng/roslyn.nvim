@@ -49,6 +49,7 @@ require("roslyn").setup({
     -- However, in `hacks.lua` I will also just don't start off any watchers, which seems to make the server
     -- a lot faster to initialize.
     filewatching = true,
+    offset_encoding = nil, -- add your preferred client offset_encoding here since on_init is overwritten
 })
 ```
 
