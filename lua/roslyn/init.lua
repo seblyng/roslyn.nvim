@@ -192,16 +192,8 @@ end
 ---@param cmd string[]
 ---@param sln string[]
 ---@param roslyn_config InternalRoslynNvimConfig
-local function start_with_solution(bufnr, cmd, sln, roslyn_config)
-    local function on_init(target)
-        return function(client)
-            vim.notify("Initializing Roslyn client for " .. target, vim.log.levels.INFO)
-            client.notify("solution/open", {
-                solution = vim.uri_from_fname(target),
-            })
-        end
-    end
-
+---@param on_init fun(target: string): fun(client: vim.lsp.Client)
+local function start_with_solution(bufnr, cmd, sln, roslyn_config, on_init)
     -- Give the user an option to change the solution file if we find more than one
     -- Or the selected solution file is not a part of the solution files found.
     -- If the solution file is not a part of the found solution files, it may be
@@ -271,6 +263,16 @@ function M.setup(config)
 
     local cmd = get_cmd(roslyn_config.exe)
 
+    ---@param target string
+    local function on_init_sln(target)
+        return function(client)
+            vim.notify("Initializing Roslyn client for " .. target, vim.log.levels.INFO)
+            client.notify("solution/open", {
+                solution = vim.uri_from_fname(target),
+            })
+        end
+    end
+
     vim.api.nvim_create_autocmd({ "BufEnter" }, {
         group = vim.api.nvim_create_augroup("Roslyn", { clear = true }),
         pattern = "*.cs",
@@ -281,12 +283,19 @@ function M.setup(config)
 
             local sln_files = utils.get_solution_files(opt.buf)
             if sln_files and not vim.tbl_isempty(sln_files) then
-                return start_with_solution(opt.buf, cmd, sln_files, roslyn_config)
+                return start_with_solution(opt.buf, cmd, sln_files, roslyn_config, on_init_sln)
             end
 
             local csproj = utils.get_project_files(opt.buf)
             if csproj then
                 return start_with_projects(cmd, csproj, roslyn_config)
+            end
+
+            -- Fallback to the selected solution if we don't find anything.
+            -- This makes it work kind of like vscode for the decoded files
+            if selected_solution then
+                local sln_dir = vim.fs.root(opt.buf, selected_solution) --[[@as string]]
+                return wrap_roslyn(cmd, sln_dir, roslyn_config, on_init_sln(selected_solution))
             end
         end,
     })
