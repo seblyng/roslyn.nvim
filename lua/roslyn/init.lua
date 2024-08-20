@@ -85,6 +85,7 @@ local function lsp_start(pipe, root_dir, roslyn_config, on_init)
         ),
         ["workspace/projectInitializationComplete"] = function()
             vim.notify("Roslyn project initialization complete", vim.log.levels.INFO)
+            vim.api.nvim_exec_autocmds("User", { pattern = "RoslynInitComplete" })
         end,
         ["workspace/_roslyn_projectHasUnresolvedDependencies"] = function()
             vim.notify("Detected missing dependencies. Run dotnet restore command.", vim.log.levels.ERROR)
