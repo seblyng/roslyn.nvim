@@ -114,6 +114,7 @@ local function lsp_start(pipe, root_dir, roslyn_config, on_init)
         end,
     }, config.handlers or {})
     config.on_init = function(client)
+        client.offset_encoding = roslyn_config.offset_encoding or client.offset_encoding
         on_init(client)
 
         local commands = require("roslyn.commands")
@@ -158,11 +159,13 @@ end
 
 ---@class InternalRoslynNvimConfig
 ---@field filewatching boolean
+---@field offset_encoding? string
 ---@field exe? string|string[]
 ---@field config vim.lsp.ClientConfig
 ---
 ---@class RoslynNvimConfig
 ---@field filewatching? boolean
+---@field offset_encoding? string
 ---@field exe? string|string[]
 ---@field config? vim.lsp.ClientConfig
 
@@ -246,6 +249,7 @@ function M.setup(config)
     ---@type InternalRoslynNvimConfig
     local default_config = {
         filewatching = true,
+        offset_encoding = nil,
         exe = nil,
         ---@diagnostic disable-next-line: missing-fields
         config = {},
