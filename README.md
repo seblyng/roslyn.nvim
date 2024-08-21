@@ -140,3 +140,7 @@ If you have multiple solutions, this plugin tries to guess which one to use. If 
 ## Features
 
 Please note that some features from the [VS Code extension](https://github.com/dotnet/vscode-csharp) might not be supported by this plugin.
+
+## Notes
+
+If you want to get the current solution, it is stored in a global vim variable `vim.g.roslyn_nvim_selected_solution`
