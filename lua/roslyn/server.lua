@@ -48,23 +48,15 @@ function M.start_server(cmd, with_pipe_name)
         end,
     }, function()
         _pipe_name = nil
-        vim.schedule(function()
-            vim.notify("Roslyn server stopped", vim.log.levels.ERROR)
-        end)
     end)
 end
 
 function M.stop_server()
-    if not _server_object then
-        return
+    if _server_object then
+        _server_object:kill(9)
     end
-
-    _server_object:kill(9)
     _pipe_name = nil
     _server_object = nil
-    vim.schedule(function()
-        vim.notify("Stopping roslyn process", vim.log.levels.INFO)
-    end)
 end
 
 return M
