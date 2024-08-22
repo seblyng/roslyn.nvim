@@ -39,7 +39,7 @@ local function handle_fix_all_code_action(client, data)
                 vim.notify(err.message, vim.log.levels.ERROR)
             end
             if response and response.edit then
-                vim.lsp.util.apply_workspace_edit(response.edit, "utf-8")
+                vim.lsp.util.apply_workspace_edit(response.edit, client.offset_encoding)
             end
         end)
     end)
@@ -79,7 +79,7 @@ function M.nested_code_action(client)
                         vim.notify(err.message, vim.log.levels.ERROR)
                     end
                     if response and response.edit then
-                        vim.lsp.util.apply_workspace_edit(response.edit, "utf-8")
+                        vim.lsp.util.apply_workspace_edit(response.edit, client.offset_encoding)
                     end
                 end)
             end
