@@ -32,7 +32,6 @@ require("roslyn").setup({
         --     - `name`
         --     - `cmd`
         --     - `root_dir`
-        --     - `on_init`
     },
     exe = {
         "dotnet",

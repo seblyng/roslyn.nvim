@@ -109,7 +109,10 @@ local function lsp_start(pipe, root_dir, roslyn_config, on_init)
             return vim.NIL
         end,
     }, config.handlers or {})
-    config.on_init = function(client)
+    config.on_init = function(client, initialize_result)
+        if roslyn_config.config.on_init then
+            roslyn_config.config.on_init(client, initialize_result)
+        end
         on_init(client)
 
         local commands = require("roslyn.commands")
@@ -117,12 +120,15 @@ local function lsp_start(pipe, root_dir, roslyn_config, on_init)
         commands.nested_code_action(client)
     end
 
-    config.on_exit = function(_, _, _)
+    config.on_exit = function(code, signal, client_id)
         vim.g.roslyn_nvim_selected_solution = nil
         server.stop_server()
         vim.schedule(function()
             vim.notify("Roslyn server stopped", vim.log.levels.INFO)
         end)
+        if roslyn_config.config.on_exit then
+            roslyn_config.config.on_exit(code, signal, client_id)
+        end
     end
 
     vim.lsp.start(config, {
