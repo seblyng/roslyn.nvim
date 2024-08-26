@@ -171,11 +171,13 @@ end
 ---@field filewatching boolean
 ---@field exe? string|string[]
 ---@field config vim.lsp.ClientConfig
+---@field choose_sln? fun(solutions: string[]): string?
 ---
 ---@class RoslynNvimConfig
 ---@field filewatching? boolean
 ---@field exe? string|string[]
 ---@field config? vim.lsp.ClientConfig
+---@field choose_sln? fun(solutions: string[]): string?
 
 local M = {}
 
@@ -188,6 +190,25 @@ local function wrap_roslyn(cmd, root_dir, roslyn_config, on_init)
     server.start_server(cmd, function(pipe_name)
         lsp_start(pipe_name, root_dir, roslyn_config, on_init)
     end)
+end
+
+-- If we only have one solution file, then use that.
+-- If the user have provided a hook to select a solution file, use that
+-- If not, we must have multiple, and we try to predict the correct solution file
+---@param bufnr number
+---@param sln string[]
+---@param roslyn_config InternalRoslynNvimConfig
+local function get_sln_file(bufnr, sln, roslyn_config)
+    if #sln == 1 then
+        return sln[1]
+    end
+
+    local chosen = roslyn_config.choose_sln and roslyn_config.choose_sln(sln)
+    if chosen then
+        return chosen
+    end
+
+    return utils.predict_sln_file(bufnr, sln)
 end
 
 ---@param bufnr number
@@ -221,9 +242,7 @@ local function start_with_solution(bufnr, cmd, sln, roslyn_config, on_init)
         return wrap_roslyn(cmd, sln_dir, roslyn_config, on_init(vim.g.roslyn_nvim_selected_solution))
     end
 
-    -- If we only have one solution file, then use that.
-    -- If not, we must have multiple, and we try to predict the correct solution file
-    local sln_file = #sln == 1 and sln[1] or utils.predict_sln_file(bufnr, sln)
+    local sln_file = get_sln_file(bufnr, sln, roslyn_config)
     if sln_file then
         vim.g.roslyn_nvim_selected_solution = sln_file
         local sln_dir = vim.fs.root(bufnr, sln_file) --[[@as string]]
@@ -261,6 +280,7 @@ function M.setup(config)
         exe = nil,
         ---@diagnostic disable-next-line: missing-fields
         config = {},
+        choose_sln = nil,
     }
 
     local roslyn_config = vim.tbl_deep_extend("force", default_config, config or {})

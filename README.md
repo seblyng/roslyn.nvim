@@ -48,6 +48,19 @@ require("roslyn").setup({
     -- However, in `hacks.lua` I will also just don't start off any watchers, which seems to make the server
     -- a lot faster to initialize.
     filewatching = true,
+
+    -- Optional function that takes an array of solutions as the only argument. Return the solution you
+    -- want to use. If it returns `nil`, then it falls back to guessing the solution like normal
+    -- Example:
+    --
+    -- choose_sln = function(sln)
+    --     return vim.iter(sln):find(function(item)
+    --         if string.match(item, "Foo.sln") then
+    --             return item
+    --         end
+    --     end)
+    -- end
+    choose_sln = nil,
 })
 ```
 
