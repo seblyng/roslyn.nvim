@@ -7,8 +7,12 @@ This standalone plugin was necessary because Roslyn uses a [non-standard](https:
 ## ⚡️ Requirements
 
 - Neovim >= 0.10.0
-- Roslyn language server available locally
-- .NET SDK and `dotnet` command available globally
+- Roslyn language server downloaded locally
+- .NET SDK installed and `dotnet` command available
+
+## Demo
+
+https://github.com/user-attachments/assets/a749f6c7-fc87-440c-912d-666d86453bc5
 
 ## 📦 Installation
 
