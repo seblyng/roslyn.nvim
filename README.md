@@ -1,49 +1,75 @@
 # roslyn.nvim
 
-This plugin adds support for the new Roslyn-based C# language server [introduced](https://devblogs.microsoft.com/visualstudio/announcing-csharp-dev-kit-for-visual-studio-code) in the [VS Code C# extension](https://github.com/dotnet/vscode-csharp).
+This is an actively maintained & upgraded [fork](https://github.com/jmederosalvarado/roslyn.nvim) that interacts with the improved & open-source C# [Roslyn](https://github.com/dotnet/roslyn) language server, meant to replace the old and discontinued OmniSharp. This language server is currently used in the [Visual Studio Code C# Extension](https://github.com/dotnet/vscode-csharp), which is shipped with the standard C# Dev Kit.
 
-Requires at least Neovim 0.10
+This standalone plugin was necessary because Roslyn uses a [non-standard](https://github.com/dotnet/roslyn/issues/72871) method of initializing communication with the client and requires additional custom integrations, unlike typical LSP setups in Neovim.
 
-## Setup
+## ⚡️ Requirements
 
-### Install the Roslyn Language Server
+- Neovim >= 0.10.0
+- Roslyn language server available locally
+- .NET SDK and `dotnet` command available globally
 
-1. Navigate to https://dev.azure.com/azure-public/vside/_artifacts/feed/vs-impl to see the latest package feed for `Microsoft.CodeAnalysis.LanguageServer`
-2. Locate the version matching your OS + Arch and click to open it. For example, `Microsoft.CodeAnalysis.LanguageServer.linux-x64` matches Linux-based OS in x64 architecture. Note that some OS/Arch specific packages may have an extra version ahead of the "core" non specific package.
-3. On the package page, click the "Download" button to begin downloading its `.nupkg`
-   a. (Note, if you need to get a copyable link for the download you can obtain it on chrome by then opening the downloads page, right clicking the file just downloaded, and hitting "copy link address"
-4. `.nupkg` files are basically zip archives. In the case of Linux, you can use `unzip` on the downloaded file to unpack it.
-5. Copy the contents of `<zip root>/content/LanguageServer/<yourArch/` to `~/.local/share/nvim/roslyn`
-   a. if you did it right, the file `~/.local/share/nvim/roslyn/Microsoft.CodeAnalysis.LanguageServer.dll` should exist now (along with many other .dlls and etc in that dir).
-   You can also specify a custom path to it in the setup function.
-6. To test it is working, `cd` into the aforementioned roslyn directory and invoke `dotnet Microsoft.CodeAnalysis.LanguageServer.dll --version`. It should output server's version.
+## 📦 Installation
 
-### Install the Plugin
+**Install the Roslyn language server:**
 
-Install `seblj/roslyn.nvim` using your plugin manager.
+1. Navigate to [this feed](https://dev.azure.com/azure-public/vside/_artifacts/feed/vs-impl), search for `Microsoft.CodeAnalysis.LanguageServer` and download the version matching your OS and architecture.
+2. Unzip the downloaded `.nupkg` and copy the contents of `<zip root>/content/LanguageServer/<yourArch>` inside:
+    - **Linux**: `~/.local/share/nvim/roslyn`
+    - **Windows**: `%LOCALAPPDATA%\nvim-data\roslyn`
+   > **_TIP:_** You can also specify a custom path to the roslyn folder in the setup function.
+3. Check if it's working by running `dotnet Microsoft.CodeAnalysis.LanguageServer.dll --version` in the `roslyn` directory.
 
-Example:
+> [!NOTE]  
+> There's currently an open [pull request](https://github.com/mason-org/mason-registry/pull/6330) to add the Roslyn server to [mason](https://github.com/williamboman/mason.nvim), which would greatly improve the experience. If you are interested in this, please react to the original comment, but don't spam the thread with unnecessary comments.
+
+> [!TIP]  
+> For server compatibility check the [roslyn repo](https://github.com/dotnet/roslyn/blob/main/docs/wiki/NuGet-packages.md#versioning)
+
+**Install the plugin with your preferred package manager:**
+
+### [lazy.nvim](https://github.com/folke/lazy.nvim)
+
+
 
 ```lua
-require("roslyn").setup({
+{
+    "seblj/roslyn.nvim",
+    ft = "cs",
+    opts = {
+        -- your configuration comes here; leave empty for default settings
+    }
+}
+```
+
+
+
+## ⚙️ Configuration
+
+The plugin comes with the following defaults:
+```lua
+{
     config = {
-        -- Here you can pass in any options that that you would like to pass to `vim.lsp.start`
-        -- The only options that I explicitly override are, which means won't have any effect of setting here are:
+        -- Here you can pass in any options that that you would like to pass to `vim.lsp.start`.
+        -- Use `:h vim.lsp.ClientConfig` to see all possible options.
+        -- The only options that are overwritten and won't have any effect by setting here:
         --     - `name`
         --     - `cmd`
         --     - `root_dir`
     },
+
     exe = {
         "dotnet",
         vim.fs.joinpath(vim.fn.stdpath("data"), "roslyn", "Microsoft.CodeAnalysis.LanguageServer.dll"),
     },
+
     -- NOTE: Set `filewatching` to false if you experience performance problems.
     -- Defaults to true, since turning it off is a hack.
     -- If you notice that the server is _super_ slow, it is probably because of file watching
-    -- I noticed that neovim became super unresponsive on some large codebases, and that was because
-    -- it schedules the file watching on the event loop.
-    -- This issue went away by disabling that capability. However, roslyn will fallback to its own
-    -- file watching, which can make the server super slow to initialize.
+    -- Neovim becomes super unresponsive on some large codebases, because it schedules the file watching on the event loop.
+    -- This issue goes away by disabling this capability, but roslyn will fallback to its own file watching,
+    -- which can make the server super slow to initialize.
     -- Setting this option to false will indicate to the server that neovim will do the file watching.
     -- However, in `hacks.lua` I will also just don't start off any watchers, which seems to make the server
     -- a lot faster to initialize.
@@ -63,67 +89,125 @@ require("roslyn").setup({
     choose_sln = nil,
 })
 ```
+To configure language server specific settings sent to the server, you can modify the `config.settings` map. 
 
-### Settings
+> [!NOTE]  
+> These settings are not guaranteed to be up-to-date and new ones can appear in the future. Aditionally, not not all settings are shown here, but only the most relevant ones for Neovim. For a full list, visit [this](https://github.com/dotnet/vscode-csharp/blob/main/test/unitTests/configurationMiddleware.test.ts) unit test from the vscode extension and look especially for the ones which **don't** have `vsCodeConfiguration: null`.
 
-Settings can be passed to the setup function. The following settings are available [vscode-csharp unit tests link](https://github.com/dotnet/vscode-csharp/blob/main/test/unitTests/configurationMiddleware.test.ts):
+### Background Analysis
+`csharp|background_analysis`
 
-```
-code_style.formatting.new_line.insert_final_newline
+These settings control the scope of background diagnostics.
 
-csharp|background_analysis.dotnet_analyzer_diagnostics_scope
-csharp|background_analysis.dotnet_compiler_diagnostics_scope
-csharp|code_lens.dotnet_enable_references_code_lens
-csharp|code_lens.dotnet_enable_tests_code_lens
-csharp|code_style.formatting.indentation_and_spacing.indent_size
-csharp|code_style.formatting.indentation_and_spacing.indent_style
-csharp|code_style.formatting.indentation_and_spacing.tab_width
-csharp|code_style.formatting.new_line.end_of_line
-csharp|completion.dotnet_provide_regex_completions
-csharp|completion.dotnet_show_completion_items_from_unimported_namespaces
-csharp|completion.dotnet_show_name_completion_suggestions
-csharp|highlighting.dotnet_highlight_related_json_components
-csharp|highlighting.dotnet_highlight_related_regex_components
-csharp|implement_type.dotnet_insertion_behavior
-csharp|implement_type.dotnet_property_generation_behavior
-csharp|inlay_hints.csharp_enable_inlay_hints_for_implicit_object_creation
-csharp|inlay_hints.csharp_enable_inlay_hints_for_implicit_variable_types
-csharp|inlay_hints.csharp_enable_inlay_hints_for_lambda_parameter_types
-csharp|inlay_hints.csharp_enable_inlay_hints_for_types
-csharp|inlay_hints.dotnet_enable_inlay_hints_for_indexer_parameters
-csharp|inlay_hints.dotnet_enable_inlay_hints_for_literal_parameters
-csharp|inlay_hints.dotnet_enable_inlay_hints_for_object_creation_parameters
-csharp|inlay_hints.dotnet_enable_inlay_hints_for_other_parameters
-csharp|inlay_hints.dotnet_enable_inlay_hints_for_parameters
-csharp|inlay_hints.dotnet_suppress_inlay_hints_for_parameters_that_differ_only_by_suffix
-csharp|inlay_hints.dotnet_suppress_inlay_hints_for_parameters_that_match_argument_name
-csharp|inlay_hints.dotnet_suppress_inlay_hints_for_parameters_that_match_method_intent
-csharp|quick_info.dotnet_show_remarks_in_quick_info
-csharp|symbol_search.dotnet_search_reference_assemblies
+- `background_analysis.dotnet_analyzer_diagnostics_scope`  
+  Scope of the background analysis for .NET analyzer diagnostics.  
+  Expected values: `openFiles`, `fullSolution`, `none`
 
-mystery_language|Highlighting.dotnet_highlight_related_json_components
-mystery_language|background_analysis.dotnet_analyzer_diagnostics_scope
-mystery_language|background_analysis.dotnet_compiler_diagnostics_scope
-mystery_language|code_lens.dotnet_enable_references_code_lens
-mystery_language|code_lens.dotnet_enable_tests_code_lens
-mystery_language|completion.dotnet_provide_regex_completions
-mystery_language|completion.dotnet_show_completion_items_from_unimported_namespaces
-mystery_language|completion.dotnet_show_name_completion_suggestions
-mystery_language|highlighting.dotnet_highlight_related_regex_components
-mystery_language|implement_type.dotnet_insertion_behavior
-mystery_language|implement_type.dotnet_property_generation_behavior
-mystery_language|quick_info.dotnet_show_remarks_in_quick_info
-mystery_language|symbol_search.dotnet_search_reference_assemblies
+- `background_analysis.dotnet_compiler_diagnostics_scope`  
+  Scope of the background analysis for .NET compiler diagnostics.  
+  Expected values: `openFiles`, `fullSolution`, `none`
 
-navigation.dotnet_navigate_to_decompiled_sources
+### Code Lens
+`csharp|code_lens`
 
-text_editor.tab_width
-```
+These settings control the LSP code lens.
 
-Example enabling inlay hints:
+- `dotnet_enable_references_code_lens`  
+  Enable code lens references.  
+  Expected values: `true`, `false`
 
+- `dotnet_enable_tests_code_lens`  
+  Enable tests code lens.  
+  Expected values: `true`, `false`
+
+> [!TIP]
+> You must refresh the code lens yourself. Check `:h vim.lsp.codelens.refresh()` and the example autocmd.
+
+### Completions
+`csharp|completion`
+
+These settings control how the completions behave.
+
+- `dotnet_provide_regex_completions`  
+  Show regular expressions in completion list.  
+  Expected values: `true`, `false`
+
+- `dotnet_show_completion_items_from_unimported_namespaces`  
+  Enables support for showing unimported types and unimported extension methods in completion lists.  
+  Expected values: `true`, `false`
+
+- `dotnet_show_name_completion_suggestions`  
+  Perform automatic object name completion for the members that you have recently selected.  
+  Expected values: `true`, `false`
+
+### Inlay hints
+`csharp|inlay_hints`
+
+These settings control what inlay hints should be displayed.
+
+- `csharp_enable_inlay_hints_for_implicit_object_creation`  
+  Show hints for implicit object creation.  
+  Expected values: `true`, `false`
+
+- `csharp_enable_inlay_hints_for_implicit_variable_types`  
+  Show hints for variables with inferred types.  
+  Expected values: `true`, `false`
+
+- `csharp_enable_inlay_hints_for_lambda_parameter_types`  
+  Show hints for lambda parameter types.  
+  Expected values: `true`, `false`
+
+- `csharp_enable_inlay_hints_for_types`  
+  Display inline type hints.  
+  Expected values: `true`, `false`
+
+- `dotnet_enable_inlay_hints_for_indexer_parameters`  
+  Show hints for indexers.  
+  Expected values: `true`, `false`
+
+- `dotnet_enable_inlay_hints_for_literal_parameters`  
+  Show hints for literals.  
+  Expected values: `true`, `false`
+
+- `dotnet_enable_inlay_hints_for_object_creation_parameters`  
+  Show hints for 'new' expressions.  
+  Expected values: `true`, `false`
+
+- `dotnet_enable_inlay_hints_for_other_parameters`  
+  Show hints for everything else.  
+  Expected values: `true`, `false`
+
+- `dotnet_enable_inlay_hints_for_parameters`  
+  Display inline parameter name hints.  
+  Expected values: `true`, `false`
+
+- `dotnet_suppress_inlay_hints_for_parameters_that_differ_only_by_suffix`  
+  Suppress hints when parameter names differ only by suffix.  
+  Expected values: `true`, `false`  
+
+- `dotnet_suppress_inlay_hints_for_parameters_that_match_argument_name`  
+  Suppress hints when argument matches parameter name.  
+  Expected values: `true`, `false`
+
+- `dotnet_suppress_inlay_hints_for_parameters_that_match_method_intent`  
+  Suppress hints when parameter name matches the method's intent.  
+  Expected values: `true`, `false`
+
+> [!TIP]
+> These won't have any effect if you don't enable inlay hints in your config. Check `:h vim.lsp.inlay_hint.enable()`.
+
+### Symbol search
+`csharp|symbol_search`
+
+This setting controls how the language server should search for symbols.
+
+- `dotnet_search_reference_assemblies`  
+  Search symbols in reference assemblies.  
+  Expected values: `true`, `false`
+
+Example:
 ```lua
-require("roslyn").setup({
+opts = {
     config = {
         settings = {
             ["csharp|inlay_hints"] = {
@@ -140,19 +224,15 @@ require("roslyn").setup({
                 dotnet_suppress_inlay_hints_for_parameters_that_match_argument_name = true,
                 dotnet_suppress_inlay_hints_for_parameters_that_match_method_intent = true,
             },
-        },
-    },
-})
+            ["csharp|code_lens"] = {
+                dotnet_enable_references_code_lens = true,
+            },
+        }
+    }
+}
 ```
 
-## Usage
+## 🚀 Other usage
 
-If you have multiple solutions, this plugin tries to guess which one to use. If it doesn't manage to guess, or that it is wrong, you can change the target with `:CSTarget` command
-
-## Features
-
-Please note that some features from the [VS Code extension](https://github.com/dotnet/vscode-csharp) might not be supported by this plugin.
-
-## Notes
-
-If you want to get the current solution, it is stored in a global vim variable `vim.g.roslyn_nvim_selected_solution`
+  - If you have multiple solutions, this plugin tries to guess which one to use. You can change the target with the `:CSTarget` command.
+  - The current solution is always stored in `vim.g.roslyn_nvim_selected_solution`. You can use this, for example, to display the current solution in your statusline.
