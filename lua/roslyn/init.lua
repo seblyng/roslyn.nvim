@@ -172,7 +172,10 @@ local function wrap_roslyn(cmd, root_dir, roslyn_config, on_init)
 
     server.start_server(cmd, config, function(pipe_name)
         config.cmd = vim.lsp.rpc.connect(pipe_name)
-        server.start(config)
+        local client_id = vim.lsp.start(config)
+        if client_id then
+            server.save_server_object(client_id)
+        end
     end)
 end
 

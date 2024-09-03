@@ -7,16 +7,6 @@ local _current_server_object = nil
 ---@type vim.SystemObj[]
 local _server_objects = {}
 
----@param bufnr (integer|nil) Buffer number to resolve. Defaults to current buffer
----@return integer bufnr
-local function resolve_bufnr(bufnr)
-    vim.validate({ bufnr = { bufnr, "n", true } })
-    if bufnr == nil or bufnr == 0 then
-        return vim.api.nvim_get_current_buf()
-    end
-    return bufnr
-end
-
 --- @param client vim.lsp.Client
 --- @param config vim.lsp.ClientConfig
 --- @return boolean
@@ -99,38 +89,9 @@ function M.stop_server(client_id)
     end
 end
 
-function M.start(config, opts)
-    opts = opts or {}
-    local reuse_client = opts.reuse_client or reuse_client_default
-    local bufnr = resolve_bufnr(opts.bufnr)
-
-    local all_clients = vim.lsp.get_clients()
-
-    for _, client in pairs(all_clients) do
-        if reuse_client(client, config) then
-            if vim.lsp.buf_attach_client(bufnr, client.id) then
-                _server_objects[client.id] = _current_server_object
-                return client.id
-            else
-                return nil
-            end
-        end
-    end
-
-    local client_id, err = vim.lsp.start_client(config)
-    if err then
-        if not opts.silent then
-            vim.notify(err, vim.log.levels.WARN)
-        end
-        return nil
-    end
-
-    if client_id and vim.lsp.buf_attach_client(bufnr, client_id) then
-        _server_objects[client_id] = _current_server_object
-        return client_id
-    end
-
-    return nil
+---@param client_id integer
+function M.save_server_object(client_id)
+    _server_objects[client_id] = _current_server_object
 end
 
 return M
