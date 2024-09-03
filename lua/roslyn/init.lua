@@ -65,15 +65,53 @@ local function get_extendend_capabilities(roslyn_config)
     })
 end
 
----@param pipe string
+---@param exe string|string[]
+---@return string[]
+local function get_cmd(exe)
+    local default_lsp_args =
+        { "--logLevel=Information", "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()) }
+    local mason_installation = get_mason_installation()
+
+    if type(exe) == "string" then
+        return vim.list_extend({ exe }, default_lsp_args)
+    elseif type(exe) == "table" then
+        return vim.list_extend(vim.deepcopy(exe), default_lsp_args)
+    elseif vim.uv.fs_stat(mason_installation) then
+        return vim.list_extend({ mason_installation }, default_lsp_args)
+    else
+        return vim.list_extend({
+            "dotnet",
+            vim.fs.joinpath(
+                vim.fn.stdpath("data") --[[@as string]],
+                "roslyn",
+                "Microsoft.CodeAnalysis.LanguageServer.dll"
+            ),
+        }, default_lsp_args)
+    end
+end
+
+---@class InternalRoslynNvimConfig
+---@field filewatching boolean
+---@field exe? string|string[]
+---@field config vim.lsp.ClientConfig
+---@field choose_sln? fun(solutions: string[]): string?
+---
+---@class RoslynNvimConfig
+---@field filewatching? boolean
+---@field exe? string|string[]
+---@field config? vim.lsp.ClientConfig
+---@field choose_sln? fun(solutions: string[]): string?
+
+local M = {}
+
+---Runs roslyn server (if not running already) and then lsp_start
+---@param cmd string[]
 ---@param root_dir string
 ---@param roslyn_config InternalRoslynNvimConfig
----@param type "sln" | "project"
 ---@param on_init fun(client: vim.lsp.Client)
-local function lsp_start(pipe, root_dir, roslyn_config, type, on_init)
+local function wrap_roslyn(cmd, root_dir, roslyn_config, on_init)
     local config = vim.deepcopy(roslyn_config.config)
     config.name = "roslyn"
-    config.cmd = vim.lsp.rpc.connect(pipe)
     config.root_dir = root_dir
     config.handlers = vim.tbl_deep_extend("force", {
         ["client/registerCapability"] = require("roslyn.hacks").with_filtered_watchers(
@@ -123,7 +161,7 @@ local function lsp_start(pipe, root_dir, roslyn_config, type, on_init)
 
     config.on_exit = function(code, signal, client_id)
         vim.g.roslyn_nvim_selected_solution = nil
-        server.stop_server()
+        server.stop_server(client_id)
         vim.schedule(function()
             vim.notify("Roslyn server stopped", vim.log.levels.INFO)
         end)
@@ -132,68 +170,9 @@ local function lsp_start(pipe, root_dir, roslyn_config, type, on_init)
         end
     end
 
-    local lsp_start_opts = type == "project" and {}
-        or {
-            reuse_client = function(client, _config)
-                if vim.g.roslyn_nvim_selected_solution and client.name == _config.name then
-                    return true
-                end
-
-                return false
-            end,
-        }
-
-    vim.lsp.start(config, lsp_start_opts)
-end
-
----@param exe string|string[]
----@return string[]
-local function get_cmd(exe)
-    local default_lsp_args =
-        { "--logLevel=Information", "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()) }
-    local mason_installation = get_mason_installation()
-
-    if type(exe) == "string" then
-        return vim.list_extend({ exe }, default_lsp_args)
-    elseif type(exe) == "table" then
-        return vim.list_extend(vim.deepcopy(exe), default_lsp_args)
-    elseif vim.uv.fs_stat(mason_installation) then
-        return vim.list_extend({ mason_installation }, default_lsp_args)
-    else
-        return vim.list_extend({
-            "dotnet",
-            vim.fs.joinpath(
-                vim.fn.stdpath("data") --[[@as string]],
-                "roslyn",
-                "Microsoft.CodeAnalysis.LanguageServer.dll"
-            ),
-        }, default_lsp_args)
-    end
-end
-
----@class InternalRoslynNvimConfig
----@field filewatching boolean
----@field exe? string|string[]
----@field config vim.lsp.ClientConfig
----@field choose_sln? fun(solutions: string[]): string?
----
----@class RoslynNvimConfig
----@field filewatching? boolean
----@field exe? string|string[]
----@field config? vim.lsp.ClientConfig
----@field choose_sln? fun(solutions: string[]): string?
-
-local M = {}
-
----Runs roslyn server (if not running already) and then lsp_start
----@param cmd string[]
----@param root_dir string
----@param roslyn_config InternalRoslynNvimConfig
----@param type "sln" | "project"
----@param on_init fun(client: vim.lsp.Client)
-local function wrap_roslyn(cmd, root_dir, roslyn_config, type, on_init)
-    server.start_server(cmd, function(pipe_name)
-        lsp_start(pipe_name, root_dir, roslyn_config, type, on_init)
+    server.start_server(cmd, config, function(pipe_name)
+        config.cmd = vim.lsp.rpc.connect(pipe_name)
+        server.start(config)
     end)
 end
 
@@ -236,7 +215,7 @@ local function start_with_solution(bufnr, cmd, sln, roslyn_config, on_init)
                 vim.lsp.stop_client(vim.lsp.get_clients({ name = "roslyn" }), true)
                 vim.g.roslyn_nvim_selected_solution = file
                 local dir = vim.fs.root(0, file) --[[@as string]]
-                wrap_roslyn(cmd, dir, roslyn_config, "sln", on_init(file))
+                wrap_roslyn(cmd, dir, roslyn_config, on_init(file))
             end)
         end, { desc = "Selects the sln file for the buffer: " .. bufnr })
     end
@@ -245,7 +224,7 @@ local function start_with_solution(bufnr, cmd, sln, roslyn_config, on_init)
     if sln_file then
         vim.g.roslyn_nvim_selected_solution = sln_file
         local sln_dir = vim.fs.root(bufnr, sln_file) --[[@as string]]
-        return wrap_roslyn(cmd, sln_dir, roslyn_config, "sln", on_init(sln_file))
+        return wrap_roslyn(cmd, sln_dir, roslyn_config, on_init(sln_file))
     end
 
     -- If we are here, then we
@@ -259,7 +238,7 @@ end
 ---@param csproj RoslynNvimDirectoryWithFiles
 ---@param roslyn_config InternalRoslynNvimConfig
 local function start_with_projects(cmd, csproj, roslyn_config)
-    wrap_roslyn(cmd, csproj.directory, roslyn_config, "project", function(client)
+    wrap_roslyn(cmd, csproj.directory, roslyn_config, function(client)
         vim.notify("Initializing Roslyn client for projects", vim.log.levels.INFO)
         client.notify("project/open", {
             projects = vim.tbl_map(function(file)
@@ -324,7 +303,7 @@ function M.setup(config)
             -- This makes it work kind of like vscode for the decoded files
             if vim.g.roslyn_nvim_selected_solution then
                 local sln_dir = vim.fs.root(opt.buf, vim.g.roslyn_nvim_selected_solution) --[[@as string]]
-                return wrap_roslyn(cmd, sln_dir, roslyn_config, "sln", on_init_sln(vim.g.roslyn_nvim_selected_solution))
+                return wrap_roslyn(cmd, sln_dir, roslyn_config, on_init_sln(vim.g.roslyn_nvim_selected_solution))
             end
         end,
     })
