@@ -236,12 +236,6 @@ local function start_with_solution(bufnr, cmd, sln, roslyn_config, on_init)
         end, { desc = "Selects the sln file for the buffer: " .. bufnr })
     end
 
-    -- Always prefer the currently selected solution file
-    if vim.g.roslyn_nvim_selected_solution then
-        local sln_dir = vim.fs.root(bufnr, vim.g.roslyn_nvim_selected_solution) --[[@as string]]
-        return wrap_roslyn(cmd, sln_dir, roslyn_config, on_init(vim.g.roslyn_nvim_selected_solution))
-    end
-
     local sln_file = get_sln_file(bufnr, sln, roslyn_config)
     if sln_file then
         vim.g.roslyn_nvim_selected_solution = sln_file
@@ -304,6 +298,11 @@ function M.setup(config)
         callback = function(opt)
             if not valid_buffer(opt.buf) then
                 return
+            end
+
+            local csproj_files = utils.try_get_csproj_files(opt.buf)
+            if csproj_files then
+                return start_with_projects(cmd, csproj_files, roslyn_config)
             end
 
             local sln_files = utils.get_solution_files(opt.buf)

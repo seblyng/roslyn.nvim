@@ -26,6 +26,45 @@ function M.get_project_files(buffer)
     }
 end
 
+--TODO: Lot of duplication and not good for method that recursively search the filesystem
+---Tries to get csproj files recursively from the current directory.
+---If we open a file that is not a child of the current directory, then
+---we return `nil` as we haven't found the project files for that.
+---Fallback to using normal behaviour to check solution and csproj files like before
+---@param bufnr number
+---@return RoslynNvimDirectoryWithFiles?
+function M.try_get_csproj_files(bufnr)
+    local found = false
+    local bufname = vim.api.nvim_buf_get_name(bufnr)
+
+    local files = vim.fs.find(function(name, path)
+        if bufname == vim.fs.joinpath(path, name) then
+            found = true
+        end
+
+        return name:match("%.csproj$") or name:match("%.sln$")
+    end, { type = "file", limit = math.huge })
+
+    local csproj_files = vim.iter(files)
+        :filter(function(it)
+            return it:match("%.csproj$")
+        end)
+        :totable()
+
+    if not found or #files ~= #csproj_files or #files < 1 then
+        return nil
+    end
+
+    local directory = vim.fs.root(bufnr, function(name)
+        return name:match("%.csproj$")
+    end)
+
+    return {
+        directory = directory,
+        files = files,
+    }
+end
+
 ---Find the solution file from the current buffer.
 ---Recursively see if we have any other solution files, to potentially
 ---give th user an option to choose which solution file to use
