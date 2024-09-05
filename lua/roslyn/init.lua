@@ -68,8 +68,9 @@ end
 ---@param pipe string
 ---@param root_dir string
 ---@param roslyn_config InternalRoslynNvimConfig
+---@param type "sln" | "project"
 ---@param on_init fun(client: vim.lsp.Client)
-local function lsp_start(pipe, root_dir, roslyn_config, on_init)
+local function lsp_start(pipe, root_dir, roslyn_config, type, on_init)
     local config = vim.deepcopy(roslyn_config.config)
     config.name = "roslyn"
     config.cmd = vim.lsp.rpc.connect(pipe)
@@ -131,15 +132,18 @@ local function lsp_start(pipe, root_dir, roslyn_config, on_init)
         end
     end
 
-    vim.lsp.start(config, {
-        reuse_client = function(client, _config)
-            if vim.g.roslyn_nvim_selected_solution and client.name == _config.name then
-                return true
-            end
+    local lsp_start_opts = type == "project" and {}
+        or {
+            reuse_client = function(client, _config)
+                if vim.g.roslyn_nvim_selected_solution and client.name == _config.name then
+                    return true
+                end
 
-            return false
-        end,
-    })
+                return false
+            end,
+        }
+
+    vim.lsp.start(config, lsp_start_opts)
 end
 
 ---@param exe string|string[]
@@ -185,10 +189,11 @@ local M = {}
 ---@param cmd string[]
 ---@param root_dir string
 ---@param roslyn_config InternalRoslynNvimConfig
+---@param type "sln" | "project"
 ---@param on_init fun(client: vim.lsp.Client)
-local function wrap_roslyn(cmd, root_dir, roslyn_config, on_init)
+local function wrap_roslyn(cmd, root_dir, roslyn_config, type, on_init)
     server.start_server(cmd, function(pipe_name)
-        lsp_start(pipe_name, root_dir, roslyn_config, on_init)
+        lsp_start(pipe_name, root_dir, roslyn_config, type, on_init)
     end)
 end
 
@@ -231,22 +236,16 @@ local function start_with_solution(bufnr, cmd, sln, roslyn_config, on_init)
                 vim.lsp.stop_client(vim.lsp.get_clients({ name = "roslyn" }), true)
                 vim.g.roslyn_nvim_selected_solution = file
                 local dir = vim.fs.root(0, file) --[[@as string]]
-                wrap_roslyn(cmd, dir, roslyn_config, on_init(file))
+                wrap_roslyn(cmd, dir, roslyn_config, "sln", on_init(file))
             end)
         end, { desc = "Selects the sln file for the buffer: " .. bufnr })
-    end
-
-    -- Always prefer the currently selected solution file
-    if vim.g.roslyn_nvim_selected_solution then
-        local sln_dir = vim.fs.root(bufnr, vim.g.roslyn_nvim_selected_solution) --[[@as string]]
-        return wrap_roslyn(cmd, sln_dir, roslyn_config, on_init(vim.g.roslyn_nvim_selected_solution))
     end
 
     local sln_file = get_sln_file(bufnr, sln, roslyn_config)
     if sln_file then
         vim.g.roslyn_nvim_selected_solution = sln_file
         local sln_dir = vim.fs.root(bufnr, sln_file) --[[@as string]]
-        return wrap_roslyn(cmd, sln_dir, roslyn_config, on_init(sln_file))
+        return wrap_roslyn(cmd, sln_dir, roslyn_config, "sln", on_init(sln_file))
     end
 
     -- If we are here, then we
@@ -260,7 +259,7 @@ end
 ---@param csproj RoslynNvimDirectoryWithFiles
 ---@param roslyn_config InternalRoslynNvimConfig
 local function start_with_projects(cmd, csproj, roslyn_config)
-    wrap_roslyn(cmd, csproj.directory, roslyn_config, function(client)
+    wrap_roslyn(cmd, csproj.directory, roslyn_config, "project", function(client)
         vim.notify("Initializing Roslyn client for projects", vim.log.levels.INFO)
         client.notify("project/open", {
             projects = vim.tbl_map(function(file)
@@ -306,6 +305,11 @@ function M.setup(config)
                 return
             end
 
+            local csproj_files = utils.try_get_csproj_files(opt.buf)
+            if csproj_files then
+                return start_with_projects(cmd, csproj_files, roslyn_config)
+            end
+
             local sln_files = utils.get_solution_files(opt.buf)
             if sln_files and not vim.tbl_isempty(sln_files) then
                 return start_with_solution(opt.buf, cmd, sln_files, roslyn_config, on_init_sln)
@@ -320,7 +324,7 @@ function M.setup(config)
             -- This makes it work kind of like vscode for the decoded files
             if vim.g.roslyn_nvim_selected_solution then
                 local sln_dir = vim.fs.root(opt.buf, vim.g.roslyn_nvim_selected_solution) --[[@as string]]
-                return wrap_roslyn(cmd, sln_dir, roslyn_config, on_init_sln(vim.g.roslyn_nvim_selected_solution))
+                return wrap_roslyn(cmd, sln_dir, roslyn_config, "sln", on_init_sln(vim.g.roslyn_nvim_selected_solution))
             end
         end,
     })
