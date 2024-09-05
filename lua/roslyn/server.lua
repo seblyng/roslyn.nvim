@@ -11,20 +11,9 @@ local _server_objects = {}
 --- @param config vim.lsp.ClientConfig
 --- @return boolean
 local function reuse_client_default(client, config)
-    if client.name ~= config.name then
-        return false
-    end
-
-    if config.root_dir then
-        for _, dir in ipairs(client.workspace_folders or {}) do
-            -- note: do not need to check client.root_dir since that should be client.workspace_folders[1]
-            if config.root_dir == dir.name then
-                return true
-            end
-        end
-    end
-
-    return false
+    return vim.iter(client.workspace_folders or {}):any(function(it)
+        return config.root_dir == it.name
+    end)
 end
 
 local M = {}
@@ -33,7 +22,7 @@ local M = {}
 ---@param config vim.lsp.ClientConfig Configuration for the server.
 ---@param with_pipe_name fun(pipe_name: string): nil A function to execute after server start and pipe_name is known
 function M.start_server(cmd, config, with_pipe_name)
-    local all_clients = vim.lsp.get_clients()
+    local all_clients = vim.lsp.get_clients({ name = "roslyn" })
     for _, client in pairs(all_clients) do
         if reuse_client_default(client, config) and _pipe_names[config.root_dir] then
             return with_pipe_name(_pipe_names[config.root_dir])
