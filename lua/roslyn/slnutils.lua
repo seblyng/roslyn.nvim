@@ -1,5 +1,32 @@
 local M = {}
 
+--- Recursively searches for files with a specific extension within a directory range.
+--- The search starts at the 'from' directory and continues until the 'to' directory.
+--- Only files matching the provided extension are returned.
+---
+--- @param from string The starting directory path for the search.
+--- @param to string? The ending directory path to stop the search. (Cannot contain '/' in the end)
+--- @param extension string The file extension to look for (e.g., ".sln").
+---
+--- @return string[] List of file paths that match the specified extension.
+local function find_files_with_extension(from, to, extension)
+    local matches = {}
+
+    for dir in vim.fs.parents(from) do
+        if dir == to then
+            break
+        end
+
+        for entry, type in vim.fs.dir(dir) do
+            if type == "file" and vim.endswith(entry, extension) then
+                matches[#matches + 1] = vim.fs.normalize(vim.fs.joinpath(dir, entry))
+            end
+        end
+    end
+
+    return matches
+end
+
 ---@class RoslynNvimDirectoryWithFiles
 ---@field directory string
 ---@field files string[]
@@ -26,48 +53,37 @@ function M.get_project_files(buffer)
     }
 end
 
---TODO: Lot of duplication and not good for method that recursively search the filesystem
----Tries to get csproj files recursively from the current directory.
----If we open a file that is not a child of the current directory, then
----we return `nil` as we haven't found the project files for that.
----Fallback to using normal behaviour to check solution and csproj files like before
----@param bufnr number
----@return RoslynNvimDirectoryWithFiles?
-function M.try_get_csproj_files(bufnr)
-    local found = false
-    local bufname = vim.api.nvim_buf_get_name(bufnr)
+--- Attempts to find `.csproj` files in the current working directory (CWD).
+--- This function searches recursively through the files in the CWD.
+--- If a `.csproj` file is found, it returns the directory path and a list of matching files.
+--- If no `.csproj` files are found or the file is outside the CWD, `nil` is returned.
+--- Falls back to normal behavior for checking solution and project files if no match is found.
+---
+--- @return RoslynNvimDirectoryWithFiles? A table containing the directory path and a list of found `.csproj` files, or `nil` if none are found.
+function M.try_get_csproj_files()
+    local cwd = vim.fn.getcwd()
 
-    local files = vim.fs.find(function(name, path)
-        if bufname == vim.fs.joinpath(path, name) then
-            found = true
+    local csprojs = {}
+
+    for entry, entry_type in vim.fs.dir(cwd) do
+        if entry_type == "file" and vim.endswith(entry, ".csproj") then
+            csprojs[#csprojs + 1] = vim.fs.normalize(vim.fs.joinpath(cwd, entry))
         end
-
-        return name:match("%.csproj$") or name:match("%.sln$")
-    end, { type = "file", limit = math.huge })
-
-    local csproj_files = vim.iter(files)
-        :filter(function(it)
-            return it:match("%.csproj$")
-        end)
-        :totable()
-
-    if not found or #files ~= #csproj_files or #files < 1 then
-        return nil
     end
 
-    local directory = vim.fs.root(bufnr, function(name)
-        return name:match("%.csproj$")
-    end)
+    if #csprojs > 0 then
+        return {
+            directory = cwd,
+            files = csprojs,
+        }
+    end
 
-    return {
-        directory = directory,
-        files = files,
-    }
+    return nil
 end
 
 ---Find the solution file from the current buffer.
 ---Recursively see if we have any other solution files, to potentially
----give th user an option to choose which solution file to use
+---give the user an option to choose which solution file to use
 ---@param buffer integer
 ---@return string[]?
 function M.get_solution_files(buffer)
@@ -79,9 +95,7 @@ function M.get_solution_files(buffer)
         return nil
     end
 
-    return vim.fs.find(function(name, _)
-        return name:match("%.sln$")
-    end, { type = "file", limit = math.huge, path = directory })
+    return find_files_with_extension(vim.api.nvim_buf_get_name(buffer), vim.fs.basename(directory), ".sln")
 end
 
 --- Find a path to sln file that is likely to be the one that the current buffer
