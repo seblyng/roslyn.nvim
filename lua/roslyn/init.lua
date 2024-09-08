@@ -216,8 +216,7 @@ local function start_with_solution(bufnr, cmd, sln, roslyn_config, on_init)
             vim.ui.select(sln, { prompt = "Select target solution: " }, function(file)
                 vim.lsp.stop_client(vim.lsp.get_clients({ name = "roslyn" }), true)
                 vim.g.roslyn_nvim_selected_solution = file
-                local dir = vim.fs.root(0, vim.fs.basename(file)) --[[@as string]]
-                lsp_start(cmd, dir, roslyn_config, on_init(file))
+                lsp_start(cmd, vim.fs.dirname(file), roslyn_config, on_init(file))
             end)
         end, { desc = "Selects the sln file for the buffer: " .. bufnr })
     end
@@ -225,8 +224,7 @@ local function start_with_solution(bufnr, cmd, sln, roslyn_config, on_init)
     local sln_file = get_sln_file(bufnr, sln, roslyn_config)
     if sln_file then
         vim.g.roslyn_nvim_selected_solution = sln_file
-        local sln_dir = vim.fs.root(bufnr, vim.fs.basename(sln_file)) --[[@as string]]
-        return lsp_start(cmd, sln_dir, roslyn_config, on_init(sln_file))
+        return lsp_start(cmd, vim.fs.dirname(sln_file), roslyn_config, on_init(sln_file))
     end
 
     -- If we are here, then we
@@ -304,7 +302,7 @@ function M.setup(config)
             -- Fallback to the selected solution if we don't find anything.
             -- This makes it work kind of like vscode for the decoded files
             if vim.g.roslyn_nvim_selected_solution then
-                local sln_dir = vim.fs.root(opt.buf, vim.fs.basename(vim.g.roslyn_nvim_selected_solution)) --[[@as string]]
+                local sln_dir = vim.fs.dirname(vim.g.roslyn_nvim_selected_solution)
                 return lsp_start(cmd, sln_dir, roslyn_config, on_init_sln(vim.g.roslyn_nvim_selected_solution))
             end
         end,
