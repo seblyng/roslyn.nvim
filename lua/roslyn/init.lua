@@ -66,10 +66,11 @@ local function get_extendend_capabilities(roslyn_config)
 end
 
 ---@param cmd string[]
+---@param bufnr integer
 ---@param root_dir string
 ---@param roslyn_config InternalRoslynNvimConfig
 ---@param on_init fun(client: vim.lsp.Client)
-local function lsp_start(cmd, root_dir, roslyn_config, on_init)
+local function lsp_start(cmd, bufnr, root_dir, roslyn_config, on_init)
     local config = vim.deepcopy(roslyn_config.config)
     config.name = "roslyn"
     config.root_dir = root_dir
@@ -132,7 +133,9 @@ local function lsp_start(cmd, root_dir, roslyn_config, on_init)
 
     server.start_server(cmd, config, function(pipe_name)
         config.cmd = vim.lsp.rpc.connect(pipe_name)
-        local client_id = vim.lsp.start(config)
+        local client_id = vim.lsp.start(config, {
+            bufnr = bufnr,
+        })
         if client_id then
             server.save_server_object(client_id)
         end
@@ -216,7 +219,7 @@ local function start_with_solution(bufnr, cmd, sln, roslyn_config, on_init)
             vim.ui.select(sln, { prompt = "Select target solution: " }, function(file)
                 vim.lsp.stop_client(vim.lsp.get_clients({ name = "roslyn" }), true)
                 vim.g.roslyn_nvim_selected_solution = file
-                lsp_start(cmd, vim.fs.dirname(file), roslyn_config, on_init(file))
+                lsp_start(cmd, bufnr, vim.fs.dirname(file), roslyn_config, on_init(file))
             end)
         end, { desc = "Selects the sln file for the buffer: " .. bufnr })
     end
@@ -224,7 +227,7 @@ local function start_with_solution(bufnr, cmd, sln, roslyn_config, on_init)
     local sln_file = get_sln_file(bufnr, sln, roslyn_config)
     if sln_file then
         vim.g.roslyn_nvim_selected_solution = sln_file
-        return lsp_start(cmd, vim.fs.dirname(sln_file), roslyn_config, on_init(sln_file))
+        return lsp_start(cmd, bufnr, vim.fs.dirname(sln_file), roslyn_config, on_init(sln_file))
     end
 
     -- If we are here, then we
@@ -235,10 +238,11 @@ local function start_with_solution(bufnr, cmd, sln, roslyn_config, on_init)
 end
 
 ---@param cmd string[]
+---@param bufnr integer
 ---@param csproj RoslynNvimDirectoryWithFiles
 ---@param roslyn_config InternalRoslynNvimConfig
-local function start_with_projects(cmd, csproj, roslyn_config)
-    lsp_start(cmd, csproj.directory, roslyn_config, function(client)
+local function start_with_projects(cmd, bufnr, csproj, roslyn_config)
+    lsp_start(cmd, bufnr, csproj.directory, roslyn_config, function(client)
         vim.notify("Initializing Roslyn client for projects", vim.log.levels.INFO)
         client.notify("project/open", {
             projects = vim.tbl_map(function(file)
@@ -286,7 +290,7 @@ function M.setup(config)
 
             local csproj_files = utils.try_get_csproj_files(opt.buf)
             if csproj_files then
-                return start_with_projects(cmd, csproj_files, roslyn_config)
+                return start_with_projects(cmd, opt.buf, csproj_files, roslyn_config)
             end
 
             local sln_files = utils.get_solution_files(opt.buf)
@@ -296,14 +300,14 @@ function M.setup(config)
 
             local csproj = utils.get_project_files(opt.buf)
             if csproj then
-                return start_with_projects(cmd, csproj, roslyn_config)
+                return start_with_projects(cmd, opt.buf, csproj, roslyn_config)
             end
 
             -- Fallback to the selected solution if we don't find anything.
             -- This makes it work kind of like vscode for the decoded files
             if vim.g.roslyn_nvim_selected_solution then
                 local sln_dir = vim.fs.dirname(vim.g.roslyn_nvim_selected_solution)
-                return lsp_start(cmd, sln_dir, roslyn_config, on_init_sln(vim.g.roslyn_nvim_selected_solution))
+                return lsp_start(cmd, opt.buf, sln_dir, roslyn_config, on_init_sln(vim.g.roslyn_nvim_selected_solution))
             end
         end,
     })
