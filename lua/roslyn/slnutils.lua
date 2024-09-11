@@ -57,7 +57,9 @@ function M.try_get_csproj_files()
 
     local csprojs = find_files_with_extension(cwd, ".csproj")
 
-    if #csprojs > 0 then
+    local solutions = find_files_with_extension(cwd, ".sln")
+
+    if #csprojs > 0 and #solutions == 0 then
         return {
             directory = cwd,
             files = csprojs,
