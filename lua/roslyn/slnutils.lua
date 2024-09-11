@@ -1,26 +1,18 @@
 local M = {}
 
---- Recursively searches for files with a specific extension within a directory range.
---- The search starts at the 'from' directory and continues until the 'to' directory.
+--- Searches for files with a specific extension within a directory.
 --- Only files matching the provided extension are returned.
 ---
---- @param from string The starting directory path for the search.
---- @param to string? The ending directory path to stop the search. (Cannot contain '/' in the end)
+--- @param dir string The directory path for the search.
 --- @param extension string The file extension to look for (e.g., ".sln").
 ---
 --- @return string[] List of file paths that match the specified extension.
-local function find_files_with_extension(from, to, extension)
+local function find_files_with_extension(dir, extension)
     local matches = {}
 
-    for dir in vim.fs.parents(from) do
-        if dir == to then
-            break
-        end
-
-        for entry, type in vim.fs.dir(dir) do
-            if type == "file" and vim.endswith(entry, extension) then
-                matches[#matches + 1] = vim.fs.normalize(vim.fs.joinpath(dir, entry))
-            end
+    for entry, type in vim.fs.dir(dir) do
+        if type == "file" and vim.endswith(entry, extension) then
+            matches[#matches + 1] = vim.fs.normalize(vim.fs.joinpath(dir, entry))
         end
     end
 
@@ -63,13 +55,7 @@ end
 function M.try_get_csproj_files()
     local cwd = assert(vim.uv.cwd())
 
-    local csprojs = {}
-
-    for entry, entry_type in vim.fs.dir(cwd) do
-        if entry_type == "file" and vim.endswith(entry, ".csproj") then
-            csprojs[#csprojs + 1] = vim.fs.normalize(vim.fs.joinpath(cwd, entry))
-        end
-    end
+    local csprojs = find_files_with_extension(cwd, ".csproj")
 
     if #csprojs > 0 then
         return {
@@ -95,7 +81,7 @@ function M.get_solution_files(buffer)
         return nil
     end
 
-    return find_files_with_extension(vim.api.nvim_buf_get_name(buffer), vim.fs.basename(directory), ".sln")
+    return find_files_with_extension(directory, ".sln")
 end
 
 --- Find a path to sln file that is likely to be the one that the current buffer
