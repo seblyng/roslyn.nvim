@@ -288,7 +288,7 @@ function M.setup(config)
                 return
             end
 
-            local csproj_files = utils.try_get_csproj_files(opt.buf)
+            local csproj_files = utils.try_get_csproj_files()
             if csproj_files then
                 return start_with_projects(cmd, opt.buf, csproj_files, roslyn_config)
             end
