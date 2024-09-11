@@ -61,7 +61,7 @@ end
 ---
 --- @return RoslynNvimDirectoryWithFiles? A table containing the directory path and a list of found `.csproj` files, or `nil` if none are found.
 function M.try_get_csproj_files()
-    local cwd = vim.fn.getcwd()
+    local cwd = assert(vim.uv.cwd())
 
     local csprojs = {}
 
