@@ -172,12 +172,14 @@ end
 ---@field exe? string|string[]
 ---@field config vim.lsp.ClientConfig
 ---@field choose_sln? fun(solutions: string[]): string?
----
+---@field broad_search boolean
+
 ---@class RoslynNvimConfig
 ---@field filewatching? boolean
 ---@field exe? string|string[]
 ---@field config? vim.lsp.ClientConfig
 ---@field choose_sln? fun(solutions: string[]): string?
+---@field broad_search? boolean
 
 local M = {}
 
@@ -263,6 +265,7 @@ function M.setup(config)
         ---@diagnostic disable-next-line: missing-fields
         config = {},
         choose_sln = nil,
+        broad_search = false,
     }
 
     local roslyn_config = vim.tbl_deep_extend("force", default_config, config or {})
@@ -293,7 +296,7 @@ function M.setup(config)
                 return start_with_projects(cmd, opt.buf, csproj_files, roslyn_config)
             end
 
-            local sln_files = utils.get_solution_files(opt.buf)
+            local sln_files = utils.get_solution_files(opt.buf, roslyn_config.broad_search)
             if sln_files and not vim.tbl_isempty(sln_files) then
                 return start_with_solution(opt.buf, cmd, sln_files, roslyn_config, on_init_sln)
             end

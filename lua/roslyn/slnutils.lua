@@ -72,9 +72,15 @@ end
 ---Find the solution file from the current buffer.
 ---Recursively see if we have any other solution files, to potentially
 ---give the user an option to choose which solution file to use
+
+---Broad search will search from the root directory and down to potentially
+---find sln files that is not in the root directory.
+---This could potentially be slow, so by default it is off
+
 ---@param buffer integer
+---@param broad_search boolean
 ---@return string[]?
-function M.get_solution_files(buffer)
+function M.get_solution_files(buffer, broad_search)
     local directory = vim.fs.root(buffer, function(name)
         return name:match("%.sln$") ~= nil
     end)
@@ -83,7 +89,13 @@ function M.get_solution_files(buffer)
         return nil
     end
 
-    return find_files_with_extension(directory, ".sln")
+    if broad_search then
+        return vim.fs.find(function(name, _)
+            return name:match("%.sln$")
+        end, { type = "file", limit = math.huge, path = directory })
+    else
+        return find_files_with_extension(directory, ".sln")
+    end
 end
 
 --- Find a path to sln file that is likely to be the one that the current buffer
