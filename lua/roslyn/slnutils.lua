@@ -8,15 +8,15 @@ local M = {}
 ---
 --- @return string[] List of file paths that match the specified extension.
 local function find_files_with_extension(dir, extension)
-    local matches = {}
+	local matches = {}
 
-    for entry, type in vim.fs.dir(dir) do
-        if type == "file" and vim.endswith(entry, extension) then
-            matches[#matches + 1] = vim.fs.normalize(vim.fs.joinpath(dir, entry))
-        end
-    end
+	for entry, type in vim.fs.dir(dir) do
+		if type == "file" and vim.endswith(entry, extension) then
+			matches[#matches + 1] = vim.fs.normalize(vim.fs.joinpath(dir, entry))
+		end
+	end
 
-    return matches
+	return matches
 end
 
 ---@class RoslynNvimDirectoryWithFiles
@@ -27,22 +27,22 @@ end
 ---@param buffer integer
 ---@return RoslynNvimDirectoryWithFiles?
 function M.get_project_files(buffer)
-    local directory = vim.fs.root(buffer, function(name)
-        return name:match("%.csproj$") ~= nil
-    end)
+	local directory = vim.fs.root(buffer, function(name)
+		return name:match("%.csproj$") ~= nil
+	end)
 
-    if not directory then
-        return nil
-    end
+	if not directory then
+		return nil
+	end
 
-    local files = vim.fs.find(function(name, _)
-        return name:match("%.csproj$")
-    end, { path = directory, limit = math.huge })
+	local files = vim.fs.find(function(name, _)
+		return name:match("%.csproj$")
+	end, { path = directory, limit = math.huge })
 
-    return {
-        directory = directory,
-        files = files,
-    }
+	return {
+		directory = directory,
+		files = files,
+	}
 end
 
 --- Attempts to find `.csproj` files in the current working directory (CWD).
@@ -53,20 +53,20 @@ end
 ---
 --- @return RoslynNvimDirectoryWithFiles? A table containing the directory path and a list of found `.csproj` files, or `nil` if none are found.
 function M.try_get_csproj_files()
-    local cwd = assert(vim.uv.cwd())
+	local cwd = assert(vim.uv.cwd())
 
-    local csprojs = find_files_with_extension(cwd, ".csproj")
+	local csprojs = find_files_with_extension(cwd, ".csproj")
 
-    local solutions = find_files_with_extension(cwd, ".sln")
+	local solutions = find_files_with_extension(cwd, ".sln")
 
-    if #csprojs > 0 and #solutions == 0 then
-        return {
-            directory = cwd,
-            files = csprojs,
-        }
-    end
+	if #csprojs > 0 and #solutions == 0 then
+		return {
+			directory = cwd,
+			files = csprojs,
+		}
+	end
 
-    return nil
+	return nil
 end
 
 ---Find the solution file from the current buffer.
@@ -81,21 +81,21 @@ end
 ---@param broad_search boolean
 ---@return string[]?
 function M.get_solution_files(buffer, broad_search)
-    local directory = vim.fs.root(buffer, function(name)
-        return name:match("%.sln$") ~= nil
-    end)
+	local directory = vim.fs.root(buffer, function(name)
+		return name:match("%.sln$") ~= nil
+	end)
 
-    if not directory then
-        return nil
-    end
+	if not directory then
+		return nil
+	end
 
-    if broad_search then
-        return vim.fs.find(function(name, _)
-            return name:match("%.sln$")
-        end, { type = "file", limit = math.huge, path = directory })
-    else
-        return find_files_with_extension(directory, ".sln")
-    end
+	if broad_search then
+		return vim.fs.find(function(name, _)
+			return name:match("%.sln$")
+		end, { type = "file", limit = math.huge, path = directory })
+	else
+		return find_files_with_extension(directory, ".sln")
+	end
 end
 
 --- Find a path to sln file that is likely to be the one that the current buffer
@@ -107,31 +107,44 @@ end
 ---@param sln_files string[]
 ---@return string?
 function M.predict_sln_file(buffer, sln_files)
-    local csproj = M.get_project_files(buffer)
-    if not csproj or #csproj.files > 1 then
-        return nil
-    end
+	local csproj = M.get_project_files(buffer)
+	if not csproj or #csproj.files > 1 then
+		return nil
+	end
 
-    local csproj_filename = vim.fn.fnamemodify(csproj.files[1], ":t")
+	local csproj_filename = vim.fn.fnamemodify(csproj.files[1], ":t")
 
-    -- Look for a solution file that contains the name of the project
-    -- Predict that to be the "correct" solution file if we find the project name
-    for _, file_path in ipairs(sln_files) do
-        local file = io.open(file_path, "r")
+	-- Look for a solution file that contains the name of the project
+	-- Predict that to be the "correct" solution file if we find the project name
+	for _, file_path in ipairs(sln_files) do
+		local file = io.open(file_path, "r")
 
-        if not file then
-            return nil
-        end
+		if not file then
+			return nil
+		end
 
-        local content = file:read("*a")
-        file:close()
+		local content = file:read("*a")
+		file:close()
 
-        if content:find(csproj_filename, 1, true) then
-            return file_path
-        end
-    end
+		if content:find(csproj_filename, 1, true) then
+			return file_path
+		end
+	end
 
-    return nil
+	return nil
+end
+
+---@param uriFile string
+function M.did_change_watched_file(uriFile)
+	for _, client in ipairs(vim.lsp.get_active_clients()) do
+		if client.name == "roslyn" then
+			client.request("workspace/didChangeWatchedFiles", {
+				changes = {
+					{ uri = uriFile, type = 2 }
+				}
+			}, function(e)if e~=nil then print(e)end end)
+		end
+	end
 end
 
 return M
