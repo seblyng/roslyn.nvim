@@ -134,6 +134,7 @@ function M.predict_sln_file(buffer, sln_files)
 	return nil
 end
 
+---request to workspace/didChangeWatchedFiles is sended to the server to inform the server of watched files changed
 ---@param uriFile string
 function M.did_change_watched_file(uriFile)
 	for _, client in ipairs(vim.lsp.get_active_clients()) do
