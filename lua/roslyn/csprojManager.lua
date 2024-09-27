@@ -64,12 +64,7 @@ M.add_element = function(path)--TODO: refactor
 		if data then
 			vim.schedule(function()
 				print(data)
-				local timer=vim.loop.new_timer()
-				timer:start(500, 0, function()
-					require("roslyn.slnutils").did_change_watched_file(vim.uri_from_bufnr(0))
-					timer:stop()
-					timer:close()
-				end)
+				require("roslyn.slnutils").did_change_watched_file(path)
 			end)
 		end
 	end)
