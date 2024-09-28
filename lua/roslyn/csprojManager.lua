@@ -1,38 +1,85 @@
 local uv = require('luv')
-local M={}
-M.add_element = function(path)--TODO: refactor
-	uv.run("nowait") -- This is necessary to start the event loop
+local utils = require("roslyn.slnutils")
+local M = {}
+
+---@param fullpath string
+local function get_filename_from_fullpath(fullpath)
+	return fullpath:match("(%w+%.%w+)$") or ""
+end
+
+local function get_path_from_fullpath(path)
+	local nameFile = get_filename_from_fullpath(path)
+	if nameFile == "" then
+		return path
+	end
+	return path:sub(1, - #nameFile - 1)
+end
+
+---@param fullpath1 string
+---@param fullpath2 string
+---@return string --it return the relative path from path1 to path2
+---example: c:\Users\pippo\paperino\home.csproj, c:\Users\pippo\paperino\scr\pluto\brontolo.cs -> scr\pluto
+local function get_relative_path_from_fullpath1_fullpath2(fullpath1, fullpath2)
+	local path1 = get_path_from_fullpath(fullpath1)
+	return fullpath2:sub(#path1 + 1) --+1 since i don't wanna include the \ at the beginning
+end
+
+---@param path string --where to start searching
+---@return string,string --it return the totalpath and name of the csproj
+local function find_csproj(path)
 	local csprojPath = ""
-	local nameCsproj = ""
-	local sameLevelElement = ""
-	local nameFile = path:match("([^/\\]+)$")
-	for entry, type in vim.fs.dir(path:sub(1, - #nameFile - 1)) do
+	local csprojName = ""
+	vim.fs.find(function(_name, _path)
+		if _name:match("%.csproj$") then
+			csprojPath = _path
+			csprojName = _name:sub(1, #_name)
+			return true
+		end
+		return false
+	end, { upward = true, path = path, limit = math.huge, })
+	return csprojPath, csprojName
+end
+
+local function find_another_sibling(path, siblingName)
+	local another_siblingName = ""
+	for _name, type in vim.fs.dir(path) do
 		if type == "file" then
-			if entry ~= nameFile then
-				sameLevelElement = entry
+			if _name ~= siblingName and _name:match("%.cs$") then
+				another_siblingName = _name
 				break
 			end
 		end
 	end
-	vim.fs.find(function(name, _path)
-		if name:match("%.csproj$") then
-			csprojPath = _path
-			nameCsproj = name
-			return true
-		end
-		return false
-	end, { upward = true, type = "file", limit = math.huge, path = path })
-	local pathRelativeFile = ""
-	if pathRelativeFile == nil then
-		print("Error adding element")
+	return another_siblingName
+end
+
+local function clean_path_name(path)
+	path = path:gsub("/", "\\")
+	path = path:gsub("^[/|\\]", "")
+	return path
+end
+
+M.add_element = function(totalpath)
+	uv.run("nowait")            -- This is necessary to start the event loop
+	local filePath = get_path_from_fullpath(totalpath)
+	local fileName = get_filename_from_fullpath(totalpath)
+	local csprojPath = ""
+	local csprojName = ""
+	local siblingName = ""
+
+	--find csproj
+	csprojPath, csprojName = find_csproj(filePath)
+	if csprojPath == "" then
+		print("No csproj found")
 		return
 	end
-	pathRelativeFile = path:sub(#csprojPath + 2)
-	local nameRelativeFile = pathRelativeFile:match("([^/\\]+)$")
-	pathRelativeFile = pathRelativeFile:gsub("/", "\\")
-	sameLevelElement = pathRelativeFile:sub(1, - #nameRelativeFile - 2) .. "\\" .. sameLevelElement
+	--find sibling
+	siblingName = find_another_sibling(filePath, fileName)
+   --calculate relative path
+	local relative_path_file = get_relative_path_from_fullpath1_fullpath2(csprojPath, filePath)
+	--cleanig path
+	relative_path_file = clean_path_name(relative_path_file)
 
-	sameLevelElement = sameLevelElement:gsub("/", "\\")
 	local stdin = uv.new_pipe()
 	local stdout = uv.new_pipe()
 	local stderr = uv.new_pipe()
@@ -47,15 +94,18 @@ M.add_element = function(path)--TODO: refactor
 		end
 	)
 	if not pid or not handle then
-		print("error:manager not found,path:"..executable_path)
+		print("error:manager not found,path:" .. executable_path)
 		return
 	end
-	--Input
 	local input = {
-		CsprojPath = vim.fs.joinpath(csprojPath, nameCsproj),
-		WhenAddElement = sameLevelElement,
-		ElementToAdd = string.format('<Compile Include="%s" />', pathRelativeFile)
+		CsprojPath = clean_path_name(vim.fs.joinpath(csprojPath, csprojName)),
+		WhenAddElement = clean_path_name(relative_path_file.. siblingName),
+		ElementToAdd = string.format('<Compile Include="%s" />', clean_path_name(relative_path_file.. fileName)),
 	}
+	if siblingName == "" then--if there is no sibling use the directory path instead
+		input.WhenAddElement = relative_path_file
+	end
+
 	local json = vim.fn.json_encode(input)
 	stdin:write("add\n")
 	stdin:write(json .. "\n")
@@ -63,8 +113,8 @@ M.add_element = function(path)--TODO: refactor
 		assert(not e, e)
 		if data then
 			vim.schedule(function()
+				require("roslyn.slnutils").did_change_watched_file(totalpath)
 				print(data)
-				require("roslyn.slnutils").did_change_watched_file(path)
 			end)
 		end
 	end)
@@ -75,7 +125,8 @@ M.add_element = function(path)--TODO: refactor
 		end
 	end)
 end
-M.remove_element=function()--TODO
+
+M.remove_element = function() --TODO
 
 end
 return M
