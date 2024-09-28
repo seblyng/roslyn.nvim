@@ -1,18 +1,11 @@
 # roslyn.nvim
 
-This is an actively maintained & upgraded [fork](https://github.com/jmederosalvarado/roslyn.nvim) that interacts with the improved & open-source C# [Roslyn](https://github.com/dotnet/roslyn) language server, meant to replace the old and discontinued OmniSharp. This language server is currently used in the [Visual Studio Code C# Extension](https://github.com/dotnet/vscode-csharp), which is shipped with the standard C# Dev Kit.
-
-This standalone plugin was necessary because Roslyn uses a [non-standard](https://github.com/dotnet/roslyn/issues/72871) method of initializing communication with the client and requires additional custom integrations, unlike typical LSP setups in Neovim.
-
+This is an lsp client that interacts with the improved & open-source C# [Roslyn](https://github.com/dotnet/roslyn) language server, used by Visual studio code.
 ## ⚡️ Requirements
 
 - Neovim >= 0.10.0
 - Roslyn language server downloaded locally
 - .NET SDK installed and `dotnet` command available
-
-## Demo
-
-https://github.com/user-attachments/assets/a749f6c7-fc87-440c-912d-666d86453bc5
 
 ## 📦 Installation
 
@@ -26,20 +19,21 @@ https://github.com/user-attachments/assets/a749f6c7-fc87-440c-912d-666d86453bc5
 3. Check if it's working by running `dotnet Microsoft.CodeAnalysis.LanguageServer.dll --version` in the `roslyn` directory.
 
 > [!NOTE]  
-> There's currently an open [pull request](https://github.com/mason-org/mason-registry/pull/6330) to add the Roslyn server to [mason](https://github.com/williamboman/mason.nvim), which would greatly improve the experience. If you are interested in this, please react to the original comment, but don't spam the thread with unnecessary comments.
+> There's currently an open [pull request](https://github.com/mason-org/mason-registry/pull/6330) to add the Roslyn server to [mason](https://github.com/williamboman/mason.nvim).
 
-> [!TIP]  
-> For server compatibility check the [roslyn repo](https://github.com/dotnet/roslyn/blob/main/docs/wiki/NuGet-packages.md#versioning)
-
+##Focus of this plugin:
+The goal of this plugin is use the power of Roslyin lsp in neovim, for do this it's gonna integrate different event, line: wordspace/didChangeWatchedFiles ,ecc
+The features are now avalaible beyond the classic lsp feature(go to definition,action,reference,rename ecc) are:
+    -it has an api to AUTO update the csproj when create a file() `	require("roslyn.csprojManager").add_element(<path to update>)`,(it calls the did_change_watched_file)
+    -it has a api to launch the event did_change_watched_file, `function M.did_change_watched_file(uriFile,client,type)`, to informa the server that something has been changed
+The features that i wanna insert:
+    -api to remove the file from csproj
+    -integration with  nvim-tree.lua
+    
 **Install the plugin with your preferred package manager:**
-
-### [lazy.nvim](https://github.com/folke/lazy.nvim)
-
-
-
 ```lua
 {
-    "seblj/roslyn.nvim",
+    "Wordluc/roslyn_ls.nvim",
     ft = "cs",
     opts = {
         -- your configuration comes here; leave empty for default settings
@@ -69,34 +63,19 @@ The plugin comes with the following defaults:
     },
 
     -- NOTE: Set `filewatching` to false if you experience performance problems.
-    -- Defaults to true, since turning it off is a hack.
-    -- If you notice that the server is _super_ slow, it is probably because of file watching
-    -- Neovim becomes super unresponsive on some large codebases, because it schedules the file watching on the event loop.
-    -- This issue goes away by disabling this capability, but roslyn will fallback to its own file watching,
-    -- which can make the server super slow to initialize.
-    -- Setting this option to false will indicate to the server that neovim will do the file watching.
-    -- However, in `hacks.lua` I will also just don't start off any watchers, which seems to make the server
-    -- a lot faster to initialize.
+    -- filewatching=true -> the server will wach the file, this could bring performance problem
+    -- filewatching=false -> the client will wach the file
     filewatching = true,
 
-    -- Optional function that takes an array of solutions as the only argument. Return the solution you
-    -- want to use. If it returns `nil`, then it falls back to guessing the solution like normal
-    -- Example:
-    --
-    -- choose_sln = function(sln)
-    --     return vim.iter(sln):find(function(item)
-    --         if string.match(item, "Foo.sln") then
-    --             return item
-    --         end
-    --     end)
-    -- end
+    --this takes a function, with list of string(different .sln) and return a string(the actual sln that will be loaded in lsp)
+    --function(slns string []) string
+
     choose_sln = nil,
 })
 ```
 To configure language server specific settings sent to the server, you can modify the `config.settings` map. 
 
-> [!NOTE]  
-> These settings are not guaranteed to be up-to-date and new ones can appear in the future. Aditionally, not not all settings are shown here, but only the most relevant ones for Neovim. For a full list, visit [this](https://github.com/dotnet/vscode-csharp/blob/main/test/unitTests/configurationMiddleware.test.ts) unit test from the vscode extension and look especially for the ones which **don't** have `vsCodeConfiguration: null`.
+###Optional Settings
 
 ### Background Analysis
 `csharp|background_analysis`
@@ -215,18 +194,7 @@ opts = {
     config = {
         settings = {
             ["csharp|inlay_hints"] = {
-                csharp_enable_inlay_hints_for_implicit_object_creation = true,
-                csharp_enable_inlay_hints_for_implicit_variable_types = true,
-                csharp_enable_inlay_hints_for_lambda_parameter_types = true,
-                csharp_enable_inlay_hints_for_types = true,
-                dotnet_enable_inlay_hints_for_indexer_parameters = true,
-                dotnet_enable_inlay_hints_for_literal_parameters = true,
-                dotnet_enable_inlay_hints_for_object_creation_parameters = true,
-                dotnet_enable_inlay_hints_for_other_parameters = true,
                 dotnet_enable_inlay_hints_for_parameters = true,
-                dotnet_suppress_inlay_hints_for_parameters_that_differ_only_by_suffix = true,
-                dotnet_suppress_inlay_hints_for_parameters_that_match_argument_name = true,
-                dotnet_suppress_inlay_hints_for_parameters_that_match_method_intent = true,
             },
             ["csharp|code_lens"] = {
                 dotnet_enable_references_code_lens = true,
