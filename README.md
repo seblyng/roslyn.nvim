@@ -7,6 +7,24 @@ This is an lsp client that interacts with the improved & open-source C# [Roslyn]
 - Roslyn language server downloaded locally
 - .NET SDK installed and `dotnet` command available
 
+## Focus of this plugin
+
+The goal of this plugin is to leverage the power of the Roslyn LSP in Neovim. To achieve this, it integrates various events such as `workspace/didChangeWatchedFiles` and others.
+
+### Currently available features beyond the classic LSP functions (e.g., go to definition, actions, references, renaming, etc.):
+- **`Automatic .csproj update`**: Provides an API to automatically update the `.csproj` file when a new file is created. 
+  Usage: `require("roslyn.csprojManager").add_element(<path_file_to_insert>)`.
+  
+- **`Event did_change_watched_file`**: Exposes an API to manually trigger the `did_change_watched_file`.
+  Usage: `require("roslyn.slnutils").did_change_watched_file(<path_file_to_update>,<client>,<request_type>?)`, the parameters with "?" aren't mandatory 
+  This informs the server that something has changed, currently is called in the event `BufWinEnter`.
+
+### Planned features:
+- API to remove a file from the `.csproj`
+- Integration with `nvim-tree.lua`
+- Extend the number of LSP events for a smoother experience
+
+
 ## 📦 Installation
 
 **Install the Roslyn language server:**
@@ -21,15 +39,7 @@ This is an lsp client that interacts with the improved & open-source C# [Roslyn]
 > [!NOTE]  
 > There's currently an open [pull request](https://github.com/mason-org/mason-registry/pull/6330) to add the Roslyn server to [mason](https://github.com/williamboman/mason.nvim).
 
-##    Focus of this plugin:
-The goal of this plugin is use the power of Roslyin lsp in neovim, for do this it's gonna integrate different event, line: wordspace/didChangeWatchedFiles ecc.
-The features are now avalaible beyond the classic lsp feature(go to definition,action,reference,rename ecc) are:
-    -    it has an api to AUTO update the csproj when create a file() `	require("roslyn.csprojManager").add_element(<path to update>)`,(it calls the did_change_watched_file)
-    -    it has a api to launch the event did_change_watched_file, `function M.did_change_watched_file(uriFile,client,type)`, to informa the server that something has been changed
-The features that i wanna insert:
-    -    api to remove the file from csproj
-    -    integration with  nvim-tree.lua
-    -    extends the number of lsp event for a smother experience
+
     
 **Install the plugin with your preferred package manager:**
 ```lua
