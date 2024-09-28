@@ -23,6 +23,7 @@ func (input Input_Add) act(reader *bufio.Scanner, document *strings.Builder) boo
 	whiteSpace := 0
 	var line string
 	var error = true
+	println(input.WhenAddElement)
 	for reader.Scan() {
 		line = reader.Text()
 		document.WriteString(line + "\n")
@@ -137,5 +138,5 @@ func main() {
 		return
 	}
 	writer.Flush()
-	Err.WriteString("Element added")
+	Out.WriteString("Element added")
 }

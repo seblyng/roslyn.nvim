@@ -136,16 +136,23 @@ end
 
 ---request to workspace/didChangeWatchedFiles is sended to the server to inform the server of watched files changed
 ---@param uriFile string
-function M.did_change_watched_file(uriFile)
-	for _, client in ipairs(vim.lsp.get_active_clients()) do
-		if client.name == "roslyn" then
-			client.request("workspace/didChangeWatchedFiles", {
-				changes = {
-					{ uri = uriFile, type = 2 }
-				}
-			}, function(e)if e~=nil then print(e)end end)
+---@param client? vim.lsp.Client
+---@param type? number
+function M.did_change_watched_file(uriFile,client,type)
+	if type == nil then
+		type = 2
+	end
+	if client == nil then
+		client = vim.lsp.get_clients({ name = "roslyn" })[1]
+		if client == nil then
+			return
 		end
 	end
+	client.request("workspace/didChangeWatchedFiles", {
+		changes = {
+			{ uri = uriFile, type = type }
+		}
+	}, function(e) if e ~= nil then print(e) end end)
 end
 
 return M

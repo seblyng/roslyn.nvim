@@ -4,24 +4,23 @@ local M = {}
 
 ---@param fullpath string
 local function get_filename_from_fullpath(fullpath)
-	return fullpath:match("(%w+%.%w+)$") or ""
+	return fullpath:match("([^/|\\]+)$") or ""
 end
 
-local function get_path_from_fullpath(path)
-	local nameFile = get_filename_from_fullpath(path)
+local function get_path_from_fullpath(fullpath)
+	local nameFile = get_filename_from_fullpath(fullpath)
 	if nameFile == "" then
-		return path
+		return fullpath
 	end
-	return path:sub(1, - #nameFile - 1)
+	return fullpath:sub(1, - #nameFile - 1)
 end
 
----@param fullpath1 string
----@param fullpath2 string
+---@param path1 string
+---@param path2 string
 ---@return string --it return the relative path from path1 to path2
 ---example: c:\Users\pippo\paperino\home.csproj, c:\Users\pippo\paperino\scr\pluto\brontolo.cs -> scr\pluto
-local function get_relative_path_from_fullpath1_fullpath2(fullpath1, fullpath2)
-	local path1 = get_path_from_fullpath(fullpath1)
-	return fullpath2:sub(#path1 + 1) --+1 since i don't wanna include the \ at the beginning
+local function get_relative_path_from_path1_path2(path1, path2)
+	return path2:sub(#path1 + 1) --+1 since i don't wanna include the \ at the beginning
 end
 
 ---@param path string --where to start searching
@@ -60,7 +59,7 @@ local function clean_path_name(path)
 end
 
 M.add_element = function(totalpath)
-	uv.run("nowait")            -- This is necessary to start the event loop
+	uv.run("nowait") -- This is necessary to start the event loop
 	local filePath = get_path_from_fullpath(totalpath)
 	local fileName = get_filename_from_fullpath(totalpath)
 	local csprojPath = ""
@@ -75,8 +74,8 @@ M.add_element = function(totalpath)
 	end
 	--find sibling
 	siblingName = find_another_sibling(filePath, fileName)
-   --calculate relative path
-	local relative_path_file = get_relative_path_from_fullpath1_fullpath2(csprojPath, filePath)
+	--calculate relative path
+	local relative_path_file = get_relative_path_from_path1_path2(csprojPath, filePath)
 	--cleanig path
 	relative_path_file = clean_path_name(relative_path_file)
 
@@ -99,10 +98,10 @@ M.add_element = function(totalpath)
 	end
 	local input = {
 		CsprojPath = clean_path_name(vim.fs.joinpath(csprojPath, csprojName)),
-		WhenAddElement = clean_path_name(relative_path_file.. siblingName),
-		ElementToAdd = string.format('<Compile Include="%s" />', clean_path_name(relative_path_file.. fileName)),
+		WhenAddElement = clean_path_name(relative_path_file .. siblingName),
+		ElementToAdd = string.format('<Compile Include="%s" />', clean_path_name(relative_path_file .. fileName)),
 	}
-	if siblingName == "" then--if there is no sibling use the directory path instead
+	if siblingName == "" then --if there is no sibling use the directory path instead
 		input.WhenAddElement = relative_path_file
 	end
 
@@ -113,7 +112,7 @@ M.add_element = function(totalpath)
 		assert(not e, e)
 		if data then
 			vim.schedule(function()
-				require("roslyn.slnutils").did_change_watched_file(totalpath)
+				require("roslyn.slnutils").did_change_watched_file(vim.uri_from_bufnr(0), vim.lsp.get_clients({ name = "roslyn" })[1],1)
 				print(data)
 			end)
 		end
