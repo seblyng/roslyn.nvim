@@ -3,40 +3,42 @@ package main
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"os"
 	"regexp"
 	"strings"
 )
 
 type Csproj interface {
-	act(reader *bufio.Scanner, document *strings.Builder) bool
+	act(reader *bufio.Scanner, document *strings.Builder) error
 	setCsprojPath(csprojPath string)
-	getCsprojPath()string
+	getCsprojPath() string
 }
 type Input_Add struct {
 	CsprojPath     string
 	WhenAddElement string
 	ElementToAdd   string
 }
+
 // read the file line by line and add the text, if the text is not inserted return false
-func (input Input_Add) act(reader *bufio.Scanner, document *strings.Builder) bool {
+func (input Input_Add) act(reader *bufio.Scanner, document *strings.Builder) error {
 	whiteSpace := 0
 	var line string
-	var error = true
+	var error = errors.New("Element not added")
 	println(input.WhenAddElement)
 	for reader.Scan() {
 		line = reader.Text()
 		document.WriteString(line + "\n")
 		if strings.Contains(line, input.ElementToAdd) {
-			return false
+			return errors.New("Element already added")
 		}
 		if strings.Contains(line, input.WhenAddElement) {
 			document.WriteString(strings.Repeat(" ", whiteSpace) + input.ElementToAdd + "\n")
-			error = false
+			error = nil
 		}
 		whiteSpace = strings.Index(line, "<")
 	}
-	return !error
+	return error
 }
 
 func (input *Input_Add) getCsprojPath() string {
@@ -51,18 +53,20 @@ type Input_Remove struct {
 	CsprojPath string
 	ToRemove   string
 }
+
 // read the file line by line and remove the text
-func (input Input_Remove) act(reader *bufio.Scanner, document *strings.Builder) bool {
+func (input Input_Remove) act(reader *bufio.Scanner, document *strings.Builder) error {
 	var line string
-	var error = true
+	var error = errors.New("Element not removed")
 	for reader.Scan() {
 		line = reader.Text()
 		if !strings.Contains(line, input.ToRemove) {
 			document.WriteString(line + "\n")
-			error = false
+		} else {
+			error = nil
 		}
 	}
-	return !error
+	return error
 }
 
 func (input *Input_Remove) getCsprojPath() string {
@@ -79,11 +83,11 @@ func main() {
 	Err := os.Stderr
 
 	var jsonInput []byte = make([]byte, 500)
-	var mode []byte=make([]byte, 10)
+	var mode []byte = make([]byte, 10)
 	var error error
-	var input Csproj=nil
+	var input Csproj = nil
 	var bufReader *bufio.Reader = bufio.NewReader(In)
-	mode, _ ,_= bufReader.ReadLine()
+	mode, _, _ = bufReader.ReadLine()
 	bufReader.Read(jsonInput)
 	jsonInput = []byte(strings.TrimRight(string(jsonInput), "\x00"))
 	if string(mode) == "add" {
@@ -115,7 +119,7 @@ func main() {
 	var document *strings.Builder = &strings.Builder{}
 	document.WriteString(reader.Text() + "\n")
 	if isSdk, _ := regexp.MatchString("Microsoft.NET.Sdk", reader.Text()); isSdk { //lettura intestazione
-		Out.WriteString("found sdk csproj, no need to add element")
+		Out.WriteString("found sdk csproj, no need to " + string(mode) + " it")
 		return
 	}
 	defer f.Close()
@@ -124,8 +128,8 @@ func main() {
 		Err.WriteString("Error instantiate Csproj manager")
 		return
 	}
-	if !input.act(reader, document) {
-		Err.WriteString("Element no added")
+	if e := input.act(reader, document); e != nil {
+		Err.WriteString(e.Error())
 		return
 	}
 
@@ -138,5 +142,5 @@ func main() {
 		return
 	}
 	writer.Flush()
-	Out.WriteString("Element added")
+	Out.WriteString("Succeed to " + string(mode))
 }
