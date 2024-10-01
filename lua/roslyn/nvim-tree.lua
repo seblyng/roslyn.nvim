@@ -1,6 +1,6 @@
 local M = {}
 
-M.setup_event = function()
+M.setup_events = function()
 	local tree = require("nvim-tree.events")
 	if not package.loaded["nvim-tree.events"] then
 		print("Package is not loaded.")
