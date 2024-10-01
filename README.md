@@ -20,9 +20,12 @@ The goal of this plugin is to leverage the power of the Roslyn LSP in Neovim. To
   Usage: `require("roslyn.slnutils").did_change_watched_file(<path_file_to_update>,<client>,<request_type>?)`, the parameters with "?" aren't mandatory 
   This informs the server that something has changed, currently is called in the event `BufWinEnter`.
 
+- **`Integration with nvim-tree.lua`**: Integration with nvim-tree for call `add_element` and/or `remove_element` for operation like:
+    - `Create file`
+    - `Rename file`
+    - `Delete file` 
+
 ### Planned features:
-- API to remove a file from the `.csproj`
-- Integration with `nvim-tree.lua`
 - Extend the number of LSP events for a smoother experience
 
 
