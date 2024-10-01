@@ -1,11 +1,6 @@
 # roslyn.nvim
 
 This is an lsp client that interacts with the improved & open-source C# [Roslyn](https://github.com/dotnet/roslyn) language server, used by Visual studio code.
-## ⚡️ Requirements
-
-- Neovim >= 0.10.0
-- Roslyn language server downloaded locally
-- .NET SDK installed and `dotnet` command available
 
 ## Focus of this plugin
 
@@ -28,9 +23,13 @@ The goal of this plugin is to leverage the power of the Roslyn LSP in Neovim. To
 ### Planned features:
 - Extend the number of LSP events for a smoother experience
 
+## ⚡️ Requirements
+
+- Neovim >= 0.10.0
+- Roslyn language server downloaded locally
+- .NET SDK installed and `dotnet` command available
 
 ## 📦 Installation
-
 **Install the Roslyn language server:**
 
 1. Navigate to [this feed](https://dev.azure.com/azure-public/vside/_artifacts/feed/vs-impl), search for `Microsoft.CodeAnalysis.LanguageServer` and download the version matching your OS and architecture.
