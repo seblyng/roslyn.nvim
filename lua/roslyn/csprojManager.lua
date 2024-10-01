@@ -112,7 +112,8 @@ M.add_element = function(totalpath)
 		assert(not e, e)
 		if data then
 			vim.schedule(function()
-				require("roslyn.slnutils").did_change_watched_file(vim.uri_from_bufnr(0), vim.lsp.get_clients({ name = "roslyn" })[1],1)
+				require("roslyn.slnutils").did_change_watched_file(vim.uri_from_bufnr(0),
+				vim.lsp.get_clients({ name = "roslyn" })[1], 1)
 				print(data)
 			end)
 		end
@@ -124,8 +125,65 @@ M.add_element = function(totalpath)
 		end
 	end)
 end
+---@param totalpath string --file to remove
+M.remove_element = function(totalpath) --TODO
+	uv.run("nowait")                    -- This is necessary to start the event loop
+	local filePath = get_path_from_fullpath(totalpath)
+	local fileName = get_filename_from_fullpath(totalpath)
+	local csprojPath = ""
+	local csprojName = ""
 
-M.remove_element = function() --TODO
+	--find csproj
+	csprojPath, csprojName = find_csproj(filePath)
+	if csprojPath == "" then
+		print("No csproj found")
+		return
+	end
+	--calculate relative path
+	local relative_path_file = get_relative_path_from_path1_path2(csprojPath, filePath)
+	--cleanig path
+	relative_path_file = clean_path_name(relative_path_file)
 
+	local stdin = uv.new_pipe()
+	local stdout = uv.new_pipe()
+	local stderr = uv.new_pipe()
+	local script_path = debug.getinfo(1, "S").source:sub(2)
+	local executable_path = script_path:match(".*/") .. "../../csprojManager/csprojManager.exe"
+	local handle, pid = uv.spawn(
+		executable_path
+		, { stdio = { stdin, stdout, stderr } }, function()
+			stdin:close()
+			stdout:close()
+			stderr:close()
+		end
+	)
+	if not pid or not handle then
+		print("error:manager not found,path:" .. executable_path)
+		return
+	end
+	local input = {
+		CsprojPath = clean_path_name(vim.fs.joinpath(csprojPath, csprojName)),
+		ToRemove = string.format('<Compile Include="%s" />', clean_path_name(relative_path_file .. fileName))
+	}
+
+	local json = vim.fn.json_encode(input)
+	stdin:write("remove\n")
+	stdin:write(json .. "\n")
+	stdout:read_start(function(e, data)
+		assert(not e, e)
+		if data then
+			vim.schedule(function()
+				require("roslyn.slnutils").did_change_watched_file(vim.uri_from_bufnr(0),
+				vim.lsp.get_clients({ name = "roslyn" })[1], 1)
+				print(data)
+			end)
+		end
+	end)
+	stderr:read_start(function(e, data)
+		assert(not e, e)
+		if data then
+			print(data)
+		end
+	end)
 end
 return M
