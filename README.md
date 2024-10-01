@@ -12,8 +12,9 @@ This is an lsp client that interacts with the improved & open-source C# [Roslyn]
 The goal of this plugin is to leverage the power of the Roslyn LSP in Neovim. To achieve this, it integrates various events such as `workspace/didChangeWatchedFiles` and others.
 
 ### Currently available features beyond the classic LSP functions (e.g., go to definition, actions, references, renaming, etc.):
-- **`Automatic .csproj update`**: Provides an API to automatically update the `.csproj` file when a new file is created. 
-  Usage: `require("roslyn.csprojManager").add_element(<path_file_to_insert>)`.
+- **`Automatic .csproj update`**: Provides an API to automatically update the `.csproj` file when:
+    - `a new file is created`:Usage: `require("roslyn.csprojManager").add_element(<path_file_to_insert>)`
+    - `a file is deleted`:Usage: `require("roslyn.csprojManager").remove_element(<path_file_to_insert>)`
   
 - **`Event did_change_watched_file`**: Exposes an API to manually trigger the `did_change_watched_file`.
   Usage: `require("roslyn.slnutils").did_change_watched_file(<path_file_to_update>,<client>,<request_type>?)`, the parameters with "?" aren't mandatory 
