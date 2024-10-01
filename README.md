@@ -79,8 +79,8 @@ The plugin comes with the following defaults:
     -- filewatching=false -> the client will wach the file
     filewatching = true,
 
-    --this takes a function, with list of string(different .sln) and return a string(the actual sln that will be loaded in lsp)
-    --function(slns string []) string
+    --this takes a function, with list of strings(different .sln) and return a string(the actual sln that will be loaded in lsp), if returns nil you will gotta manually choose 
+    --function(slns string []) strins
 
     choose_sln = nil,
 })
