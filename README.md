@@ -101,7 +101,7 @@ The plugin comes with the following defaults:
 To configure language server specific settings sent to the server, you can modify the `config.settings` map. 
 
 > [!NOTE]  
-> These settings are not guaranteed to be up-to-date and new ones can appear in the future. Aditionally, not not all settings are shown here, but only the most relevant ones for Neovim. For a full list, visit [this](https://github.com/dotnet/vscode-csharp/blob/main/test/unitTests/configurationMiddleware.test.ts) unit test from the vscode extension and look especially for the ones which **don't** have `vsCodeConfiguration: null`.
+> These settings are not guaranteed to be up-to-date and new ones can appear in the future. Aditionally, not not all settings are shown here, but only the most relevant ones for Neovim. For a full list, visit [this](https://github.com/dotnet/vscode-csharp/blob/main/test/lsptoolshost/unitTests/configurationMiddleware.test.ts) unit test from the vscode extension and look especially for the ones which **don't** have `vsCodeConfiguration: null`.
 
 ### Background Analysis
 `csharp|background_analysis`
