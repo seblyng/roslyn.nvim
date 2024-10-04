@@ -19,6 +19,7 @@ https://github.com/user-attachments/assets/a749f6c7-fc87-440c-912d-666d86453bc5
 **Install the Roslyn language server:**
 
 1. Navigate to [this feed](https://dev.azure.com/azure-public/vside/_artifacts/feed/vs-impl), search for `Microsoft.CodeAnalysis.LanguageServer` and download the version matching your OS and architecture.
+    - For nix users, install [roslyn-ls](https://search.nixos.org/packages?channel=unstable&show=roslyn-ls) 
 2. Unzip the downloaded `.nupkg` and copy the contents of `<zip root>/content/LanguageServer/<yourArch>` inside:
     - **Linux**: `~/.local/share/nvim/roslyn`
     - **Windows**: `%LOCALAPPDATA%\nvim-data\roslyn`
@@ -63,6 +64,10 @@ The plugin comes with the following defaults:
         --     - `root_dir`
     },
 
+    --[[
+    -- if you installed `roslyn-ls` by nix, use the following:
+      exe = vim.fn.system('echo -n $(readlink -f $(which Microsoft.CodeAnalysis.LanguageServer))'),
+    ]]
     exe = {
         "dotnet",
         vim.fs.joinpath(vim.fn.stdpath("data"), "roslyn", "Microsoft.CodeAnalysis.LanguageServer.dll"),
