@@ -54,7 +54,7 @@ function M.start_server(cmd, config, with_pipe_name)
                 with_pipe_name(pipe_name)
             end)
         end,
-        stderr_handler = function(_, chunk)
+        stderr = function(_, chunk)
             local log = require("vim.lsp.log")
             if chunk and log.error() then
                 log.error("rpc", "dotnet", "stderr", chunk)
