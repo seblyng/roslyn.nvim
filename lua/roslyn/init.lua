@@ -115,7 +115,7 @@ local function lsp_start(cmd, bufnr, root_dir, roslyn_config, on_init)
         end
         on_init(client)
 
-        local commands = require("roslyn.commands")
+        local commands = require("roslyn.lsp_commands")
         commands.fix_all_code_action(client)
         commands.nested_code_action(client)
     end
