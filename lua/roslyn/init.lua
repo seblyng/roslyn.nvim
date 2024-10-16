@@ -1,5 +1,6 @@
 local server = require("roslyn.server")
 local utils = require("roslyn.slnutils")
+local commands = require("roslyn.commands")
 
 ---@param buf number
 ---@return boolean
@@ -115,9 +116,9 @@ local function lsp_start(cmd, bufnr, root_dir, roslyn_config, on_init)
         end
         on_init(client)
 
-        local commands = require("roslyn.lsp_commands")
-        commands.fix_all_code_action(client)
-        commands.nested_code_action(client)
+        local lsp_commands = require("roslyn.lsp_commands")
+        lsp_commands.fix_all_code_action(client)
+        lsp_commands.nested_code_action(client)
     end
 
     config.on_exit = function(code, signal, client_id)
@@ -217,12 +218,23 @@ local function start_with_solution(bufnr, cmd, sln, roslyn_config, on_init)
         #sln > 1
         or (vim.g.roslyn_nvim_selected_solution and not vim.iter(sln or {}):find(vim.g.roslyn_nvim_selected_solution))
     then
-        vim.api.nvim_buf_create_user_command(bufnr, "CSTarget", function()
+        local function select_target_solution()
             vim.ui.select(sln, { prompt = "Select target solution: " }, function(file)
                 vim.lsp.stop_client(vim.lsp.get_clients({ name = "roslyn" }), true)
                 vim.g.roslyn_nvim_selected_solution = file
                 lsp_start(cmd, bufnr, vim.fs.dirname(file), roslyn_config, on_init(file))
             end)
+        end
+
+        commands.attach_subcommand_to_buffer("target", bufnr, {
+            impl = function()
+                select_target_solution()
+            end,
+        })
+
+        vim.api.nvim_buf_create_user_command(bufnr, "CSTarget", function()
+            vim.notify("Deprecated... Use `:Roslyn target` instead", vim.log.levels.WARN)
+            select_target_solution()
         end, { desc = "Selects the sln file for the buffer: " .. bufnr })
     end
 
@@ -257,7 +269,7 @@ end
 ---@param config? RoslynNvimConfig
 function M.setup(config)
     vim.treesitter.language.register("c_sharp", "csharp")
-    require("roslyn.commands").create_roslyn_commands()
+    commands.create_roslyn_commands()
 
     ---@type InternalRoslynNvimConfig
     local default_config = {
