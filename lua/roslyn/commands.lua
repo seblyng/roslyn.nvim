@@ -28,7 +28,7 @@ local subcommand_tbl = {
                 vim.schedule_wrap(function()
                     if client.is_stopped() then
                         for _, buffer in ipairs(attached_buffers) do
-                            vim.api.nvim_exec_autocmds("BufEnter", { group = "Roslyn", buffer = buffer })
+                            vim.api.nvim_exec_autocmds("FileType", { group = "Roslyn", buffer = buffer })
                         end
                     end
 

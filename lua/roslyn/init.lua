@@ -149,22 +149,32 @@ local function get_cmd(exe)
     local default_lsp_args =
         { "--logLevel=Information", "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()) }
     local mason_installation = get_mason_installation()
+    local mason_exists = vim.fn.executable(mason_installation) == 1
 
-    if type(exe) == "string" then
-        return vim.list_extend({ exe }, default_lsp_args)
-    elseif type(exe) == "table" then
-        return vim.list_extend(vim.deepcopy(exe), default_lsp_args)
-    elseif vim.uv.fs_stat(mason_installation) then
-        return vim.list_extend({ mason_installation }, default_lsp_args)
+    if mason_exists then
+        local base_mason = vim.list_extend({ mason_installation }, default_lsp_args)
+        if type(exe) == "string" then
+            return vim.list_extend(base_mason, { exe })
+        elseif type(exe) == "table" then
+            return vim.list_extend(base_mason, vim.deepcopy(exe))
+        else
+            return base_mason
+        end
     else
-        return vim.list_extend({
-            "dotnet",
-            vim.fs.joinpath(
-                vim.fn.stdpath("data") --[[@as string]],
-                "roslyn",
-                "Microsoft.CodeAnalysis.LanguageServer.dll"
-            ),
-        }, default_lsp_args)
+        if type(exe) == "string" then
+            return vim.list_extend({ exe }, default_lsp_args)
+        elseif type(exe) == "table" then
+            return vim.list_extend(vim.deepcopy(exe), default_lsp_args)
+        else
+            return vim.list_extend({
+                "dotnet",
+                vim.fs.joinpath(
+                    vim.fn.stdpath("data") --[[@as string]],
+                    "roslyn",
+                    "Microsoft.CodeAnalysis.LanguageServer.dll"
+                ),
+            }, default_lsp_args)
+        end
     end
 end
 
@@ -296,9 +306,9 @@ function M.setup(config)
         end
     end
 
-    vim.api.nvim_create_autocmd({ "BufEnter" }, {
+    vim.api.nvim_create_autocmd({ "FileType" }, {
         group = vim.api.nvim_create_augroup("Roslyn", { clear = true }),
-        pattern = "*.cs",
+        pattern = "cs",
         callback = function(opt)
             if not valid_buffer(opt.buf) then
                 return
