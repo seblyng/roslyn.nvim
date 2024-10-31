@@ -87,6 +87,8 @@ local function lsp_start(cmd, bufnr, root_dir, roslyn_config, on_init)
             for _, buf in ipairs(buffers) do
                 vim.lsp.util._refresh("textDocument/diagnostic", { bufnr = buf })
             end
+
+            vim.api.nvim_exec_autocmds("User", { pattern = "RoslynInitialized", modeline = false })
         end,
         ["workspace/_roslyn_projectHasUnresolvedDependencies"] = function()
             vim.notify("Detected missing dependencies. Run dotnet restore command.", vim.log.levels.ERROR)
