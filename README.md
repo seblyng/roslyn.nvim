@@ -247,6 +247,12 @@ opts = {
 }
 ```
 
+## 📚 Commands
+
+- `:Roslyn restart` restarts the server
+- `:Roslyn stop` stops the server
+- `:Roslyn target` chooses a solution if there are multiple to chose from
+
 ## 🚀 Other usage
 
   - If you have multiple solutions, this plugin tries to guess which one to use. You can change the target with the `:CSTarget` command.

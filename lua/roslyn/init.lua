@@ -214,24 +214,15 @@ end
 ---@param on_init fun(target: string): fun(client: vim.lsp.Client)
 local function start_with_solution(bufnr, cmd, sln, roslyn_config, on_init)
     -- Give the user an option to change the solution file if we find more than one
-    -- Or the selected solution file is not a part of the solution files found.
-    -- If the solution file is not a part of the found solution files, it may be
-    -- that the user has completely changed projects, and we can then support changing the
-    -- solution file without completely restarting neovim
-    if
-        #sln > 1
-        or (vim.g.roslyn_nvim_selected_solution and not vim.iter(sln or {}):find(vim.g.roslyn_nvim_selected_solution))
-    then
-        commands.attach_subcommand_to_buffer("target", bufnr, {
-            impl = function()
-                vim.ui.select(sln, { prompt = "Select target solution: " }, function(file)
-                    vim.lsp.stop_client(vim.lsp.get_clients({ name = "roslyn" }), true)
-                    vim.g.roslyn_nvim_selected_solution = file
-                    lsp_start(cmd, bufnr, vim.fs.dirname(file), roslyn_config, on_init(file))
-                end)
-            end,
-        })
-    end
+    commands.attach_subcommand_to_buffer("target", bufnr, {
+        impl = function()
+            vim.ui.select(sln, { prompt = "Select target solution: " }, function(file)
+                vim.lsp.stop_client(vim.lsp.get_clients({ name = "roslyn" }), true)
+                vim.g.roslyn_nvim_selected_solution = file
+                lsp_start(cmd, bufnr, vim.fs.dirname(file), roslyn_config, on_init(file))
+            end)
+        end,
+    })
 
     local sln_file = get_sln_file(bufnr, sln, roslyn_config)
     if sln_file then
