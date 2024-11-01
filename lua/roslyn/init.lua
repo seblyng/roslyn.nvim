@@ -222,24 +222,15 @@ local function start_with_solution(bufnr, cmd, sln, roslyn_config, on_init)
         #sln > 1
         or (vim.g.roslyn_nvim_selected_solution and not vim.iter(sln or {}):find(vim.g.roslyn_nvim_selected_solution))
     then
-        local function select_target_solution()
-            vim.ui.select(sln, { prompt = "Select target solution: " }, function(file)
-                vim.lsp.stop_client(vim.lsp.get_clients({ name = "roslyn" }), true)
-                vim.g.roslyn_nvim_selected_solution = file
-                lsp_start(cmd, bufnr, vim.fs.dirname(file), roslyn_config, on_init(file))
-            end)
-        end
-
         commands.attach_subcommand_to_buffer("target", bufnr, {
             impl = function()
-                select_target_solution()
+                vim.ui.select(sln, { prompt = "Select target solution: " }, function(file)
+                    vim.lsp.stop_client(vim.lsp.get_clients({ name = "roslyn" }), true)
+                    vim.g.roslyn_nvim_selected_solution = file
+                    lsp_start(cmd, bufnr, vim.fs.dirname(file), roslyn_config, on_init(file))
+                end)
             end,
         })
-
-        vim.api.nvim_buf_create_user_command(bufnr, "CSTarget", function()
-            vim.notify("Deprecated... Use `:Roslyn target` instead", vim.log.levels.WARN)
-            select_target_solution()
-        end, { desc = "Selects the sln file for the buffer: " .. bufnr })
     end
 
     local sln_file = get_sln_file(bufnr, sln, roslyn_config)
@@ -252,7 +243,10 @@ local function start_with_solution(bufnr, cmd, sln, roslyn_config, on_init)
     --   - Don't have a selected solution file
     --   - Found multiple solution files
     --   - Was not able to predict which solution file to use
-    vim.notify("Multiple sln files found. Use `CSTarget` to select or change target for buffer", vim.log.levels.INFO)
+    vim.notify(
+        "Multiple sln files found. Use `:Roslyn target` to select or change target for buffer",
+        vim.log.levels.INFO
+    )
 end
 
 ---@param cmd string[]
