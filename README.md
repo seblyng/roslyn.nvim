@@ -72,6 +72,12 @@ The plugin comes with the following defaults:
         "dotnet",
         vim.fs.joinpath(vim.fn.stdpath("data"), "roslyn", "Microsoft.CodeAnalysis.LanguageServer.dll"),
     },
+    args = {
+        "--logLevel=Information", "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path())
+    },
+  --[[
+  -- args can be used to pass additional flags to the language server
+    ]]
 
     -- NOTE: Set `filewatching` to false if you experience performance problems.
     -- Defaults to true, since turning it off is a hack.

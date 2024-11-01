@@ -87,6 +87,8 @@ local function lsp_start(cmd, bufnr, root_dir, roslyn_config, on_init)
             for _, buf in ipairs(buffers) do
                 vim.lsp.util._refresh("textDocument/diagnostic", { bufnr = buf })
             end
+
+            vim.api.nvim_exec_autocmds("User", { pattern = "RoslynInitialized", modeline = false })
         end,
         ["workspace/_roslyn_projectHasUnresolvedDependencies"] = function()
             vim.notify("Detected missing dependencies. Run dotnet restore command.", vim.log.levels.ERROR)
@@ -144,18 +146,18 @@ local function lsp_start(cmd, bufnr, root_dir, roslyn_config, on_init)
 end
 
 ---@param exe string|string[]
+---@param args string[]
 ---@return string[]
-local function get_cmd(exe)
-    local default_lsp_args =
-        { "--logLevel=Information", "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()) }
+local function get_cmd(exe, args)
     local mason_installation = get_mason_installation()
+    local mason_exists = vim.uv.fs_stat(mason_installation) ~= nil
 
     if type(exe) == "string" then
-        return vim.list_extend({ exe }, default_lsp_args)
+        return vim.list_extend({ exe }, args)
     elseif type(exe) == "table" then
-        return vim.list_extend(vim.deepcopy(exe), default_lsp_args)
-    elseif vim.uv.fs_stat(mason_installation) then
-        return vim.list_extend({ mason_installation }, default_lsp_args)
+        return vim.list_extend(vim.deepcopy(exe), args)
+    elseif mason_exists then
+        return vim.list_extend({ mason_installation }, args)
     else
         return vim.list_extend({
             "dotnet",
@@ -164,13 +166,14 @@ local function get_cmd(exe)
                 "roslyn",
                 "Microsoft.CodeAnalysis.LanguageServer.dll"
             ),
-        }, default_lsp_args)
+        }, args)
     end
 end
 
 ---@class InternalRoslynNvimConfig
 ---@field filewatching boolean
 ---@field exe? string|string[]
+---@field args string[]
 ---@field config vim.lsp.ClientConfig
 ---@field choose_sln? fun(solutions: string[]): string?
 ---@field broad_search boolean
@@ -178,6 +181,7 @@ end
 ---@class RoslynNvimConfig
 ---@field filewatching? boolean
 ---@field exe? string|string[]
+---@field args? string[]
 ---@field config? vim.lsp.ClientConfig
 ---@field choose_sln? fun(solutions: string[]): string?
 ---@field broad_search? boolean
@@ -275,6 +279,7 @@ function M.setup(config)
     local default_config = {
         filewatching = true,
         exe = nil,
+        args = { "--logLevel=Information", "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()) },
         ---@diagnostic disable-next-line: missing-fields
         config = {},
         choose_sln = nil,
@@ -284,7 +289,7 @@ function M.setup(config)
     local roslyn_config = vim.tbl_deep_extend("force", default_config, config or {})
     roslyn_config.config.capabilities = get_extendend_capabilities(roslyn_config)
 
-    local cmd = get_cmd(roslyn_config.exe)
+    local cmd = get_cmd(roslyn_config.exe, roslyn_config.args)
 
     ---@param target string
     local function on_init_sln(target)
@@ -296,9 +301,9 @@ function M.setup(config)
         end
     end
 
-    vim.api.nvim_create_autocmd({ "BufEnter" }, {
+    vim.api.nvim_create_autocmd({ "FileType" }, {
         group = vim.api.nvim_create_augroup("Roslyn", { clear = true }),
-        pattern = "*.cs",
+        pattern = "cs",
         callback = function(opt)
             if not valid_buffer(opt.buf) then
                 return
