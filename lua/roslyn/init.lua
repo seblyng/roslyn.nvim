@@ -134,15 +134,7 @@ local function lsp_start(cmd, bufnr, root_dir, roslyn_config, on_init)
         end
     end
 
-    server.start_server(cmd, config, function(pipe_name)
-        config.cmd = vim.lsp.rpc.connect(pipe_name)
-        local client_id = vim.lsp.start(config, {
-            bufnr = bufnr,
-        })
-        if client_id then
-            server.save_server_object(client_id)
-        end
-    end)
+    server.start_server(bufnr, cmd, config)
 end
 
 ---@param exe string|string[]

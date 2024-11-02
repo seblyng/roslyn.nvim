@@ -18,14 +18,27 @@ end
 
 local M = {}
 
+---@param bufnr integer
+---@param config vim.lsp.ClientConfig Configuration for the server.
+---@param pipe_name string
+local function with_pipe_name(bufnr, config, pipe_name)
+    config.cmd = vim.lsp.rpc.connect(pipe_name)
+    local client_id = vim.lsp.start(config, {
+        bufnr = bufnr,
+    })
+    if client_id then
+        _server_objects[client_id] = _current_server_object
+    end
+end
+
+---@param bufnr integer
 ---@param cmd string[]
 ---@param config vim.lsp.ClientConfig Configuration for the server.
----@param with_pipe_name fun(pipe_name: string): nil A function to execute after server start and pipe_name is known
-function M.start_server(cmd, config, with_pipe_name)
+function M.start_server(bufnr, cmd, config)
     local all_clients = vim.lsp.get_clients({ name = "roslyn" })
     for _, client in pairs(all_clients) do
         if reuse_client_default(client, config) and _pipe_names[config.root_dir] then
-            return with_pipe_name(_pipe_names[config.root_dir])
+            return with_pipe_name(bufnr, config, _pipe_names[config.root_dir])
         end
     end
 
@@ -51,7 +64,7 @@ function M.start_server(cmd, config, with_pipe_name)
             _pipe_names[config.root_dir] = pipe_name
 
             vim.schedule(function()
-                with_pipe_name(pipe_name)
+                with_pipe_name(bufnr, config, pipe_name)
             end)
         end,
         stderr = function(_, chunk)
@@ -76,11 +89,6 @@ function M.stop_server(client_id)
     if client then
         _pipe_names[client.root_dir] = nil
     end
-end
-
----@param client_id integer
-function M.save_server_object(client_id)
-    _server_objects[client_id] = _current_server_object
 end
 
 return M
