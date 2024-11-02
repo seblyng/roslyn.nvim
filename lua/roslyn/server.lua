@@ -1,6 +1,9 @@
 ---@type table<string, string>
 local _pipe_names = {}
 
+---@type boolean
+local start_pending = false
+
 ---@type vim.SystemObj?
 local _current_server_object = nil
 
@@ -35,6 +38,14 @@ end
 ---@param cmd string[]
 ---@param config vim.lsp.ClientConfig Configuration for the server.
 function M.start_server(bufnr, cmd, config)
+    if start_pending then
+        -- Wait for the previous server to start
+        vim.defer_fn(function()
+            M.start_server(bufnr, cmd, config)
+        end, 1000)
+        return
+    end
+    start_pending = true
     local all_clients = vim.lsp.get_clients({ name = "roslyn" })
     for _, client in pairs(all_clients) do
         if reuse_client_default(client, config) and _pipe_names[config.root_dir] then
@@ -76,6 +87,7 @@ function M.start_server(bufnr, cmd, config)
     }, function()
         _pipe_names[config.root_dir] = nil
     end)
+    start_pending = false
 end
 
 function M.stop_server(client_id)
