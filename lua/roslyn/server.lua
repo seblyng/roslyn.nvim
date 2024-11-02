@@ -32,6 +32,7 @@ local function with_pipe_name(bufnr, config, pipe_name)
     if client_id then
         _server_objects[client_id] = _current_server_object
     end
+    start_pending = false
 end
 
 ---@param bufnr integer
@@ -87,7 +88,6 @@ function M.start_server(bufnr, cmd, config)
     }, function()
         _pipe_names[config.root_dir] = nil
     end)
-    start_pending = false
 end
 
 function M.stop_server(client_id)
