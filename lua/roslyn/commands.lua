@@ -79,7 +79,7 @@ local function roslyn(opts)
         return
     end
 
-    vim.notify(cmd_name .. ": Unknown subcommand: " .. cmd, vim.log.levels.ERROR)
+    vim.notify(cmd_name .. ": Unknown subcommand: " .. cmd, vim.log.levels.ERROR, { title = "roslyn.nvim" })
 end
 
 ---@param name string
@@ -88,7 +88,7 @@ end
 function M.attach_subcommand_to_buffer(name, bufnr, subcmd_table)
     local subcmd = buffer_local_subcommand_tbl[name]
     if not subcmd then
-        return vim.notify("Subcommand doesn't exist")
+        return vim.notify("Subcommand doesn't exist", vim.log.levels.ERROR, { title = "roslyn.nvim" })
     end
 
     subcmd[bufnr] = subcmd_table
