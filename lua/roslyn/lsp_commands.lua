@@ -36,7 +36,7 @@ local function handle_fix_all_code_action(client, data)
             scope = flavor,
         }, function(err, response)
             if err then
-                vim.notify(err.message, vim.log.levels.ERROR)
+                vim.notify(err.message, vim.log.levels.ERROR, { title = "roslyn.nvim" })
             end
             if response and response.edit then
                 vim.lsp.util.apply_workspace_edit(response.edit, client.offset_encoding)
@@ -76,7 +76,7 @@ function M.nested_code_action(client)
                     data = action.code_action.data,
                 }, function(err, response)
                     if err then
-                        vim.notify(err.message, vim.log.levels.ERROR)
+                        vim.notify(err.message, vim.log.levels.ERROR, { title = "roslyn.nvim" })
                     end
                     if response and response.edit then
                         vim.lsp.util.apply_workspace_edit(response.edit, client.offset_encoding)
