@@ -280,7 +280,6 @@ function M.setup(config)
     try_setup_mason()
 
     vim.treesitter.language.register("c_sharp", "csharp")
-    commands.create_roslyn_commands()
 
     ---@type InternalRoslynNvimConfig
     local default_config = {
@@ -316,6 +315,7 @@ function M.setup(config)
                 return
             end
 
+            commands.create_roslyn_commands()
             local csproj_files = utils.try_get_csproj_files()
             if csproj_files then
                 return start_with_projects(cmd, opt.buf, csproj_files, roslyn_config)
