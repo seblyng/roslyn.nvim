@@ -250,8 +250,35 @@ local function start_with_projects(cmd, bufnr, csproj, roslyn_config)
     end)
 end
 
+local function try_setup_mason()
+    local ok, mason = pcall(require, "mason")
+    if not ok then
+        return
+    end
+
+    local registry = "github:Crashdummyy/mason-registry"
+    local settings = require("mason.settings")
+
+    local registries = vim.deepcopy(settings.current.registries)
+    if not vim.list_contains(registries, registry) then
+        table.insert(registries, registry)
+    end
+
+    if mason.has_setup then
+        require("mason-registry.sources").set_registries(registries)
+    else
+        -- HACK: Insert the registry into the default registries
+        -- If the user calls setup and specifies the `registries` themselves
+        -- this will not work. However, if they do that, they should also
+        -- just provide the registry themselves
+        table.insert(settings._DEFAULT_SETTINGS.registries, registry)
+    end
+end
+
 ---@param config? RoslynNvimConfig
 function M.setup(config)
+    try_setup_mason()
+
     vim.treesitter.language.register("c_sharp", "csharp")
     commands.create_roslyn_commands()
 
