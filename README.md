@@ -277,5 +277,5 @@ opts = {
 
 ## 🚀 Other usage
 
-- If you have multiple solutions, this plugin tries to guess which one to use. You can change the target with the `:CSTarget` command.
+- If you have multiple solutions, this plugin tries to guess which one to use. You can change the target with the `:Roslyn target` command.
 - The current solution is always stored in `vim.g.roslyn_nvim_selected_solution`. You can use this, for example, to display the current solution in your statusline.
