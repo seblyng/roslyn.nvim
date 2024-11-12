@@ -117,6 +117,20 @@ The plugin comes with the following defaults:
     --     end)
     -- end
     choose_sln = nil,
+    
+    -- Set allow_csproj_for_sln_swap to false to prevent projects from loading after a solution has been loaded. 
+    -- Consider this structure where both project1 and project2 are a part of the solution:
+    --
+    --      - Folder A
+    --          - Solution.sln
+    --          - Project1.sln
+    --      - Folder B
+    --          - Project2.sln
+    --
+    -- By default, when opening a file in folder B the LSP will start project2 as standalone a project. This means
+    -- jumping from Project2 to Project1 will not be possible and another LSP server will be started unnecessarily.
+    -- Setting this allow_csproj_for_sln_swap to false will prevent prevent this. 
+    allow_csproj_for_sln_swap = true,
 })
 ```
 

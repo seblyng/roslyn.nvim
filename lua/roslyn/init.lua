@@ -171,6 +171,7 @@ end
 ---@field config vim.lsp.ClientConfig
 ---@field choose_sln? fun(solutions: string[]): string?
 ---@field broad_search boolean
+---@field allow_csproj_for_sln_swap boolean
 
 ---@class RoslynNvimConfig
 ---@field filewatching? boolean
@@ -179,6 +180,7 @@ end
 ---@field config? vim.lsp.ClientConfig
 ---@field choose_sln? fun(solutions: string[]): string?
 ---@field broad_search? boolean
+---@field allow_csproj_for_sln_swap? boolean
 
 local M = {}
 
@@ -290,6 +292,7 @@ function M.setup(config)
         config = {},
         choose_sln = nil,
         broad_search = false,
+        allow_csproj_for_sln_swap = true,
     }
 
     local roslyn_config = vim.tbl_deep_extend("force", default_config, config or {})
@@ -316,7 +319,10 @@ function M.setup(config)
             end
 
             commands.create_roslyn_commands()
-            local csproj_files = utils.try_get_csproj_files()
+            local allow_projects = not vim.g.roslyn_nvim_selected_solution
+                or roslyn_config.allow_csproj_for_sln_swap ~= false
+
+            local csproj_files = allow_projects and utils.try_get_csproj_files()
             if csproj_files then
                 return start_with_projects(cmd, opt.buf, csproj_files, roslyn_config)
             end
@@ -326,7 +332,7 @@ function M.setup(config)
                 return start_with_solution(opt.buf, cmd, sln_files, roslyn_config, on_init_sln)
             end
 
-            local csproj = utils.get_project_files(opt.buf)
+            local csproj = allow_projects and utils.get_project_files(opt.buf)
             if csproj then
                 return start_with_projects(cmd, opt.buf, csproj, roslyn_config)
             end
