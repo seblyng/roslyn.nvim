@@ -22,6 +22,7 @@ end
 ---@class RoslynNvimDirectoryWithFiles
 ---@field directory string
 ---@field files string[]
+---@field main string
 
 ---Gets the root directory of the first project file and find all related project file to that directory
 ---@param buffer integer
@@ -31,7 +32,21 @@ function M.get_project_files(buffer)
         return name:match("%.csproj$") ~= nil
     end)
 
-    if not directory then
+    local path
+    if vim.bo[buffer].buftype ~= "" then
+        path = assert(vim.uv.cwd())
+    else
+        path = vim.api.nvim_buf_get_name(buffer)
+    end
+
+    local paths = vim.fs.find(function(name)
+        return name:match("%.csproj$") ~= nil
+    end, {
+        upward = true,
+        path = vim.fn.fnamemodify(path, ":p:h"),
+    })
+
+    if #paths == 0 then
         return nil
     end
 
@@ -42,6 +57,7 @@ function M.get_project_files(buffer)
     return {
         directory = directory,
         files = files,
+        main = paths[1],
     }
 end
 
@@ -63,6 +79,7 @@ function M.try_get_csproj_files()
         return {
             directory = cwd,
             files = csprojs,
+            main = csprojs[1],
         }
     end
 
