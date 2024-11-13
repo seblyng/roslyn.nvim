@@ -19,6 +19,17 @@ local function find_files_with_extension(dir, extension)
     return matches
 end
 
+---@class RoslynNvimDirectoryWithFiles
+---@field directory string
+---@field files string[]
+
+---@class RoslynNvimRootDir
+---@field projects? RoslynNvimDirectoryWithFiles
+---@field solutions string[]
+
+---@param buffer integer
+---@param broad_search boolean
+---@return RoslynNvimRootDir
 function M.root_dir(buffer, broad_search)
     local sln = vim.fs.root(buffer, function(name)
         return name:match("%.sln$") ~= nil

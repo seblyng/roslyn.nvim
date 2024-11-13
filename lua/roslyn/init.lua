@@ -298,10 +298,6 @@ function M.setup(config)
 
                 local solution = get_sln_file(opt.buf, root_dir.solutions, roslyn_config)
                 if not solution then
-                    -- If we are here, then we
-                    --   - Don't have a selected solution file
-                    --   - Found multiple solution files
-                    --   - Was not able to predict which solution file to use
                     return vim.notify(
                         "Multiple sln files found. Use `:Roslyn target` to select or change target for buffer",
                         vim.log.levels.INFO,
@@ -310,6 +306,7 @@ function M.setup(config)
                 end
 
                 -- TODO: I am not sure if I like this or not...
+                -- It will also parse the sln file every time which is no bueno
                 local projects = root_dir.projects
                 if
                     projects
