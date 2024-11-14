@@ -72,12 +72,9 @@ local function multiple_solutions_notify()
     )
 end
 
----Tries to predict the correct solution file based on certain scenarios
----  - If we also a project file, find all solutions that uses the project
----    - If there is only one, then use that
----    - If there are more, let user choose with config method
----  - If we don't have project files but have solution files
----    - If there is only one, then use that
+---Tries to predict which solutions to use if we found some
+---returning the potentially predicted solution
+---Notifies the user if we still have multiple to choose from
 ---@param root RoslynNvimRootDir
 ---@param config InternalRoslynNvimConfig
 ---@return string?
