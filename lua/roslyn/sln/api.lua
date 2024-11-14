@@ -3,16 +3,9 @@ local M = {}
 local sysname = vim.uv.os_uname().sysname:lower()
 local iswin = not not (sysname:find("windows") or sysname:find("mingw"))
 
----@type table<string, string[]>
-local cache = {}
-
 ---@param solution string Path to solution
 ---@return string[] Table of projects in given solution
 function M.projects(solution)
-    if cache[solution] then
-        return cache[solution]
-    end
-
     local file = io.open(solution, "r")
     if not file then
         return {}
@@ -32,8 +25,6 @@ function M.projects(solution)
     end
 
     file:close()
-
-    cache[solution] = paths
 
     return paths
 end
