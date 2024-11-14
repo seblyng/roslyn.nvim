@@ -27,7 +27,7 @@ end
 
 ---@class RoslynNvimRootDir
 ---@field projects? RoslynNvimDirectoryWithFiles
----@field solutions string[]
+---@field solutions? string[]
 
 ---@param buffer integer
 ---@param broad_search boolean
@@ -86,31 +86,19 @@ function M.predict_sln_file(root, config)
         return nil
     end
 
-    if root.projects then
-        local solutions = vim.iter(root.solutions)
-            :filter(function(it)
-                return not (config.ignore_sln and config.ignore_sln(it))
-                    and api.exists_in_solution(it, root.projects.files[1])
-            end)
-            :totable()
+    local solutions = vim.iter(root.solutions)
+        :filter(function(it)
+            if config.ignore_sln and config.ignore_sln(it) then
+                return false
+            end
+            return (not root.projects or api.exists_in_solution(it, root.projects.files[1]))
+        end)
+        :totable()
 
-        if #solutions > 1 then
-            return config.choose_sln and config.choose_sln(solutions) or multiple_solutions_notify()
-        else
-            return solutions[1]
-        end
+    if #solutions > 1 then
+        return config.choose_sln and config.choose_sln(solutions) or multiple_solutions_notify()
     else
-        local solutions = vim.iter(root.solutions)
-            :filter(function(it)
-                return not (config.ignore_sln and config.ignore_sln(it))
-            end)
-            :totable()
-
-        if #solutions > 1 then
-            return multiple_solutions_notify()
-        else
-            return solutions[1]
-        end
+        return solutions[1]
     end
 end
 

@@ -265,9 +265,9 @@ function M.setup(config)
                 return
             end
 
-            commands.create_roslyn_commands()
-
             local root = utils.root_dir(opt.buf, roslyn_config.broad_search)
+
+            commands.create_roslyn_commands()
             commands.attach_subcommand_to_buffer("target", opt.buf, {
                 impl = function()
                     vim.ui.select(root.solutions or {}, { prompt = "Select target solution: " }, function(file)
