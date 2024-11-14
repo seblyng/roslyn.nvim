@@ -177,7 +177,7 @@ end
 ---@param files string[]
 local function on_init_project(files)
     return function(client)
-        vim.notify("initializing roslyn client for projects", vim.log.levels.info, { title = "roslyn.nvim" })
+        vim.notify("Initializing roslyn client for projects", vim.log.levels.INFO, { title = "roslyn.nvim" })
         client.notify("project/open", {
             projects = vim.tbl_map(function(file)
                 return vim.uri_from_fname(file)
