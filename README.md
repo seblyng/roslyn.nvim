@@ -117,6 +117,17 @@ The plugin comes with the following defaults:
     --     end)
     -- end
     choose_sln = nil,
+
+    -- Optional function that takes the selected solution as the only argument.
+    -- Returns a boolean of whether it should be ignored to attach to or not
+    --
+    -- I am for example using this to disable a solution with a lot of .NET Framework code on mac
+    -- Example:
+    --
+    -- choose_sln = function(sln)
+    --     return string.match(item, "Foo.sln") ~= nil
+    -- end
+    choose_sln = nil,
 })
 ```
 

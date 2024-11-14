@@ -45,12 +45,7 @@ function M.root_dir(buffer, broad_search)
         return {}
     end
 
-    local projects = csproj
-            and {
-                files = find_files_with_extension(csproj, ".csproj"),
-                directory = csproj,
-            }
-        or nil
+    local projects = csproj and { files = find_files_with_extension(csproj, ".csproj"), directory = csproj } or nil
 
     if broad_search then
         local solutions = vim.fs.find(function(name, _)
@@ -77,16 +72,11 @@ local function multiple_solutions_notify()
     )
 end
 
----Tries to predict the correct solution file based on certain scenarios
----  - If we also a project file, find all solutions that uses the project
----    - If there is only one, then use that
----    - If there are more, let user choose with config method
----  - If we don't have project files but have solution files
----    - If there is only one, then use that
----@param root RoslynNvimRootDir
----@param choose_sln? fun(solutions: string[]) : string?
----@return string?
-function M.predict_sln_file(root, choose_sln)
+local function _predict_sln_file(root, config)
+    if not root.solutions then
+        return nil
+    end
+
     if root.projects then
         local solutions = vim.iter(root.solutions)
             :filter(function(it)
@@ -95,16 +85,38 @@ function M.predict_sln_file(root, choose_sln)
             :totable()
 
         if #solutions > 1 then
-            return choose_sln and choose_sln(solutions) or multiple_solutions_notify()
+            return config.choose_sln and config.choose_sln(solutions) or multiple_solutions_notify()
         else
             return solutions[1]
         end
     else
-        if #root.solutions == 1 then
-            return root.solutions[1]
-        else
+        if #root.solutions > 1 then
             return multiple_solutions_notify()
+        else
+            return root.solutions[1]
         end
+    end
+end
+
+---Tries to predict the correct solution file based on certain scenarios
+---  - If we also a project file, find all solutions that uses the project
+---    - If there is only one, then use that
+---    - If there are more, let user choose with config method
+---  - If we don't have project files but have solution files
+---    - If there is only one, then use that
+---@param root RoslynNvimRootDir
+---@param config InternalRoslynNvimConfig
+---@return string?
+function M.predict_sln_file(root, config)
+    local sln_file = _predict_sln_file(root, config)
+    if sln_file and config.ignore_sln then
+        if config.ignore_sln(sln_file) then
+            return nil
+        else
+            return sln_file
+        end
+    else
+        return sln_file
     end
 end
 

@@ -170,6 +170,7 @@ end
 ---@field args string[]
 ---@field config vim.lsp.ClientConfig
 ---@field choose_sln? fun(solutions: string[]): string?
+---@field ignore_sln? fun(solution: string): boolean
 ---@field broad_search boolean
 ---@field lock_target boolean
 
@@ -179,6 +180,7 @@ end
 ---@field args? string[]
 ---@field config? vim.lsp.ClientConfig
 ---@field choose_sln? fun(solutions: string[]): string?
+---@field ignore_sln? fun(solution: string): boolean
 ---@field broad_search? boolean
 ---@field lock_target? boolean
 
@@ -238,6 +240,7 @@ function M.setup(config)
         ---@diagnostic disable-next-line: missing-fields
         config = {},
         choose_sln = nil,
+        ignore_sln = nil,
         broad_search = false,
         lock_target = false,
     }
@@ -285,14 +288,8 @@ function M.setup(config)
                 return lsp_start(opt.buf, cmd, sln_dir, roslyn_config, on_init_sln(vim.g.roslyn_nvim_selected_solution))
             end
 
-            if root_dir.solutions then
-                local solution = utils.predict_sln_file(root_dir, roslyn_config.choose_sln)
-                if not solution then
-                    if root_dir.projects then
-                        return start_with_projects(opt.buf, cmd, root_dir.projects, roslyn_config)
-                    end
-                end
-
+            local solution = utils.predict_sln_file(root_dir, roslyn_config)
+            if solution then
                 vim.g.roslyn_nvim_selected_solution = solution
                 return lsp_start(opt.buf, cmd, vim.fs.dirname(solution), roslyn_config, on_init_sln(solution))
             elseif root_dir.projects then
