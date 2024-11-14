@@ -125,7 +125,7 @@ The plugin comes with the following defaults:
     -- Example:
     --
     -- ignore_sln = function(sln)
-    --     return string.match(item, "Foo.sln") ~= nil
+    --     return string.match(sln, "Foo.sln") ~= nil
     -- end
     ignore_sln = nil,
 })
