@@ -164,6 +164,28 @@ local function get_cmd(exe, args)
     end
 end
 
+---@param target string
+local function on_init_sln(target)
+    return function(client)
+        vim.notify("Initializing Roslyn client for " .. target, vim.log.levels.INFO, { title = "roslyn.nvim" })
+        client.notify("solution/open", {
+            solution = vim.uri_from_fname(target),
+        })
+    end
+end
+
+---@param files string[]
+local function on_init_project(files)
+    return function(client)
+        vim.notify("initializing roslyn client for projects", vim.log.levels.info, { title = "roslyn.nvim" })
+        client.notify("project/open", {
+            projects = vim.tbl_map(function(file)
+                return vim.uri_from_fname(file)
+            end, files),
+        })
+    end
+end
+
 ---@class InternalRoslynNvimConfig
 ---@field filewatching boolean
 ---@field exe? string|string[]
@@ -185,21 +207,6 @@ end
 ---@field lock_target? boolean
 
 local M = {}
-
----@param bufnr integer
----@param cmd string[]
----@param csproj RoslynNvimDirectoryWithFiles
----@param roslyn_config InternalRoslynNvimConfig
-local function start_with_projects(bufnr, cmd, csproj, roslyn_config)
-    lsp_start(bufnr, cmd, csproj.directory, roslyn_config, function(client)
-        vim.notify("Initializing Roslyn client for projects", vim.log.levels.INFO, { title = "roslyn.nvim" })
-        client.notify("project/open", {
-            projects = vim.tbl_map(function(file)
-                return vim.uri_from_fname(file)
-            end, csproj.files),
-        })
-    end)
-end
 
 local function try_setup_mason()
     local ok, mason = pcall(require, "mason")
@@ -250,16 +257,6 @@ function M.setup(config)
 
     local cmd = get_cmd(roslyn_config.exe, roslyn_config.args)
 
-    ---@param target string
-    local function on_init_sln(target)
-        return function(client)
-            vim.notify("Initializing Roslyn client for " .. target, vim.log.levels.INFO, { title = "roslyn.nvim" })
-            client.notify("solution/open", {
-                solution = vim.uri_from_fname(target),
-            })
-        end
-    end
-
     vim.api.nvim_create_autocmd({ "FileType" }, {
         group = vim.api.nvim_create_augroup("Roslyn", { clear = true }),
         pattern = "cs",
@@ -270,10 +267,10 @@ function M.setup(config)
 
             commands.create_roslyn_commands()
 
-            local root_dir = utils.root_dir(opt.buf, roslyn_config.broad_search)
+            local root = utils.root_dir(opt.buf, roslyn_config.broad_search)
             commands.attach_subcommand_to_buffer("target", opt.buf, {
                 impl = function()
-                    vim.ui.select(root_dir.solutions or {}, { prompt = "Select target solution: " }, function(file)
+                    vim.ui.select(root.solutions or {}, { prompt = "Select target solution: " }, function(file)
                         vim.lsp.stop_client(vim.lsp.get_clients({ name = "roslyn" }), true)
                         vim.g.roslyn_nvim_selected_solution = file
                         local sln_dir = vim.fs.dirname(file)
@@ -288,12 +285,13 @@ function M.setup(config)
                 return lsp_start(opt.buf, cmd, sln_dir, roslyn_config, on_init_sln(vim.g.roslyn_nvim_selected_solution))
             end
 
-            local solution = utils.predict_sln_file(root_dir, roslyn_config)
+            local solution = utils.predict_sln_file(root, roslyn_config)
             if solution then
                 vim.g.roslyn_nvim_selected_solution = solution
                 return lsp_start(opt.buf, cmd, vim.fs.dirname(solution), roslyn_config, on_init_sln(solution))
-            elseif root_dir.projects then
-                return start_with_projects(opt.buf, cmd, root_dir.projects, roslyn_config)
+            elseif root.projects then
+                local dir = root.projects.directory
+                return lsp_start(opt.buf, cmd, dir, roslyn_config, on_init_project(root.projects.files))
             end
 
             -- Fallback to the selected solution if we don't find anything.
