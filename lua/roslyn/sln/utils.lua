@@ -72,10 +72,16 @@ local function multiple_solutions_notify()
     )
 end
 
+---Tries to predict the correct solution file based on certain scenarios
+---  - If we also a project file, find all solutions that uses the project
+---    - If there is only one, then use that
+---    - If there are more, let user choose with config method
+---  - If we don't have project files but have solution files
+---    - If there is only one, then use that
 ---@param root RoslynNvimRootDir
 ---@param config InternalRoslynNvimConfig
 ---@return string?
-local function _predict_sln_file(root, config)
+function M.predict_sln_file(root, config)
     if not root.solutions then
         return nil
     end
@@ -105,28 +111,6 @@ local function _predict_sln_file(root, config)
         else
             return solutions[1]
         end
-    end
-end
-
----Tries to predict the correct solution file based on certain scenarios
----  - If we also a project file, find all solutions that uses the project
----    - If there is only one, then use that
----    - If there are more, let user choose with config method
----  - If we don't have project files but have solution files
----    - If there is only one, then use that
----@param root RoslynNvimRootDir
----@param config InternalRoslynNvimConfig
----@return string?
-function M.predict_sln_file(root, config)
-    local sln_file = _predict_sln_file(root, config)
-    if sln_file and config.ignore_sln then
-        if config.ignore_sln(sln_file) then
-            return nil
-        else
-            return sln_file
-        end
-    else
-        return sln_file
     end
 end
 
