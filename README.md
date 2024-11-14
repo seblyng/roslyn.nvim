@@ -124,10 +124,10 @@ The plugin comes with the following defaults:
     -- I am for example using this to disable a solution with a lot of .NET Framework code on mac
     -- Example:
     --
-    -- choose_sln = function(sln)
+    -- ignore_sln = function(sln)
     --     return string.match(item, "Foo.sln") ~= nil
     -- end
-    choose_sln = nil,
+    ignore_sln = nil,
 })
 ```
 
