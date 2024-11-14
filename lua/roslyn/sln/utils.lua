@@ -64,14 +64,6 @@ function M.root_dir(buffer, broad_search)
     end
 end
 
-local function multiple_solutions_notify()
-    vim.notify(
-        "Multiple sln files found. Use `:Roslyn target` to select or change target for buffer",
-        vim.log.levels.INFO,
-        { title = "roslyn.nvim" }
-    )
-end
-
 ---Tries to predict which solutions to use if we found some
 ---returning the potentially predicted solution
 ---Notifies the user if we still have multiple to choose from
@@ -93,7 +85,12 @@ function M.predict_sln_file(root, config)
         :totable()
 
     if #solutions > 1 then
-        return config.choose_sln and config.choose_sln(solutions) or multiple_solutions_notify()
+        return config.choose_sln and config.choose_sln(solutions)
+            or vim.notify(
+                "Multiple sln files found. Use `:Roslyn target` to select or change target for buffer",
+                vim.log.levels.INFO,
+                { title = "roslyn.nvim" }
+            )
     else
         return solutions[1]
     end
