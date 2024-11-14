@@ -1,6 +1,5 @@
 local server = require("roslyn.server")
 local utils = require("roslyn.sln.utils")
-local api = require("roslyn.sln.api")
 local commands = require("roslyn.commands")
 
 ---@param buf number
@@ -185,25 +184,6 @@ end
 
 local M = {}
 
--- If we only have one solution file, then use that.
--- If the user have provided a hook to select a solution file, use that
--- If not, we must have multiple, and we try to predict the correct solution file
----@param bufnr number
----@param sln string[]
----@param roslyn_config InternalRoslynNvimConfig
-local function get_sln_file(bufnr, sln, roslyn_config)
-    if #sln == 1 then
-        return sln[1]
-    end
-
-    local chosen = roslyn_config.choose_sln and roslyn_config.choose_sln(sln)
-    if chosen then
-        return chosen
-    end
-
-    return utils.predict_sln_file(bufnr, sln)
-end
-
 ---@param bufnr integer
 ---@param cmd string[]
 ---@param csproj RoslynNvimDirectoryWithFiles
@@ -259,7 +239,7 @@ function M.setup(config)
         config = {},
         choose_sln = nil,
         broad_search = false,
-        lock_target = true,
+        lock_target = false,
     }
 
     local roslyn_config = vim.tbl_deep_extend("force", default_config, config or {})
@@ -299,31 +279,18 @@ function M.setup(config)
                 end,
             })
 
+            -- Lock the target and always start with the currently selected solution
             if roslyn_config.lock_target and vim.g.roslyn_nvim_selected_solution then
                 local sln_dir = vim.fs.dirname(vim.g.roslyn_nvim_selected_solution)
                 return lsp_start(opt.buf, cmd, sln_dir, roslyn_config, on_init_sln(vim.g.roslyn_nvim_selected_solution))
             end
 
             if root_dir.solutions then
-                local solution = get_sln_file(opt.buf, root_dir.solutions, roslyn_config)
+                local solution = utils.predict_sln_file(root_dir, roslyn_config.choose_sln)
                 if not solution then
-                    return vim.notify(
-                        "Multiple sln files found. Use `:Roslyn target` to select or change target for buffer",
-                        vim.log.levels.INFO,
-                        { title = "roslyn.nvim" }
-                    )
-                end
-
-                -- TODO: I am not sure if I like this or not...
-                -- It will also parse the sln file every time which is no bueno
-                local projects = root_dir.projects
-                if
-                    projects
-                    and projects.files
-                    and projects.files[1]
-                    and not api.exists_in_solution(solution, projects.files[1])
-                then
-                    return start_with_projects(opt.buf, cmd, projects, roslyn_config)
+                    if root_dir.projects then
+                        return start_with_projects(opt.buf, cmd, root_dir.projects, roslyn_config)
+                    end
                 end
 
                 vim.g.roslyn_nvim_selected_solution = solution

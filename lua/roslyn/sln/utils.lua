@@ -1,3 +1,5 @@
+local api = require("roslyn.sln.api")
+
 local M = {}
 
 --- Searches for files with a specific extension within a directory.
@@ -67,51 +69,43 @@ function M.root_dir(buffer, broad_search)
     end
 end
 
---- Find a path to sln file that is likely to be the one that the current buffer
---- belongs to. Ability to predict the right sln file automates the process of starting
---- LSP, without requiring the user to invoke CSTarget each time the solution is open.
---- The prediction assumes that the nearest csproj file (in one of parent dirs from buffer)
---- should be a part of the sln file that the user intended to open.
----@param buffer integer
----@param sln_files string[]
+local function multiple_solutions_notify()
+    vim.notify(
+        "Multiple sln files found. Use `:Roslyn target` to select or change target for buffer",
+        vim.log.levels.INFO,
+        { title = "roslyn.nvim" }
+    )
+end
+
+---Tries to predict the correct solution file based on certain scenarios
+---  - If we also a project file, find all solutions that uses the project
+---    - If there is only one, then use that
+---    - If there are more, let user choose with config method
+---  - If we don't have project files but have solution files
+---    - If there is only one, then use that
+---@param root RoslynNvimRootDir
+---@param choose_sln? fun(solutions: string[]) : string?
 ---@return string?
-function M.predict_sln_file(buffer, sln_files)
-    local directory = vim.fs.root(buffer, function(name)
-        return name:match("%.csproj$") ~= nil
-    end)
+function M.predict_sln_file(root, choose_sln)
+    if root.projects then
+        local solutions = vim.iter(root.solutions)
+            :filter(function(it)
+                return api.exists_in_solution(it, root.projects.files[1])
+            end)
+            :totable()
 
-    if not directory then
-        return nil
-    end
-
-    local files = vim.fs.find(function(name, _)
-        return name:match("%.csproj$")
-    end, { path = directory })
-
-    if not files then
-        return nil
-    end
-
-    local csproj_filename = vim.fn.fnamemodify(files[1], ":t")
-
-    -- Look for a solution file that contains the name of the project
-    -- Predict that to be the "correct" solution file if we find the project name
-    for _, file_path in ipairs(sln_files) do
-        local file = io.open(file_path, "r")
-
-        if not file then
-            return nil
+        if #solutions > 1 then
+            return choose_sln and choose_sln(solutions) or multiple_solutions_notify()
+        else
+            return solutions[1]
         end
-
-        local content = file:read("*a")
-        file:close()
-
-        if content:find(csproj_filename, 1, true) then
-            return file_path
+    else
+        if #root.solutions == 1 then
+            return root.solutions[1]
+        else
+            return multiple_solutions_notify()
         end
     end
-
-    return nil
 end
 
 return M
