@@ -72,6 +72,9 @@ local function multiple_solutions_notify()
     )
 end
 
+---@param root RoslynNvimRootDir
+---@param config InternalRoslynNvimConfig
+---@return string?
 local function _predict_sln_file(root, config)
     if not root.solutions then
         return nil
@@ -80,7 +83,8 @@ local function _predict_sln_file(root, config)
     if root.projects then
         local solutions = vim.iter(root.solutions)
             :filter(function(it)
-                return api.exists_in_solution(it, root.projects.files[1])
+                return not (config.ignore_sln and config.ignore_sln(it))
+                    and api.exists_in_solution(it, root.projects.files[1])
             end)
             :totable()
 
@@ -90,10 +94,16 @@ local function _predict_sln_file(root, config)
             return solutions[1]
         end
     else
-        if #root.solutions > 1 then
+        local solutions = vim.iter(root.solutions)
+            :filter(function(it)
+                return not (config.ignore_sln and config.ignore_sln(it))
+            end)
+            :totable()
+
+        if #solutions > 1 then
             return multiple_solutions_notify()
         else
-            return root.solutions[1]
+            return solutions[1]
         end
     end
 end
