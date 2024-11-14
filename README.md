@@ -128,6 +128,16 @@ The plugin comes with the following defaults:
     --     return string.match(sln, "Foo.sln") ~= nil
     -- end
     ignore_sln = nil,
+
+    -- Whether or not to look for solution files in the child of the (root).
+    -- Set this to true if you have some projects that are not a child of the
+    -- directory with the solution file
+    broad_search = false,
+
+    -- Whether or not to lock the solution target after the first attach.
+    -- This will always attach to the target in `vim.g.roslyn_nvim_selected_solution`.
+    -- NOTE: You can use `:Roslyn target` to change the target
+    lock_target = false,
 })
 ```
 
