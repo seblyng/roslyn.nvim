@@ -2,6 +2,9 @@ local server = require("roslyn.server")
 local utils = require("roslyn.sln.utils")
 local commands = require("roslyn.commands")
 
+local sysname = vim.uv.os_uname().sysname:lower()
+local iswin = not not (sysname:find("windows") or sysname:find("mingw"))
+
 ---@param buf number
 ---@return boolean
 local function valid_buffer(buf)
@@ -13,13 +16,6 @@ local function valid_buffer(buf)
             or bufname:match("^zipfile://")
             or bufname:match("^tarfile:")
         )
-end
-
----@return string
-local function get_mason_installation()
-    local mason_installation = vim.fs.joinpath(vim.fn.stdpath("data") --[[@as string]], "mason", "bin", "roslyn")
-    return vim.uv.os_uname().sysname == "Windows_NT" and string.format("%s.cmd", mason_installation)
-        or mason_installation
 end
 
 ---Assigns the default capabilities from cmp if installed, and the capabilities from neovim
@@ -139,28 +135,17 @@ local function lsp_start(bufnr, cmd, root_dir, roslyn_config, on_init)
     server.start_server(bufnr, cmd, config)
 end
 
----@param exe string|string[]
----@param args string[]
 ---@return string[]
-local function get_cmd(exe, args)
-    local mason_installation = get_mason_installation()
-    local mason_exists = vim.uv.fs_stat(mason_installation) ~= nil
+local function default_exe()
+    local data = vim.fn.stdpath("data") --[[@as string]]
 
-    if type(exe) == "string" then
-        return vim.list_extend({ exe }, args)
-    elseif type(exe) == "table" then
-        return vim.list_extend(vim.deepcopy(exe), args)
-    elseif mason_exists then
-        return vim.list_extend({ mason_installation }, args)
+    local mason_path = vim.fs.joinpath(data, "mason", "bin", "roslyn")
+    local mason_installation = iswin and string.format("%s.cmd", mason_path) or mason_path
+
+    if vim.uv.fs_stat(mason_installation) ~= nil then
+        return { mason_installation }
     else
-        return vim.list_extend({
-            "dotnet",
-            vim.fs.joinpath(
-                vim.fn.stdpath("data") --[[@as string]],
-                "roslyn",
-                "Microsoft.CodeAnalysis.LanguageServer.dll"
-            ),
-        }, args)
+        return { "dotnet", vim.fs.joinpath(data, "roslyn", "Microsoft.CodeAnalysis.LanguageServer.dll") }
     end
 end
 
@@ -188,7 +173,7 @@ end
 
 ---@class InternalRoslynNvimConfig
 ---@field filewatching boolean
----@field exe? string|string[]
+---@field exe string|string[]
 ---@field args string[]
 ---@field config vim.lsp.ClientConfig
 ---@field choose_sln? fun(solutions: string[]): string?
@@ -242,7 +227,7 @@ function M.setup(config)
     ---@type InternalRoslynNvimConfig
     local default_config = {
         filewatching = true,
-        exe = nil,
+        exe = default_exe(),
         args = { "--logLevel=Information", "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()) },
         ---@diagnostic disable-next-line: missing-fields
         config = {},
@@ -255,7 +240,8 @@ function M.setup(config)
     local roslyn_config = vim.tbl_deep_extend("force", default_config, config or {})
     roslyn_config.config.capabilities = get_extendend_capabilities(roslyn_config)
 
-    local cmd = get_cmd(roslyn_config.exe, roslyn_config.args)
+    local exe = type(roslyn_config.exe) == "string" and { roslyn_config.exe } or roslyn_config.exe --[[@as table]]
+    local cmd = vim.list_extend(vim.deepcopy(exe), vim.deepcopy(roslyn_config.args))
 
     vim.api.nvim_create_autocmd({ "FileType" }, {
         group = vim.api.nvim_create_augroup("Roslyn", { clear = true }),
