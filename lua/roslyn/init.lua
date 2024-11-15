@@ -128,6 +128,8 @@ function M.setup(config)
                 return
             end
 
+            -- I need to calculate the possible solutions even if we are locking the solutions.
+            -- This is to provide the correct possible targets to `:Roslyn target` for the buffer
             local root = utils.root_dir(opt.buf, roslyn_config.broad_search)
 
             commands.create_roslyn_commands()
