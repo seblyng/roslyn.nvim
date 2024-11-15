@@ -2,9 +2,6 @@ local server = require("roslyn.server")
 local utils = require("roslyn.sln.utils")
 local commands = require("roslyn.commands")
 
-local sysname = vim.uv.os_uname().sysname:lower()
-local iswin = not not (sysname:find("windows") or sysname:find("mingw"))
-
 ---@param buf number
 ---@return boolean
 local function valid_buffer(buf)
@@ -16,50 +13,6 @@ local function valid_buffer(buf)
             or bufname:match("^zipfile://")
             or bufname:match("^tarfile:")
         )
-end
-
----Assigns the default capabilities from cmp if installed, and the capabilities from neovim
----@return lsp.ClientCapabilities
-local function get_default_capabilities()
-    local ok, cmp_nvim_lsp = pcall(require, "cmp_nvim_lsp")
-    return ok
-            and vim.tbl_deep_extend(
-                "force",
-                vim.lsp.protocol.make_client_capabilities(),
-                cmp_nvim_lsp.default_capabilities()
-            )
-        or vim.lsp.protocol.make_client_capabilities()
-end
-
----Extends the default capabilities with hacks
----@param roslyn_config InternalRoslynNvimConfig
----@return lsp.ClientCapabilities
-local function get_extendend_capabilities(roslyn_config)
-    local capabilities = roslyn_config.config.capabilities or get_default_capabilities()
-    -- This actually tells the server that the client can do filewatching.
-    -- We will then later just not watch any files. This is because the server
-    -- will fallback to its own filewatching which is super slow.
-
-    -- Default value is true, so the user needs to explicitly pass `false` for this to happen
-    -- `not filewatching` evaluates to true if the user don't provide a value for this
-    if roslyn_config and roslyn_config.filewatching == false then
-        capabilities = vim.tbl_deep_extend("force", capabilities, {
-            workspace = {
-                didChangeWatchedFiles = {
-                    dynamicRegistration = true,
-                },
-            },
-        })
-    end
-
-    -- HACK: Roslyn requires the dynamicRegistration to be set to support diagnostics for some reason
-    return vim.tbl_deep_extend("force", capabilities, {
-        textDocument = {
-            diagnostic = {
-                dynamicRegistration = true,
-            },
-        },
-    })
 end
 
 ---@param cmd string[]
@@ -135,20 +88,6 @@ local function lsp_start(bufnr, cmd, root_dir, roslyn_config, on_init)
     server.start_server(bufnr, cmd, config)
 end
 
----@return string[]
-local function default_exe()
-    local data = vim.fn.stdpath("data") --[[@as string]]
-
-    local mason_path = vim.fs.joinpath(data, "mason", "bin", "roslyn")
-    local mason_installation = iswin and string.format("%s.cmd", mason_path) or mason_path
-
-    if vim.uv.fs_stat(mason_installation) ~= nil then
-        return { mason_installation }
-    else
-        return { "dotnet", vim.fs.joinpath(data, "roslyn", "Microsoft.CodeAnalysis.LanguageServer.dll") }
-    end
-end
-
 ---@param target string
 local function on_init_sln(target)
     return function(client)
@@ -171,77 +110,15 @@ local function on_init_project(files)
     end
 end
 
----@class InternalRoslynNvimConfig
----@field filewatching boolean
----@field exe string|string[]
----@field args string[]
----@field config vim.lsp.ClientConfig
----@field choose_sln? fun(solutions: string[]): string?
----@field ignore_sln? fun(solution: string): boolean
----@field broad_search boolean
----@field lock_target boolean
-
----@class RoslynNvimConfig
----@field filewatching? boolean
----@field exe? string|string[]
----@field args? string[]
----@field config? vim.lsp.ClientConfig
----@field choose_sln? fun(solutions: string[]): string?
----@field ignore_sln? fun(solution: string): boolean
----@field broad_search? boolean
----@field lock_target? boolean
-
 local M = {}
-
-local function try_setup_mason()
-    local ok, mason = pcall(require, "mason")
-    if not ok then
-        return
-    end
-
-    local registry = "github:Crashdummyy/mason-registry"
-    local settings = require("mason.settings")
-
-    local registries = vim.deepcopy(settings.current.registries)
-    if not vim.list_contains(registries, registry) then
-        table.insert(registries, registry)
-    end
-
-    if mason.has_setup then
-        require("mason-registry.sources").set_registries(registries)
-    else
-        -- HACK: Insert the registry into the default registries
-        -- If the user calls setup and specifies the `registries` themselves
-        -- this will not work. However, if they do that, they should also
-        -- just provide the registry themselves
-        table.insert(settings._DEFAULT_SETTINGS.registries, registry)
-    end
-end
 
 ---@param config? RoslynNvimConfig
 function M.setup(config)
-    try_setup_mason()
+    local roslyn_config = require("roslyn.config").setup(config)
 
     vim.treesitter.language.register("c_sharp", "csharp")
 
-    ---@type InternalRoslynNvimConfig
-    local default_config = {
-        filewatching = true,
-        exe = default_exe(),
-        args = { "--logLevel=Information", "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()) },
-        ---@diagnostic disable-next-line: missing-fields
-        config = {},
-        choose_sln = nil,
-        ignore_sln = nil,
-        broad_search = false,
-        lock_target = false,
-    }
-
-    local roslyn_config = vim.tbl_deep_extend("force", default_config, config or {})
-    roslyn_config.config.capabilities = get_extendend_capabilities(roslyn_config)
-
-    local exe = type(roslyn_config.exe) == "string" and { roslyn_config.exe } or roslyn_config.exe --[[@as table]]
-    local cmd = vim.list_extend(vim.deepcopy(exe), vim.deepcopy(roslyn_config.args))
+    local cmd = vim.list_extend(vim.deepcopy(roslyn_config.exe), vim.deepcopy(roslyn_config.args))
 
     vim.api.nvim_create_autocmd({ "FileType" }, {
         group = vim.api.nvim_create_augroup("Roslyn", { clear = true }),
