@@ -25,10 +25,14 @@ local function lsp_start(bufnr, cmd, root_dir, roslyn_config, on_init)
     config.name = "roslyn"
     config.root_dir = root_dir
     config.handlers = vim.tbl_deep_extend("force", {
-        ["client/registerCapability"] = require("roslyn.hacks").with_filtered_watchers(
-            vim.lsp.handlers["client/registerCapability"],
-            roslyn_config.filewatching
-        ),
+        ["client/registerCapability"] = function(err, res, ctx)
+            for _, reg in ipairs(res.registrations) do
+                if reg.method == "workspace/didChangeWatchedFiles" and not roslyn_config.filewatching then
+                    reg.registerOptions.watchers = {}
+                end
+            end
+            return vim.lsp.handlers["client/registerCapability"](err, res, ctx)
+        end,
         ["workspace/projectInitializationComplete"] = function(_, _, ctx)
             vim.notify("Roslyn project initialization complete", vim.log.levels.INFO, { title = "roslyn.nvim" })
 
