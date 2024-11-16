@@ -23,36 +23,13 @@ local M = {}
 local sysname = vim.uv.os_uname().sysname:lower()
 local iswin = not not (sysname:find("windows") or sysname:find("mingw"))
 
----Assigns the default capabilities from cmp if installed, and the capabilities from neovim
 ---@return lsp.ClientCapabilities
 local function get_default_capabilities()
     local ok, cmp = pcall(require, "cmp_nvim_lsp")
     local default = vim.lsp.protocol.make_client_capabilities()
-    return ok and vim.tbl_deep_extend("force", default, cmp.default_capabilities()) or default
-end
+    local capabilities = ok and vim.tbl_deep_extend("force", default, cmp.default_capabilities()) or default
 
----Extends the default capabilities with hacks
----@param roslyn_config InternalRoslynNvimConfig
----@return lsp.ClientCapabilities
-local function get_extendend_capabilities(roslyn_config)
-    local capabilities = roslyn_config.config.capabilities or get_default_capabilities()
-    -- This actually tells the server that the client can do filewatching.
-    -- We will then later just not watch any files. This is because the server
-    -- will fallback to its own filewatching which is super slow.
-
-    -- Default value is true, so the user needs to explicitly pass `false` for this to happen
-    -- `not filewatching` evaluates to true if the user don't provide a value for this
-    if roslyn_config and roslyn_config.filewatching == false then
-        capabilities = vim.tbl_deep_extend("force", capabilities, {
-            workspace = {
-                didChangeWatchedFiles = {
-                    dynamicRegistration = true,
-                },
-            },
-        })
-    end
-
-    -- HACK: Roslyn requires the dynamicRegistration to be set to support diagnostics for some reason
+    -- HACK: Doesn't show any diagnostics if we do not set this to true
     return vim.tbl_deep_extend("force", capabilities, {
         textDocument = {
             diagnostic = {
@@ -112,7 +89,9 @@ function M.setup(config)
         exe = default_exe(),
         args = { "--logLevel=Information", "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()) },
         ---@diagnostic disable-next-line: missing-fields
-        config = {},
+        config = {
+            capabilities = get_default_capabilities(),
+        },
         choose_sln = nil,
         ignore_sln = nil,
         broad_search = false,
@@ -120,8 +99,19 @@ function M.setup(config)
     }
 
     local roslyn_config = vim.tbl_deep_extend("force", default_config, config or {})
-    roslyn_config.config.capabilities = get_extendend_capabilities(roslyn_config)
     roslyn_config.exe = type(roslyn_config.exe) == "string" and { roslyn_config.exe } or roslyn_config.exe
+
+    -- HACK: Enable filewatching to later just not watch any files
+    -- This is to not make the server watch files and make everything super slow in certain situations
+    if not roslyn_config.filewatching then
+        roslyn_config.config.capabilities = vim.tbl_deep_extend("force", roslyn_config.config.capabilities, {
+            workspace = {
+                didChangeWatchedFiles = {
+                    dynamicRegistration = true,
+                },
+            },
+        })
+    end
 
     return roslyn_config
 end
