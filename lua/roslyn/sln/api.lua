@@ -14,8 +14,8 @@ function M.projects(solution)
     local paths = {}
 
     for line in file:lines() do
-        local path = line:match('Project.-".-".-".-".-"(.-)"')
-        if path then
+        local id, name, path = line:match('Project%("{(.-)}"%).*= "(.-)", "(.-)", "{.-}"')
+        if id and name and path and path:match("%.csproj$") then
             local normalized_path = iswin and path or path:gsub("\\", "/")
             local dirname = vim.fs.dirname(solution)
             local fullpath = vim.fs.joinpath(dirname, normalized_path)
