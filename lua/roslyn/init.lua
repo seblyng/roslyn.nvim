@@ -50,8 +50,7 @@ local function lsp_start(bufnr, cmd, root_dir, roslyn_config, on_init)
             return vim.NIL
         end,
         ["workspace/_roslyn_projectNeedsRestore"] = function(_, result, ctx)
-            local client = vim.lsp.get_client_by_id(ctx.client_id)
-            assert(client)
+            local client = assert(vim.lsp.get_client_by_id(ctx.client_id))
 
             client.request("workspace/_roslyn_restore", result, function(err, response)
                 if err then
@@ -105,7 +104,7 @@ end
 ---@param files string[]
 local function on_init_project(files)
     return function(client)
-        vim.notify("Initializing roslyn client for projects", vim.log.levels.INFO, { title = "roslyn.nvim" })
+        vim.notify("Initializing Roslyn client for projects", vim.log.levels.INFO, { title = "roslyn.nvim" })
         client.notify("project/open", {
             projects = vim.tbl_map(function(file)
                 return vim.uri_from_fname(file)

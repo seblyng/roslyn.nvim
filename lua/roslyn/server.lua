@@ -57,11 +57,6 @@ function M.start_server(bufnr, cmd, config)
     _current_server_object = vim.system(cmd, {
         detach = not vim.uv.os_uname().version:find("Windows"),
         stdout = function(_, data)
-            if not data then
-                return
-            end
-
-            -- try parse data as json
             local success, json_obj = pcall(vim.json.decode, data)
             if not success then
                 return
@@ -80,9 +75,8 @@ function M.start_server(bufnr, cmd, config)
             end)
         end,
         stderr = function(_, chunk)
-            local log = require("vim.lsp.log")
-            if chunk and log.error() then
-                log.error("rpc", "dotnet", "stderr", chunk)
+            if chunk then
+                vim.lsp.log.error("rpc", "dotnet", "stderr", chunk)
             end
         end,
     }, function()
