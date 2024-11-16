@@ -15,8 +15,8 @@ local function valid_buffer(buf)
         )
 end
 
----@param cmd string[]
 ---@param bufnr integer
+---@param cmd string[]
 ---@param root_dir string
 ---@param roslyn_config InternalRoslynNvimConfig
 ---@param on_init fun(client: vim.lsp.Client)
