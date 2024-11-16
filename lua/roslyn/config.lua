@@ -24,7 +24,7 @@ local sysname = vim.uv.os_uname().sysname:lower()
 local iswin = not not (sysname:find("windows") or sysname:find("mingw"))
 
 ---@return lsp.ClientCapabilities
-local function get_default_capabilities()
+local function default_capabilities()
     local ok, cmp = pcall(require, "cmp_nvim_lsp")
     local default = vim.lsp.protocol.make_client_capabilities()
     local capabilities = ok and vim.tbl_deep_extend("force", default, cmp.default_capabilities()) or default
@@ -90,7 +90,7 @@ function M.setup(config)
         args = { "--logLevel=Information", "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()) },
         ---@diagnostic disable-next-line: missing-fields
         config = {
-            capabilities = get_default_capabilities(),
+            capabilities = default_capabilities(),
         },
         choose_sln = nil,
         ignore_sln = nil,
