@@ -41,17 +41,23 @@ function M.root_dir(buffer, broad_search)
         return name:match("%.csproj$") ~= nil
     end)
 
-    if not sln or not csproj then
+    if not sln and not csproj then
         return {}
     end
 
     local projects = csproj and { files = find_files_with_extension(csproj, ".csproj"), directory = csproj } or nil
 
+    if not sln then
+        return {
+            solutions = nil,
+            projects = projects,
+        }
+    end
+
     if broad_search then
         local solutions = vim.fs.find(function(name, _)
             return name:match("%.sln$")
         end, { type = "file", limit = math.huge, path = sln })
-
         return {
             solutions = solutions,
             projects = projects,
