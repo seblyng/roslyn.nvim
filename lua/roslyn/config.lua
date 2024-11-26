@@ -27,16 +27,7 @@ local iswin = not not (sysname:find("windows") or sysname:find("mingw"))
 local function default_capabilities()
     local ok, cmp = pcall(require, "cmp_nvim_lsp")
     local default = vim.lsp.protocol.make_client_capabilities()
-    local capabilities = ok and vim.tbl_deep_extend("force", default, cmp.default_capabilities()) or default
-
-    -- HACK: Doesn't show any diagnostics if we do not set this to true
-    return vim.tbl_deep_extend("force", capabilities, {
-        textDocument = {
-            diagnostic = {
-                dynamicRegistration = true,
-            },
-        },
-    })
+    return ok and vim.tbl_deep_extend("force", default, cmp.default_capabilities()) or default
 end
 
 ---@return string[]
@@ -112,6 +103,15 @@ function M.setup(config)
             },
         })
     end
+
+    -- HACK: Doesn't show any diagnostics if we do not set this to true
+    roslyn_config.config.capabilities = vim.tbl_deep_extend("force", roslyn_config.config.capabilities, {
+        textDocument = {
+            diagnostic = {
+                dynamicRegistration = true,
+            },
+        },
+    })
 
     return roslyn_config
 end
