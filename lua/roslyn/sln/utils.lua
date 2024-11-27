@@ -32,7 +32,7 @@ end
 ---@param buffer integer
 ---@param broad_search boolean
 ---@return RoslynNvimRootDir
-function M.root_dir(buffer, broad_search)
+function M.root(buffer, broad_search)
     local sln = vim.fs.root(buffer, function(name)
         return name:match("%.sln$") ~= nil
     end)
