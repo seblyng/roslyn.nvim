@@ -131,13 +131,17 @@ function M.setup(config)
                 return
             end
 
-            -- I need to calculate the possible solutions even if we are locking the solutions.
-            -- This is to provide the correct possible targets to `:Roslyn target` for the buffer
-            local root = utils.root_dir(opt.buf, roslyn_config.broad_search)
+            -- Lock the target and always start with the currently selected solution
+            if roslyn_config.lock_target and vim.g.roslyn_nvim_selected_solution then
+                local sln_dir = vim.fs.dirname(vim.g.roslyn_nvim_selected_solution)
+                return lsp_start(opt.buf, cmd, sln_dir, roslyn_config, on_init_sln(vim.g.roslyn_nvim_selected_solution))
+            end
 
             commands.create_roslyn_commands()
             commands.attach_subcommand_to_buffer("target", opt.buf, {
                 impl = function()
+                    local root = vim.b.roslyn_root or utils.root_dir(opt.buf, roslyn_config.broad_search)
+
                     vim.ui.select(root.solutions or {}, { prompt = "Select target solution: " }, function(file)
                         vim.lsp.stop_client(vim.lsp.get_clients({ name = "roslyn" }), true)
                         vim.g.roslyn_nvim_selected_solution = file
@@ -147,11 +151,8 @@ function M.setup(config)
                 end,
             })
 
-            -- Lock the target and always start with the currently selected solution
-            if roslyn_config.lock_target and vim.g.roslyn_nvim_selected_solution then
-                local sln_dir = vim.fs.dirname(vim.g.roslyn_nvim_selected_solution)
-                return lsp_start(opt.buf, cmd, sln_dir, roslyn_config, on_init_sln(vim.g.roslyn_nvim_selected_solution))
-            end
+            local root = utils.root_dir(opt.buf, roslyn_config.broad_search)
+            vim.b.roslyn_root = root
 
             local solution = utils.predict_sln_file(root, roslyn_config)
             if solution then
