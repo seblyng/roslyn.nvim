@@ -71,7 +71,7 @@ function M.nested_code_action(client)
             if action.code_action.data.FixAllFlavors then
                 handle_fix_all_code_action(client, action.code_action.command)
             else
-                client.request("codeAction/resolve", {
+                client:request("codeAction/resolve", {
                     title = action.code_action.title,
                     data = action.code_action.data,
                 }, function(err, response)

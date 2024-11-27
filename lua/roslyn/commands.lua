@@ -19,14 +19,14 @@ local subcommand_tbl = {
 
             local attached_buffers = vim.tbl_keys(client.attached_buffers)
 
-            client.stop()
+            client:stop()
 
             local timer = vim.uv.new_timer()
             timer:start(
                 500,
                 100,
                 vim.schedule_wrap(function()
-                    if client.is_stopped() then
+                    if client:is_stopped() then
                         for _, buffer in ipairs(attached_buffers) do
                             vim.api.nvim_exec_autocmds("FileType", { group = "Roslyn", buffer = buffer })
                         end
@@ -46,7 +46,7 @@ local subcommand_tbl = {
                 return
             end
 
-            client.stop(true)
+            client:stop(true)
         end,
     },
 }

@@ -52,7 +52,7 @@ local function lsp_start(bufnr, cmd, root_dir, roslyn_config, on_init)
         ["workspace/_roslyn_projectNeedsRestore"] = function(_, result, ctx)
             local client = assert(vim.lsp.get_client_by_id(ctx.client_id))
 
-            client.request("workspace/_roslyn_restore", result, function(err, response)
+            client:request("workspace/_roslyn_restore", result, function(err, response)
                 if err then
                     vim.notify(err.message, vim.log.levels.ERROR, { title = "roslyn.nvim" })
                 end
