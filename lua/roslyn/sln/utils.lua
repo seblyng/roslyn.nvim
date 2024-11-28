@@ -1,5 +1,3 @@
-local api = require("roslyn.sln.api")
-
 local M = {}
 
 --- Searches for files with a specific extension within a directory.
@@ -30,9 +28,10 @@ end
 ---@field solutions? string[]
 
 ---@param buffer integer
----@param broad_search boolean
 ---@return RoslynNvimRootDir
-function M.root(buffer, broad_search)
+function M.root(buffer)
+    local broad_search = require("roslyn.config").get().broad_search
+
     local sln = vim.fs.root(buffer, function(name)
         return name:match("%.sln$") ~= nil
     end)
@@ -74,19 +73,19 @@ end
 ---returning the potentially predicted solution
 ---Notifies the user if we still have multiple to choose from
 ---@param root RoslynNvimRootDir
----@param config InternalRoslynNvimConfig
 ---@return string?
-function M.predict_sln_file(root, config)
+function M.predict_sln_file(root)
     if not root.solutions then
         return nil
     end
 
+    local config = require("roslyn.config").get()
     local solutions = vim.iter(root.solutions)
         :filter(function(it)
             if config.ignore_sln and config.ignore_sln(it) then
                 return false
             end
-            return (not root.projects or api.exists_in_solution(it, root.projects.files[1]))
+            return (not root.projects or require("roslyn.sln.api").exists_in_solution(it, root.projects.files[1]))
         end)
         :totable()
 

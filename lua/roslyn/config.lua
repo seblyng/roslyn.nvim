@@ -69,27 +69,31 @@ local function try_setup_mason()
     end
 end
 
----@param config? RoslynNvimConfig
+---@type InternalRoslynNvimConfig
+local roslyn_config = {
+    filewatching = true,
+    exe = default_exe(),
+    args = { "--logLevel=Information", "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()) },
+    ---@diagnostic disable-next-line: missing-fields
+    config = {
+        capabilities = default_capabilities(),
+    },
+    choose_sln = nil,
+    ignore_sln = nil,
+    broad_search = false,
+    lock_target = false,
+}
+
+function M.get()
+    return roslyn_config
+end
+
+---@param user_config? RoslynNvimConfig
 ---@return InternalRoslynNvimConfig
-function M.setup(config)
+function M.setup(user_config)
     try_setup_mason()
 
-    ---@type InternalRoslynNvimConfig
-    local default_config = {
-        filewatching = true,
-        exe = default_exe(),
-        args = { "--logLevel=Information", "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()) },
-        ---@diagnostic disable-next-line: missing-fields
-        config = {
-            capabilities = default_capabilities(),
-        },
-        choose_sln = nil,
-        ignore_sln = nil,
-        broad_search = false,
-        lock_target = false,
-    }
-
-    local roslyn_config = vim.tbl_deep_extend("force", default_config, config or {})
+    roslyn_config = vim.tbl_deep_extend("force", roslyn_config, user_config or {})
     roslyn_config.exe = type(roslyn_config.exe) == "string" and { roslyn_config.exe } or roslyn_config.exe
 
     -- HACK: Enable filewatching to later just not watch any files
