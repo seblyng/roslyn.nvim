@@ -14,9 +14,11 @@ function M.start(bufnr, root_dir, on_init)
     config.root_dir = root_dir
     config.handlers = vim.tbl_deep_extend("force", {
         ["client/registerCapability"] = function(err, res, ctx)
-            for _, reg in ipairs(res.registrations) do
-                if reg.method == "workspace/didChangeWatchedFiles" and not roslyn_config.filewatching then
-                    reg.registerOptions.watchers = {}
+            if not roslyn_config.filewatching then
+                for _, reg in ipairs(res.registrations) do
+                    if reg.method == "workspace/didChangeWatchedFiles" then
+                        reg.registerOptions.watchers = {}
+                    end
                 end
             end
             return vim.lsp.handlers["client/registerCapability"](err, res, ctx)
