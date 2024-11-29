@@ -97,4 +97,8 @@ function M.stop_server(client_id)
     end
 end
 
+function M.get_pipes()
+    return _pipe_names
+end
+
 return M
