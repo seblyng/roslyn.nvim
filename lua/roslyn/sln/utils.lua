@@ -31,12 +31,16 @@ end
 ---@return RoslynNvimRootDir
 function M.root(buffer)
     local broad_search = require("roslyn.config").get().broad_search
+    local bufname = vim.api.nvim_buf_get_name(buffer)
 
-    local sln = vim.fs.root(buffer, function(name)
+    local realpath = vim.uv.fs_realpath(bufname)
+    local path = realpath ~= nil and realpath or bufname
+
+    local sln = vim.fs.root(path, function(name)
         return name:match("%.sln$") ~= nil
     end)
 
-    local csproj = vim.fs.root(buffer, function(name)
+    local csproj = vim.fs.root(path, function(name)
         return name:match("%.csproj$") ~= nil
     end)
 
