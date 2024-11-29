@@ -98,6 +98,7 @@ function M.stop_server(client_id)
 end
 
 function M.get_pipes()
+    ---NOTE: This is used by rzls.nvim for init
     return _pipe_names
 end
 
