@@ -29,6 +29,7 @@ function M.start(bufnr, root_dir, on_init)
                 vim.lsp.util._refresh("textDocument/diagnostic", { bufnr = buf })
             end
 
+            ---NOTE: This is used by rzls.nvim for init
             vim.api.nvim_exec_autocmds("User", { pattern = "RoslynInitialized", modeline = false })
         end,
         ["workspace/_roslyn_projectHasUnresolvedDependencies"] = function()
