@@ -53,6 +53,9 @@ function M.start(bufnr, root_dir, on_init)
 
             return vim.NIL
         end,
+        ["razor/provideDynamicFileInfo"] = function(_, _, _)
+            return vim.notify("Razor is not supported.\nPlease use https://github.com/tris203/rzls.nvim", vim.log.levels.WARN, { title = 'roslyn.nvim' })
+        end,
     }, config.handlers or {})
     config.on_init = function(client, initialize_result)
         if roslyn_config.config.on_init then
