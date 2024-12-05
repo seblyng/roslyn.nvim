@@ -32,7 +32,10 @@ local function with_pipe_name(bufnr, config, pipe_name)
     if client_id then
         _server_objects[client_id] = _current_server_object
     end
-    start_pending = false
+    vim.defer_fn(function()
+        --NOTE: Give the server some time to init
+        start_pending = false
+    end, 1000)
 end
 
 ---@param bufnr integer
@@ -40,10 +43,10 @@ end
 ---@param config vim.lsp.ClientConfig Configuration for the server.
 function M.start_server(bufnr, cmd, config)
     if start_pending then
-        -- Wait for the previous server to start
+        --NOTE: Wait for the previous server to start (rzls spawns lots of roslyns)
         vim.defer_fn(function()
             M.start_server(bufnr, cmd, config)
-        end, 1000)
+        end, 250)
         return
     end
     start_pending = true
