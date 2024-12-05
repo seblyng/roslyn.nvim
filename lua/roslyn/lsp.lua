@@ -57,7 +57,11 @@ function M.start(bufnr, root_dir, on_init)
             return vim.NIL
         end,
         ["razor/provideDynamicFileInfo"] = function(_, _, _)
-            return vim.notify("Razor is not supported.\nPlease use https://github.com/tris203/rzls.nvim", vim.log.levels.WARN, { title = 'roslyn.nvim' })
+            return vim.notify(
+                "Razor is not supported.\nPlease use https://github.com/tris203/rzls.nvim",
+                vim.log.levels.WARN,
+                { title = "roslyn.nvim" }
+            )
         end,
     }, config.handlers or {})
     config.on_init = function(client, initialize_result)
@@ -82,6 +86,50 @@ function M.start(bufnr, root_dir, on_init)
         end
     end
 
+    config.on_attach = function(client, attach_bufnr)
+        local original_request = client.request
+        local last_diagnostic = nil
+        local default_handler = roslyn_config.config.handlers["textDocument/diagnostic"]
+            or vim.lsp.handlers["textDocument/diagnostic"]
+
+        if vim.fn.has("nvim-0.11") == 1 then
+            function client:request(method, params, handler, req_bufnr)
+                if method ~= "textDocument/diagnostic" then
+                    return original_request(self, method, params, handler, req_bufnr)
+                end
+
+                params.previousResultId = last_diagnostic and last_diagnostic.resultId
+                local function wrapped_handler(err, result, ctx)
+                    if result and result.resultId then
+                        last_diagnostic = result
+                    end
+                    return (handler or default_handler)(err, result, ctx)
+                end
+
+                return original_request(self, method, params, wrapped_handler, req_bufnr)
+            end
+        else
+            -- Remove this when 0.11 is released
+            client.request = function(method, params, handler, req_bufnr)
+                if method ~= "textDocument/diagnostic" then
+                    return original_request(method, params, handler, req_bufnr)
+                end
+
+                params.previousResultId = last_diagnostic and last_diagnostic.resultId
+                local function wrapped_handler(err, result, ctx)
+                    if result and result.resultId then
+                        last_diagnostic = result
+                    end
+                    return (handler or default_handler)(err, result, ctx)
+                end
+
+                return original_request(method, params, wrapped_handler, req_bufnr)
+            end
+        end
+        if roslyn_config.config.on_attach then
+            roslyn_config.config.on_attach(client, attach_bufnr)
+        end
+    end
     server.start_server(bufnr, cmd, config)
 end
 

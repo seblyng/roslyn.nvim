@@ -76,6 +76,7 @@ local roslyn_config = {
     args = { "--logLevel=Information", "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()) },
     ---@diagnostic disable-next-line: missing-fields
     config = {
+        handlers = {},
         capabilities = default_capabilities(),
     },
     choose_sln = nil,
