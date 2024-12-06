@@ -19,14 +19,18 @@ local subcommand_tbl = {
 
             local attached_buffers = vim.tbl_keys(client.attached_buffers)
 
-            client:stop()
+            -- TODO: Change this to `client:request` when minimal version is `0.11`
+            ---@diagnostic disable-next-line: missing-parameter
+            client.stop()
 
             local timer = vim.uv.new_timer()
             timer:start(
                 500,
                 100,
                 vim.schedule_wrap(function()
-                    if client:is_stopped() then
+                    -- TODO: Change this to `client:request` when minimal version is `0.11`
+                    ---@diagnostic disable-next-line: missing-parameter
+                    if client.is_stopped() then
                         for _, buffer in ipairs(attached_buffers) do
                             vim.api.nvim_exec_autocmds("FileType", { group = "Roslyn", buffer = buffer })
                         end
@@ -46,7 +50,9 @@ local subcommand_tbl = {
                 return
             end
 
-            client:stop(true)
+            -- TODO: Change this to `client:request` when minimal version is `0.11`
+            ---@diagnostic disable-next-line: missing-parameter, param-type-mismatch
+            client.stop(true)
         end,
     },
     target = {
