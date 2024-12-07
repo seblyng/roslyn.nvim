@@ -43,7 +43,9 @@ function M.start(bufnr, root_dir, on_init)
         ["workspace/_roslyn_projectNeedsRestore"] = function(_, result, ctx)
             local client = assert(vim.lsp.get_client_by_id(ctx.client_id))
 
-            client:request("workspace/_roslyn_restore", result, function(err, response)
+            -- TODO: Change this to `client:request` when minimal version is `0.11`
+            ---@diagnostic disable-next-line: param-type-mismatch
+            client.request("workspace/_roslyn_restore", result, function(err, response)
                 if err then
                     vim.notify(err.message, vim.log.levels.ERROR, { title = "roslyn.nvim" })
                 end
@@ -57,7 +59,11 @@ function M.start(bufnr, root_dir, on_init)
             return vim.NIL
         end,
         ["razor/provideDynamicFileInfo"] = function(_, _, _)
-            return vim.notify("Razor is not supported.\nPlease use https://github.com/tris203/rzls.nvim", vim.log.levels.WARN, { title = 'roslyn.nvim' })
+            return vim.notify(
+                "Razor is not supported.\nPlease use https://github.com/tris203/rzls.nvim",
+                vim.log.levels.WARN,
+                { title = "roslyn.nvim" }
+            )
         end,
     }, config.handlers or {})
     config.on_init = function(client, initialize_result)
@@ -85,9 +91,12 @@ function M.start(bufnr, root_dir, on_init)
     server.start_server(bufnr, cmd, config)
 end
 
+---@param client vim.lsp.Client
 function M.on_init_sln(client)
     local target = vim.g.roslyn_nvim_selected_solution
     vim.notify("Initializing Roslyn client for " .. target, vim.log.levels.INFO, { title = "roslyn.nvim" })
+    -- TODO: Change this to `client:request` when minimal version is `0.11`
+    ---@diagnostic disable-next-line: param-type-mismatch
     client.notify("solution/open", {
         solution = vim.uri_from_fname(target),
     })
@@ -97,6 +106,8 @@ end
 function M.on_init_project(files)
     return function(client)
         vim.notify("Initializing Roslyn client for projects", vim.log.levels.INFO, { title = "roslyn.nvim" })
+        -- TODO: Change this to `client:request` when minimal version is `0.11`
+        ---@diagnostic disable-next-line: param-type-mismatch
         client.notify("project/open", {
             projects = vim.tbl_map(function(file)
                 return vim.uri_from_fname(file)
