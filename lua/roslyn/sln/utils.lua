@@ -85,7 +85,7 @@ function M.predict_sln_file(root)
             if config.ignore_sln and config.ignore_sln(it) then
                 return false
             end
-            return (not root.projects or require("roslyn.sln.api").exists_in_solution(it, root.projects.files[1]))
+            return (not root.projects or require("roslyn.sln.api").exists_in_solution(it, root.projects.files))
         end)
         :totable()
 
