@@ -31,15 +31,13 @@ end
 
 ---Checks if a project is part of a solution or not
 ---@param solution string
----@param projects string[] Full path to the csproj files
+---@param project string Full path to the csproj file
 ---@return boolean
-function M.exists_in_solution(solution, projects)
-    local projectsInSln = M.projects(solution)
+function M.exists_in_solution(solution, project)
+    local projects = M.projects(solution)
 
-    return vim.iter(projectsInSln):find(function(pSln)
-        return vim.iter(projects):find(function(p)
-            return p == pSln
-        end) ~= nil
+    return vim.iter(projects):find(function(it)
+        return it == project
     end) ~= nil
 end
 

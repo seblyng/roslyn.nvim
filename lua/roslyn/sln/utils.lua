@@ -81,11 +81,14 @@ function M.predict_sln_file(root)
 
     local config = require("roslyn.config").get()
     local solutions = vim.iter(root.solutions)
-        :filter(function(it)
-            if config.ignore_sln and config.ignore_sln(it) then
+        :filter(function(solution)
+            if config.ignore_sln and config.ignore_sln(solution) then
                 return false
             end
-            return (not root.projects or require("roslyn.sln.api").exists_in_solution(it, root.projects.files))
+            return not root.projects
+                or vim.iter(root.projects.files):any(function(csproj_file)
+                    return require("roslyn.sln.api").exists_in_solution(solution, csproj_file)
+                end)
         end)
         :totable()
 
