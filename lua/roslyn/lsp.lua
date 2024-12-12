@@ -117,7 +117,9 @@ function M.start(bufnr, root_dir, on_init)
                     uri = uri
                 }
             }
-    
+
+            -- TODO: Change this to `client:request` when minimal version is `0.11`
+            ---@diagnostic disable-next-line: param-type-mismatch
             client.request("sourceGeneratedDocument/_roslyn_getText", params, handler, buf)
             -- Need to block. Otherwise logic could run that sets the cursor to a position
             -- that's still missing.
