@@ -10,6 +10,7 @@ local function valid_buffer(buf)
             or bufname:match("^[a-zA-Z]:")
             or bufname:match("^zipfile://")
             or bufname:match("^tarfile:")
+            or bufname:match("^roslyn%-source%-generated://")
         )
 end
 
@@ -26,7 +27,7 @@ function M.setup(config)
 
     vim.api.nvim_create_autocmd({ "FileType" }, {
         group = vim.api.nvim_create_augroup("Roslyn", { clear = true }),
-        pattern = "cs",
+        pattern = "cs", "roslyn-source-generated://*",
         callback = function(opt)
             if not valid_buffer(opt.buf) then
                 return
