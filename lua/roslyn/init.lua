@@ -27,7 +27,7 @@ function M.setup(config)
 
     vim.api.nvim_create_autocmd({ "FileType" }, {
         group = vim.api.nvim_create_augroup("Roslyn", { clear = true }),
-        pattern = "cs", "roslyn-source-generated://*",
+        pattern = {"cs", "roslyn-source-generated://*"},
         callback = function(opt)
             if not valid_buffer(opt.buf) then
                 return
