@@ -24,6 +24,8 @@ https://github.com/user-attachments/assets/a749f6c7-fc87-440c-912d-666d86453bc5
   - `roslyn` (To be used with this repo)
   - `rzls` (To be used with [rzls.nvim](https://github.com/tris203/rzls.nvim))
 
+You can then install it with `:MasonInstall roslyn` or throug the popup menu by runnnng `:Mason`. It is not available through [mason-lspconfig.nvim](https://github.com/williamboman/mason-lspconfig.nvim)) and the `:LspInstall` interface
+
 **IMPORTANT**
 
 If you are setting up mason with custom registries, make sure that you are either setting it up before `roslyn.nvim` is setup, or also include `github:Crashdummyy/mason-registry` in your `registries` config
