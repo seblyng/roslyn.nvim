@@ -77,7 +77,11 @@ end
 local roslyn_config = {
     filewatching = true,
     exe = default_exe(),
-    args = { "--logLevel=Information", "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()) },
+    args = {
+        "--logLevel=Information",
+        "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()),
+        "--stdio",
+    },
     ---@diagnostic disable-next-line: missing-fields
     config = {
         capabilities = default_capabilities(),
