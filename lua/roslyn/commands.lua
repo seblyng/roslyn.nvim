@@ -63,6 +63,10 @@ local subcommand_tbl = {
             local roslyn_lsp = require("roslyn.lsp")
 
             vim.ui.select(root.solutions or {}, { prompt = "Select target solution: " }, function(file)
+                if not file then
+                    return
+                end
+
                 vim.lsp.stop_client(vim.lsp.get_clients({ name = "roslyn" }), true)
                 vim.g.roslyn_nvim_selected_solution = file
                 local sln_dir = vim.fs.dirname(file)
