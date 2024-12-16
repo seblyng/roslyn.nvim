@@ -54,9 +54,12 @@ function M.root(buffer)
     end
 
     if broad_search then
+        local git_root = vim.fs.root(buffer, ".git")
+        local search_root = git_root and sln:match(git_root) and git_root or sln
+
         local solutions = vim.fs.find(function(name, _)
             return name:match("%.sln$")
-        end, { type = "file", limit = math.huge, path = sln })
+        end, { type = "file", limit = math.huge, path = search_root })
         return {
             solutions = solutions,
             projects = projects,
