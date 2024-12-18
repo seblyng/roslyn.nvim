@@ -96,12 +96,17 @@ function M.predict_sln_file(root)
         :totable()
 
     if #solutions > 1 then
-        return config.choose_sln and config.choose_sln(solutions)
-            or vim.notify(
-                "Multiple sln files found. Use `:Roslyn target` to select or change target for buffer",
-                vim.log.levels.INFO,
-                { title = "roslyn.nvim" }
-            )
+        local chosen = config.choose_sln and config.choose_sln(solutions) or nil
+        if chosen then
+            return chosen
+        end
+
+        vim.notify(
+            "Multiple sln files found. Use `:Roslyn target` to select or change target for buffer",
+            vim.log.levels.INFO,
+            { title = "roslyn.nvim" }
+        )
+        return nil
     else
         return solutions[1]
     end
