@@ -62,7 +62,8 @@ local subcommand_tbl = {
 
             local roslyn_lsp = require("roslyn.lsp")
 
-            vim.ui.select(root.solutions or {}, { prompt = "Select target solution: " }, function(file)
+            local targets = vim.iter({ root.solutions, root.solution_filters }):flatten():totable()
+            vim.ui.select(targets or {}, { prompt = "Select target solution: " }, function(file)
                 if not file then
                     return
                 end

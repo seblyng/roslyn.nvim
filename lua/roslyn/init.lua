@@ -27,7 +27,7 @@ function M.setup(config)
 
     vim.api.nvim_create_autocmd({ "FileType" }, {
         group = vim.api.nvim_create_augroup("Roslyn", { clear = true }),
-        pattern = {"cs", "roslyn-source-generated://*"},
+        pattern = { "cs", "roslyn-source-generated://*" },
         callback = function(opt)
             if not valid_buffer(opt.buf) then
                 return
@@ -43,7 +43,31 @@ function M.setup(config)
                 local root = utils.root(opt.buf)
                 vim.b.roslyn_root = root
 
-                local solution = utils.predict_sln_file(root)
+                local multiple, solution = utils.predict_target(root)
+
+                if multiple then
+                    -- If the user has `lock_target = true` then wait for them
+                    -- to choose a target explicitly before starting the LSP.
+                    --
+                    -- For `lock_target = false`, being asked to choose a target
+                    -- on every opened file would be annoying, so fall back to
+                    -- default handling.
+                    if roslyn_config.lock_target then
+                        vim.notify(
+                            "Multiple potential target files found. Use `:Roslyn target` to select a target.",
+                            vim.log.levels.INFO,
+                            { title = "roslyn.nvim" }
+                        )
+                        return
+                    end
+
+                    vim.notify(
+                        "Multiple potential target files found. Use `:Roslyn target` to change the target for the current buffer.",
+                        vim.log.levels.INFO,
+                        { title = "roslyn.nvim" }
+                    )
+                end
+
                 if solution then
                     vim.g.roslyn_nvim_selected_solution = solution
                     return roslyn_lsp.start(opt.buf, vim.fs.dirname(solution), roslyn_lsp.on_init_sln)

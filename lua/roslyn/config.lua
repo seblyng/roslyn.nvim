@@ -7,6 +7,8 @@ local M = {}
 ---@field config vim.lsp.ClientConfig
 ---@field choose_sln? fun(solutions: string[]): string?
 ---@field ignore_sln? fun(solution: string): boolean
+---@field choose_target? fun(targets: string[]): string?
+---@field ignore_target? fun(target: string): boolean
 ---@field broad_search boolean
 ---@field lock_target boolean
 
@@ -17,6 +19,8 @@ local M = {}
 ---@field config? vim.lsp.ClientConfig
 ---@field choose_sln? fun(solutions: string[]): string?
 ---@field ignore_sln? fun(solution: string): boolean
+---@field choose_target? fun(targets: string[]): string?
+---@field ignore_target? fun(target: string): boolean
 ---@field broad_search? boolean
 ---@field lock_target? boolean
 
@@ -80,6 +84,8 @@ local roslyn_config = {
     },
     choose_sln = nil,
     ignore_sln = nil,
+    choose_target = nil,
+    ignore_target = nil,
     broad_search = false,
     lock_target = false,
 }
@@ -95,6 +101,30 @@ function M.setup(user_config)
 
     roslyn_config = vim.tbl_deep_extend("force", roslyn_config, user_config or {})
     roslyn_config.exe = type(roslyn_config.exe) == "string" and { roslyn_config.exe } or roslyn_config.exe
+
+    if roslyn_config.ignore_sln then
+        vim.notify(
+            "The `ignore_sln` option is deprecated. Please use `ignore_target` instead, which also receives solution filter files if present",
+            vim.log.levels.WARN,
+            { title = "roslyn.nvim" }
+        )
+
+        if not roslyn_config.ignore_target then
+            roslyn_config.ignore_target = roslyn_config.ignore_sln
+        end
+    end
+
+    if roslyn_config.choose_sln then
+        vim.notify(
+            "The `choose_sln` option is deprecated. Please use `choose_target` instead, which also receives solution filter files if present",
+            vim.log.levels.WARN,
+            { title = "roslyn.nvim" }
+        )
+
+        if not roslyn_config.choose_target then
+            roslyn_config.choose_target = roslyn_config.choose_sln
+        end
+    end
 
     -- HACK: Enable filewatching to later just not watch any files
     -- This is to not make the server watch files and make everything super slow in certain situations
