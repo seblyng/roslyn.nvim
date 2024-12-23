@@ -136,43 +136,48 @@ function M.root(buffer)
     end
 end
 
----Tries to predict which solutions to use if we found some
----returning the potentially predicted solution
+---Tries to predict which target to use if we found some
+---returning the potentially predicted target
 ---Notifies the user if we still have multiple to choose from
 ---@param root RoslynNvimRootDir
 ---@return string?
-function M.predict_sln_file(root)
+function M.predict_target(root)
     if not root.solutions then
         return nil
     end
 
     local config = require("roslyn.config").get()
-    local solutions = vim.iter(root.solutions)
-        :filter(function(solution)
-            if config.ignore_sln and config.ignore_sln(solution) then
+    local sln_api = require("roslyn.sln.api")
+
+    local filtered_targets = vim.iter({ root.solutions, root.solution_filters })
+        :flatten()
+        :filter(function(target)
+            if config.ignore_target and config.ignore_target(target) then
                 return false
             end
+
             return not root.projects
                 or vim.iter(root.projects.files):any(function(csproj_file)
-                    return require("roslyn.sln.api").exists_in_solution(solution, csproj_file)
+                    return sln_api.exists_in_target(target, csproj_file)
                 end)
         end)
         :totable()
 
-    if #solutions > 1 then
-        local chosen = config.choose_sln and config.choose_sln(solutions) or nil
+    if #filtered_targets > 1 then
+        local chosen = config.choose_target and config.choose_target(filtered_targets)
+
         if chosen then
             return chosen
         end
 
         vim.notify(
-            "Multiple sln files found. Use `:Roslyn target` to select or change target for buffer",
+            "Multiple target files found. Use `:Roslyn target` to select or change target for buffer",
             vim.log.levels.INFO,
-            { title = "roslyn.nvim" }
+            { title = title }
         )
         return nil
     else
-        return solutions[1]
+        return filtered_targets[1]
     end
 end
 
