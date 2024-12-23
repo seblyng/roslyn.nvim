@@ -34,12 +34,12 @@ local function find_solutions(path)
     while #dirs > 0 do
         local dir = table.remove(dirs, 1)
 
-        for other, type in vim.fs.dir(dir) do
+        for other, fs_obj_type in vim.fs.dir(dir) do
             local name = vim.fs.joinpath(dir, other)
 
-            if type == "file" and name:match("%.sln$") then
+            if fs_obj_type == "file" and name:match("%.sln$") then
                 matches[#matches + 1] = vim.fs.normalize(name)
-            elseif type == 'directory' and not ignore_dir(name) then
+            elseif fs_obj_type == 'directory' and not ignore_dir(name) then
                 dirs[#dirs + 1] = name
             end
         end
