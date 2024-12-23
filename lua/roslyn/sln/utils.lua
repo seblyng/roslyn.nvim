@@ -26,10 +26,11 @@ local function ignore_dir(dir)
 end
 
 --- @param path string
---- @return string[]
+--- @return string[] slns, string[] slnfs
 local function find_solutions(path)
     local dirs = { path }
-    local matches = {} --- @type string[]
+    local slns = {}  --- @type string[]
+    local slnfs = {} --- @type string[]
 
     while #dirs > 0 do
         local dir = table.remove(dirs, 1)
@@ -37,15 +38,48 @@ local function find_solutions(path)
         for other, fs_obj_type in vim.fs.dir(dir) do
             local name = vim.fs.joinpath(dir, other)
 
-            if fs_obj_type == "file" and name:match("%.sln$") then
-                matches[#matches + 1] = vim.fs.normalize(name)
+            if fs_obj_type == "file" then
+                if name:match("%.sln$") then
+                    slns[#slns + 1] = vim.fs.normalize(name)
+                elseif name:match("%.slnf$") then
+                    slnfs[#slnfs + 1] = vim.fs.normalize(name)
+                end
             elseif fs_obj_type == 'directory' and not ignore_dir(name) then
                 dirs[#dirs + 1] = name
             end
         end
     end
 
-    return matches
+    return slns, slnfs
+end
+
+--- @class FindTargetsResult
+--- @field csproj_dir string?
+--- @field sln_dir string?
+--- @field slnf_dir string?
+
+--- Searches for the directory of a project and/or solution to use for the buffer.
+---@param buffer integer
+---@return FindTargetsResult
+local function find_targets(buffer)
+    -- We should always find csproj/slnf files "on the way" to the solution file,
+    -- so walk once towards the solution, and capture them as we go by.
+    local csproj_dir = nil
+    local slnf_dir = nil
+
+    local sln_dir = vim.fs.root(buffer, function(name, path)
+        if not csproj_dir and name:match("%.csproj$") then
+            csproj_dir = path
+        end
+
+        if not slnf_dir and name:match("%.slnf$") then
+            slnf_dir = path
+        end
+
+        return name:match("%.sln$") ~= nil
+    end)
+
+    return { csproj_dir = csproj_dir, sln_dir = sln_dir, slnf_dir = slnf_dir }
 end
 
 ---@class RoslynNvimDirectoryWithFiles
@@ -55,19 +89,16 @@ end
 ---@class RoslynNvimRootDir
 ---@field projects? RoslynNvimDirectoryWithFiles
 ---@field solutions? string[]
+---@field solution_filters? string[]
 
 ---@param buffer integer
 ---@return RoslynNvimRootDir
 function M.root(buffer)
     local broad_search = require("roslyn.config").get().broad_search
 
-    local sln = vim.fs.root(buffer, function(name)
-        return name:match("%.sln$") ~= nil
-    end)
-
-    local csproj = vim.fs.root(buffer, function(name)
-        return name:match("%.csproj$") ~= nil
-    end)
+    local targets = find_targets(buffer)
+    local sln = targets.sln_dir
+    local csproj = targets.csproj_dir
 
     if not sln and not csproj then
         return {}
@@ -82,19 +113,24 @@ function M.root(buffer)
         }
     end
 
+
     if broad_search then
         local git_root = vim.fs.root(buffer, ".git")
         local search_root = git_root and sln:match(git_root) and git_root or sln
 
-        local solutions = find_solutions(search_root)
+        local solutions, solution_filters = find_solutions(search_root)
 
         return {
             solutions = solutions,
+            solution_filters = solution_filters,
             projects = projects,
         }
     else
+        local slnf = targets.slnf_dir
+
         return {
             solutions = find_files_with_extension(sln, ".sln"),
+            solution_filters = slnf and find_files_with_extension(slnf, ".slnf"),
             projects = projects,
         }
     end
