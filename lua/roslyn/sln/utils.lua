@@ -138,12 +138,11 @@ end
 
 ---Tries to predict which target to use if we found some
 ---returning the potentially predicted target
----Notifies the user if we still have multiple to choose from
 ---@param root RoslynNvimRootDir
----@return string?
+---@return boolean multiple, string? predicted_target
 function M.predict_target(root)
     if not root.solutions then
-        return nil
+        return false, nil
     end
 
     local config = require("roslyn.config").get()
@@ -167,17 +166,12 @@ function M.predict_target(root)
         local chosen = config.choose_target and config.choose_target(filtered_targets)
 
         if chosen then
-            return chosen
+            return false, chosen
         end
 
-        vim.notify(
-            "Multiple target files found. Use `:Roslyn target` to select or change target for buffer",
-            vim.log.levels.INFO,
-            { title = title }
-        )
-        return nil
+        return true, nil
     else
-        return filtered_targets[1]
+        return false, filtered_targets[1]
     end
 end
 
