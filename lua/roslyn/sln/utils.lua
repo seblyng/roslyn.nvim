@@ -19,6 +19,35 @@ local function find_files_with_extension(dir, extension)
     return matches
 end
 
+--- @param dir string
+local function ignore_dir(dir)
+    return dir:match("[Bb]in$")
+        or dir:match("[Oo]bj$")
+end
+
+--- @param path string
+--- @return string[]
+local function find_solutions(path)
+    local dirs = { path }
+    local matches = {} --- @type string[]
+
+    while #dirs > 0 do
+        local dir = table.remove(dirs, 1)
+
+        for other, type in vim.fs.dir(dir) do
+            local name = vim.fs.joinpath(dir, other)
+
+            if type == "file" and name:match("%.sln$") then
+                matches[#matches + 1] = vim.fs.normalize(name)
+            elseif type == 'directory' and not ignore_dir(name) then
+                dirs[#dirs + 1] = name
+            end
+        end
+    end
+
+    return matches
+end
+
 ---@class RoslynNvimDirectoryWithFiles
 ---@field directory string
 ---@field files string[]
@@ -57,9 +86,8 @@ function M.root(buffer)
         local git_root = vim.fs.root(buffer, ".git")
         local search_root = git_root and sln:match(git_root) and git_root or sln
 
-        local solutions = vim.fs.find(function(name, _)
-            return name:match("%.sln$")
-        end, { type = "file", limit = math.huge, path = search_root })
+        local solutions = find_solutions(search_root)
+
         return {
             solutions = solutions,
             projects = projects,
