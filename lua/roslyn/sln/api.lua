@@ -66,7 +66,8 @@ function M.exists_in_solution(solution, project)
     vim.notify(
         "`exists_in_solution` has been renamed `exists_in_target` and may be removed in a future release",
         vim.log.levels.WARN,
-        { title = "roslyn.nvim" })
+        { title = "roslyn.nvim" }
+    )
 
     local projects = M.projects(solution)
 

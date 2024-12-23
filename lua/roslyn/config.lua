@@ -106,7 +106,8 @@ function M.setup(user_config)
         vim.notify(
             "The `ignore_sln` option is deprecated. Please use `ignore_target` instead, which also receives solution filter files if present",
             vim.log.levels.WARN,
-            { title = "roslyn.nvim" })
+            { title = "roslyn.nvim" }
+        )
 
         if not roslyn_config.ignore_target then
             roslyn_config.ignore_target = roslyn_config.ignore_sln
@@ -117,7 +118,8 @@ function M.setup(user_config)
         vim.notify(
             "The `choose_sln` option is deprecated. Please use `choose_target` instead, which also receives solution filter files if present",
             vim.log.levels.WARN,
-            { title = "roslyn.nvim" })
+            { title = "roslyn.nvim" }
+        )
 
         if not roslyn_config.choose_target then
             roslyn_config.choose_target = roslyn_config.choose_sln

@@ -56,14 +56,16 @@ function M.setup(config)
                         vim.notify(
                             "Multiple potential target files found. Use `:Roslyn target` to select a target.",
                             vim.log.levels.INFO,
-                            { title = "roslyn.nvim" })
+                            { title = "roslyn.nvim" }
+                        )
                         return
                     end
 
                     vim.notify(
                         "Multiple potential target files found. Use `:Roslyn target` to change the target for the current buffer.",
                         vim.log.levels.INFO,
-                        { title = "roslyn.nvim" })
+                        { title = "roslyn.nvim" }
+                    )
                 end
 
                 if solution then

@@ -21,15 +21,14 @@ end
 
 --- @param dir string
 local function ignore_dir(dir)
-    return dir:match("[Bb]in$")
-        or dir:match("[Oo]bj$")
+    return dir:match("[Bb]in$") or dir:match("[Oo]bj$")
 end
 
 --- @param path string
 --- @return string[] slns, string[] slnfs
 local function find_solutions(path)
     local dirs = { path }
-    local slns = {}  --- @type string[]
+    local slns = {} --- @type string[]
     local slnfs = {} --- @type string[]
 
     while #dirs > 0 do
@@ -44,7 +43,7 @@ local function find_solutions(path)
                 elseif name:match("%.slnf$") then
                     slnfs[#slnfs + 1] = vim.fs.normalize(name)
                 end
-            elseif fs_obj_type == 'directory' and not ignore_dir(name) then
+            elseif fs_obj_type == "directory" and not ignore_dir(name) then
                 dirs[#dirs + 1] = name
             end
         end
@@ -112,7 +111,6 @@ function M.root(buffer)
             projects = projects,
         }
     end
-
 
     if broad_search then
         local git_root = vim.fs.root(buffer, ".git")
