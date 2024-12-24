@@ -107,29 +107,29 @@ The plugin comes with the following defaults:
     -- a lot faster to initialize.
     filewatching = true,
 
-    -- Optional function that takes an array of solutions as the only argument. Return the solution you
-    -- want to use. If it returns `nil`, then it falls back to guessing the solution like normal
+    -- Optional function that takes an array of targets as the only argument. Return the target you
+    -- want to use. If it returns `nil`, then it falls back to guessing the target like normal
     -- Example:
     --
-    -- choose_sln = function(sln)
-    --     return vim.iter(sln):find(function(item)
+    -- choose_target = function(target)
+    --     return vim.iter(target):find(function(item)
     --         if string.match(item, "Foo.sln") then
     --             return item
     --         end
     --     end)
     -- end
-    choose_sln = nil,
+    choose_target = nil,
 
-    -- Optional function that takes the selected solution as the only argument.
+    -- Optional function that takes the selected target as the only argument.
     -- Returns a boolean of whether it should be ignored to attach to or not
     --
     -- I am for example using this to disable a solution with a lot of .NET Framework code on mac
     -- Example:
     --
-    -- ignore_sln = function(sln)
-    --     return string.match(sln, "Foo.sln") ~= nil
+    -- ignore_target = function(target)
+    --     return string.match(target, "Foo.sln") ~= nil
     -- end
-    ignore_sln = nil,
+    ignore_target = nil,
 
     -- Whether or not to look for solution files in the child of the (root).
     -- Set this to true if you have some projects that are not a child of the
