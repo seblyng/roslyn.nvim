@@ -38,7 +38,7 @@ local function find_solutions(path)
             local name = vim.fs.joinpath(dir, other)
 
             if fs_obj_type == "file" then
-                if name:match("%.sln$") then
+                if name:match("%.sln$") or name:match("%.slnx$") then
                     slns[#slns + 1] = vim.fs.normalize(name)
                 elseif name:match("%.slnf$") then
                     slnfs[#slnfs + 1] = vim.fs.normalize(name)
@@ -75,7 +75,7 @@ local function find_targets(buffer)
             slnf_dir = path
         end
 
-        return name:match("%.sln$") ~= nil
+        return name:match("%.sln$") ~= nil or name:match("%.slnx$")
     end)
 
     return { csproj_dir = csproj_dir, sln_dir = sln_dir, slnf_dir = slnf_dir }
@@ -125,9 +125,11 @@ function M.root(buffer)
         }
     else
         local slnf = targets.slnf_dir
+        local slns = find_files_with_extension(sln, ".sln")
+        local slnxs = find_files_with_extension(sln, ".slnx")
 
         return {
-            solutions = find_files_with_extension(sln, ".sln"),
+            solutions = vim.list_extend(slns, slnxs),
             solution_filters = slnf and find_files_with_extension(slnf, ".slnf"),
             projects = projects,
         }

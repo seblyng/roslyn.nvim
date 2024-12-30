@@ -11,7 +11,7 @@ local function projects_core(file, solution, match)
     local paths = {}
 
     for line in file:lines() do
-        local path = match(line)
+        local path = match(line, vim.fn.fnamemodify(solution, ":e"))
         if path then
             local normalized_path = iswin and path or path:gsub("\\", "/")
             local dirname = vim.fs.dirname(solution)
@@ -26,11 +26,21 @@ end
 
 --- Attempts to extract the project path from a line in a solution file
 ---@param line string
+---@param type "slnx" | "sln"
 ---@return string? path The path to the project file
-local function sln_match(line)
-    local id, name, path = line:match('Project%("{(.-)}"%).*= "(.-)", "(.-)", "{.-}"')
-    if id and name and path and path:match("%.csproj$") then
-        return path
+local function sln_match(line, type)
+    if type == "sln" then
+        local id, name, path = line:match('Project%("{(.-)}"%).*= "(.-)", "(.-)", "{.-}"')
+        if id and name and path and path:match("%.csproj$") then
+            return path
+        end
+    elseif type == "slnx" then
+        local path = line:match('<Project Path="([^"]+)"')
+        if path and path:match("%.csproj$") then
+            return path
+        end
+    else
+        error("Unknown type " .. type)
     end
 end
 
@@ -49,7 +59,7 @@ function M.projects(target)
         return {}
     end
 
-    local paths = target:match("%.sln$") and projects_core(file, target, sln_match)
+    local paths = (target:match("%.sln$") or target:match("%.slnx$")) and projects_core(file, target, sln_match)
         or target:match("%.slnf$") and projects_core(file, target, slnf_match)
 
     file:close()
