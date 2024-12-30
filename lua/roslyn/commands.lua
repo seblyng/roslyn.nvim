@@ -58,7 +58,7 @@ local subcommand_tbl = {
     target = {
         impl = function()
             local bufnr = vim.api.nvim_get_current_buf()
-            local root = vim.b.roslyn_root or require("roslyn.utils").root(bufnr)
+            local root = vim.b.roslyn_root or require("roslyn.sln.utils").root(bufnr)
 
             local roslyn_lsp = require("roslyn.lsp")
 
