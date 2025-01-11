@@ -24,13 +24,15 @@ function M.start(bufnr, root_dir, on_init)
         ["workspace/projectInitializationComplete"] = function(_, _, ctx)
             vim.notify("Roslyn project initialization complete", vim.log.levels.INFO, { title = "roslyn.nvim" })
 
+            ---NOTE: This is used by rzls.nvim for init
+            vim.api.nvim_exec_autocmds("User", { pattern = "RoslynInitialized", modeline = false })
+            _G.roslyn_initialized = true
+
             local buffers = vim.lsp.get_buffers_by_client_id(ctx.client_id)
             for _, buf in ipairs(buffers) do
                 vim.lsp.util._refresh("textDocument/diagnostic", { bufnr = buf })
             end
 
-            ---NOTE: This is used by rzls.nvim for init
-            vim.api.nvim_exec_autocmds("User", { pattern = "RoslynInitialized", modeline = false })
         end,
         ["workspace/_roslyn_projectHasUnresolvedDependencies"] = function()
             vim.notify("Detected missing dependencies. Run dotnet restore command.", vim.log.levels.ERROR, {
