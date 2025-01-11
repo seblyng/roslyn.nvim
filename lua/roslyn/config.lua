@@ -130,6 +130,15 @@ function M.setup(user_config)
         end
     end
 
+    if not vim.tbl_contains(roslyn_config.args, "--stdio") then
+        vim.notify(
+            "roslyn.nvim requires the `--stdio` argument to be present. Please add it to your configuration",
+            vim.log.levels.WARN,
+            { title = "roslyn.nvim" }
+        )
+        table.insert(roslyn_config.args, "--stdio")
+    end
+
     -- HACK: Enable filewatching to later just not watch any files
     -- This is to not make the server watch files and make everything super slow in certain situations
     if not roslyn_config.filewatching then
