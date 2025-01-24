@@ -39,7 +39,9 @@ function M.setup(config)
                 return roslyn_lsp.start(opt.buf, sln_dir, roslyn_lsp.on_init_sln)
             end
 
-            vim.schedule(function()
+            utils.select_solution(opt.buf)
+
+            --[[ vim.schedule(function()
                 local root = utils.root(opt.buf)
                 vim.b.roslyn_root = root
 
@@ -82,7 +84,7 @@ function M.setup(config)
                     local sln_dir = vim.fs.dirname(vim.g.roslyn_nvim_selected_solution)
                     return roslyn_lsp.start(opt.buf, sln_dir, roslyn_lsp.on_init_sln)
                 end
-            end)
+            end) ]]
         end,
     })
 end

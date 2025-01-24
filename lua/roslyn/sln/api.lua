@@ -13,9 +13,8 @@ local function projects_core(file, solution, match)
     for line in file:lines() do
         local path = match(line, vim.fn.fnamemodify(solution, ":e"))
         if path then
-            local normalized_path = iswin and path or path:gsub("\\", "/")
             local dirname = vim.fs.dirname(solution)
-            local fullpath = vim.fs.joinpath(dirname, normalized_path)
+            local fullpath = vim.fs.joinpath(dirname, path)
             local normalized = vim.fs.normalize(fullpath)
             table.insert(paths, normalized)
         end
