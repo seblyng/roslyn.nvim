@@ -4,6 +4,12 @@ This is an actively maintained & upgraded [fork](https://github.com/jmederosalva
 
 This standalone plugin was necessary because Roslyn uses a [non-standard](https://github.com/dotnet/roslyn/issues/72871) method of initializing communication with the client and requires additional custom integrations, unlike typical LSP setups in Neovim.
 
+## IMPORTANT
+
+This plugin does not provide Razor support.
+
+Check out https://github.com/tris203/rzls.nvim if you are using Razor.
+
 ## ⚡️ Requirements
 
 - Neovim >= 0.10.0
