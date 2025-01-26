@@ -58,6 +58,41 @@ function M.start(bufnr, root_dir, on_init)
 
             return vim.NIL
         end,
+        ["workspace/refreshSourceGeneratedDocument"] = function(_, _, ctx)
+            local client = assert(vim.lsp.get_client_by_id(ctx.client_id))
+            for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+                local uri = vim.api.nvim_buf_get_name(buf)
+                if (vim.api.nvim_buf_get_name(buf):match("^roslyn%-source%-generated://")) then
+                    local function handler(err, result)
+                        assert(not err, vim.inspect(err))
+                        if (vim.b[buf].resultId == result.resultId) then
+                            return
+                        end
+                        local content = result.text
+                        if (content == nil) then
+                            content = ""
+                        end
+                        local normalized = string.gsub(content, "\r\n", "\n")
+                        local source_lines = vim.split(normalized, "\n", { plain = true })
+                        vim.bo[buf].modifiable = true
+                        vim.api.nvim_buf_set_lines(buf, 0, -1, false, source_lines)
+                        vim.b[buf].resultId = result.resultId
+                        vim.bo[buf].modifiable = false
+                    end
+
+                    local params = {
+                        textDocument = {
+                            uri = uri,
+                        },
+                        resultId = vim.b[buf].resultId
+                    }
+
+                    -- TODO: Change this to `client:request` when minimal version is `0.11`
+                    ---@diagnostic disable-next-line: param-type-mismatch
+                    client.request("sourceGeneratedDocument/_roslyn_getText", params, handler, buf)
+                end
+            end
+        end,
     }, config.handlers or {})
     config.on_init = function(client, initialize_result)
         if roslyn_config.config.on_init then
@@ -98,9 +133,13 @@ function M.start(bufnr, root_dir, on_init)
             local function handler(err, result)
                 assert(not err, vim.inspect(err))
                 content = result.text
+                if content == nil then
+                    content = ""
+                end
                 local normalized = string.gsub(content, "\r\n", "\n")
                 local source_lines = vim.split(normalized, "\n", { plain = true })
                 vim.api.nvim_buf_set_lines(buf, 0, -1, false, source_lines)
+                vim.b[buf].resultId = result.resultId
                 vim.bo[buf].modifiable = false
             end
 
@@ -108,6 +147,7 @@ function M.start(bufnr, root_dir, on_init)
                 textDocument = {
                     uri = uri,
                 },
+                resultId = nil,
             }
 
             -- TODO: Change this to `client:request` when minimal version is `0.11`
