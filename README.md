@@ -64,7 +64,7 @@ There's currently an open [pull request](https://github.com/mason-org/mason-regi
 
 ```lua
 {
-    "seblj/roslyn.nvim",
+    "seblyng/roslyn.nvim",
     ft = "cs",
     opts = {
         -- your configuration comes here; leave empty for default settings
