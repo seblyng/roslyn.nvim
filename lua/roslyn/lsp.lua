@@ -1,5 +1,3 @@
-local server = require("roslyn.server")
-
 local M = {}
 
 ---@param bufnr integer
@@ -7,9 +5,9 @@ local M = {}
 ---@param on_init fun(client: vim.lsp.Client)
 function M.start(bufnr, root_dir, on_init)
     local roslyn_config = require("roslyn.config").get()
-    local cmd = vim.list_extend(vim.deepcopy(roslyn_config.exe), vim.deepcopy(roslyn_config.args))
 
     local config = vim.deepcopy(roslyn_config.config)
+    config.cmd = vim.list_extend(vim.deepcopy(roslyn_config.exe), vim.deepcopy(roslyn_config.args))
     config.name = "roslyn"
     config.root_dir = root_dir
     config.handlers = vim.tbl_deep_extend("force", {
@@ -26,13 +24,15 @@ function M.start(bufnr, root_dir, on_init)
         ["workspace/projectInitializationComplete"] = function(_, _, ctx)
             vim.notify("Roslyn project initialization complete", vim.log.levels.INFO, { title = "roslyn.nvim" })
 
+            ---NOTE: This is used by rzls.nvim for init
+            vim.api.nvim_exec_autocmds("User", { pattern = "RoslynInitialized", modeline = false })
+            _G.roslyn_initialized = true
+
             local buffers = vim.lsp.get_buffers_by_client_id(ctx.client_id)
             for _, buf in ipairs(buffers) do
                 vim.lsp.util._refresh("textDocument/diagnostic", { bufnr = buf })
             end
 
-            ---NOTE: This is used by rzls.nvim for init
-            vim.api.nvim_exec_autocmds("User", { pattern = "RoslynInitialized", modeline = false })
         end,
         ["workspace/_roslyn_projectHasUnresolvedDependencies"] = function()
             vim.notify("Detected missing dependencies. Run dotnet restore command.", vim.log.levels.ERROR, {
@@ -107,7 +107,6 @@ function M.start(bufnr, root_dir, on_init)
 
     config.on_exit = function(code, signal, client_id)
         vim.g.roslyn_nvim_selected_solution = nil
-        server.stop_server(client_id)
         vim.schedule(function()
             vim.notify("Roslyn server stopped", vim.log.levels.INFO, { title = "roslyn.nvim" })
         end)
@@ -161,7 +160,7 @@ function M.start(bufnr, root_dir, on_init)
         end,
     })
 
-    server.start_server(bufnr, cmd, config)
+    vim.lsp.start(config, { bufnr = bufnr })
 end
 
 ---@param client vim.lsp.Client

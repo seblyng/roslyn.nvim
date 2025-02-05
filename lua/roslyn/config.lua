@@ -77,7 +77,11 @@ end
 local roslyn_config = {
     filewatching = true,
     exe = default_exe(),
-    args = { "--logLevel=Information", "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()) },
+    args = {
+        "--logLevel=Information",
+        "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()),
+        "--stdio",
+    },
     ---@diagnostic disable-next-line: missing-fields
     config = {
         capabilities = default_capabilities(),
@@ -124,6 +128,15 @@ function M.setup(user_config)
         if not roslyn_config.choose_target then
             roslyn_config.choose_target = roslyn_config.choose_sln
         end
+    end
+
+    if not vim.tbl_contains(roslyn_config.args, "--stdio") then
+        vim.notify(
+            "roslyn.nvim requires the `--stdio` argument to be present. Please add it to your configuration",
+            vim.log.levels.WARN,
+            { title = "roslyn.nvim" }
+        )
+        table.insert(roslyn_config.args, "--stdio")
     end
 
     -- HACK: Enable filewatching to later just not watch any files
