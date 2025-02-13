@@ -1,40 +1,12 @@
-local helpers = require("nvim-test.helpers")
-local my_helpers = require("test.helpers")
+local helpers = require("test.helpers")
 local clear = helpers.clear
-local command = helpers.api.nvim_command
 local system = helpers.fn.system
+local create_file = helpers.create_file
+local get_root = helpers.get_root
+local setup = helpers.setup
+local scratch = helpers.scratch
 
 helpers.env()
-
-local scratch = my_helpers.abspath("FooRoslynTest")
-
----@param path string
----@return string
-local function create_file(path)
-    local dir = path:match("(.+)/[^/]+$")
-    system({ "mkdir", "-p", vim.fs.joinpath(scratch, dir) })
-    local f = assert(io.open(vim.fs.joinpath(scratch, path), "w"))
-    f:write("")
-    f:close()
-    return path
-end
-
-local function get_root(file_path)
-    command("edit " .. vim.fs.joinpath(scratch, file_path))
-
-    return helpers.exec_lua(function(path)
-        package.path = path
-        local bufnr = vim.api.nvim_get_current_buf()
-        return require("roslyn.sln.utils").root(bufnr)
-    end, package.path)
-end
-
-local function setup(config)
-    return helpers.exec_lua(function(path, config0)
-        package.path = path
-        return require("roslyn.init").setup(config0)
-    end, package.path, config)
-end
 
 describe("root tests", function()
     after_each(function()

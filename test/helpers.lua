@@ -1,8 +1,12 @@
+local helpers = require("nvim-test.helpers")
+local command = helpers.api.nvim_command
+local system = helpers.fn.system
+
 local sysname = vim.uv.os_uname().sysname:lower()
 local iswin = not not (sysname:find("windows") or sysname:find("mingw"))
 local os_sep = iswin and "\\" or "/"
 
-local M = {}
+local M = helpers
 
 local function split_windows_path(path)
     local prefix = ""
@@ -74,6 +78,7 @@ local function expand_home(path, sep)
     return path
 end
 
+-- NOTE: Copy this from neovim as it isn't available in stable at the time of writing
 function M.abspath(path)
     -- Expand ~ to user's home directory
     path = expand_home(path)
@@ -101,6 +106,122 @@ function M.abspath(path)
 
     -- Prefix is not needed for expanding relative paths, as `cwd` already contains it.
     return vim.fs.joinpath(cwd, path)
+end
+
+M.scratch = M.abspath("FooRoslynTest")
+
+---@param path string
+---@param text? string
+---@return string
+function M.create_file(path, text)
+    local dir = path:match("(.+)/[^/]+$")
+    system({ "mkdir", "-p", vim.fs.joinpath(M.scratch, dir) })
+    local f = assert(io.open(vim.fs.joinpath(M.scratch, path), "w"))
+    f:write(text or "")
+    f:close()
+    return path
+end
+
+---@class RoslynTestHelperProjects
+---@field name string
+---@field path string
+
+---@param path string
+---@param projects RoslynTestHelperProjects[]
+function M.create_sln_file(path, projects)
+    local lines = {}
+
+    local function append(line)
+        table.insert(lines, line)
+    end
+
+    -- Header section
+    append("Microsoft Visual Studio Solution File, Format Version 12.00")
+    append("# Visual Studio Version 17")
+    append("VisualStudioVersion = 17.0.31903.59")
+    append("MinimumVisualStudioVersion = 10.0.40219.1")
+
+    -- Create the Project entries.
+    for _, proj in ipairs(projects) do
+        -- Cycle through dummy GUIDs; for more projects they will repeat.
+        append(
+            string.format(
+                'Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "%s", "%s", "{8B8A22ED-4262-4409-B9B1-36F334016FDB}"',
+                proj.name,
+                proj.path
+            )
+        )
+        append("EndProject")
+    end
+
+    -- Global sections with configuration information.
+    append("Global")
+    append("\tGlobalSection(SolutionConfigurationPlatforms) = preSolution")
+    append("\t\tDebug|Any CPU = Debug|Any CPU")
+    append("\t\tRelease|Any CPU = Release|Any CPU")
+    append("\tEndGlobalSection")
+    append("\tGlobalSection(SolutionProperties) = preSolution")
+    append("\t\tHideSolutionNode = FALSE")
+    append("\tEndGlobalSection")
+    append("\tGlobalSection(ProjectConfigurationPlatforms) = postSolution")
+
+    -- For each project, define configurations.
+    for _, _ in ipairs(projects) do
+        append(string.format("\t\t{8B8A22ED-4262-4409-B9B1-36F334016FDB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU"))
+        append(string.format("\t\t{8B8A22ED-4262-4409-B9B1-36F334016FDB}.Debug|Any CPU.Build.0 = Debug|Any CPU"))
+        append(string.format("\t\t{8B8A22ED-4262-4409-B9B1-36F334016FDB}.Release|Any CPU.ActiveCfg = Release|Any CPU"))
+        append(string.format("\t\t{8B8A22ED-4262-4409-B9B1-36F334016FDB}.Release|Any CPU.Build.0 = Release|Any CPU"))
+    end
+
+    append("\tEndGlobalSection")
+    append("EndGlobal")
+
+    -- Combine all lines into one string.
+    local sln_string = table.concat(lines, "\n")
+    return M.create_file(path, sln_string)
+end
+
+function M.get_root(file_path)
+    command("edit " .. vim.fs.joinpath(M.scratch, file_path))
+
+    return helpers.exec_lua(function(path)
+        package.path = path
+        local bufnr = vim.api.nvim_get_current_buf()
+        return require("roslyn.sln.utils").root(bufnr)
+    end, package.path)
+end
+
+---@return string?
+function M.predict_target(root)
+    return helpers.exec_lua(function(path, root0)
+        package.path = path
+        return require("roslyn.sln.utils").predict_target(root0)
+    end, package.path, root)
+end
+
+function M.setup(config)
+    helpers.exec_lua(function(path, config0)
+        package.path = path
+        if config0.ignore_target then
+            local ignore = config0.ignore_target
+            config0.ignore_target = function(sln)
+                return string.match(sln, ignore) ~= nil
+            end
+        end
+
+        if config0.choose_target then
+            local choose = config0.choose_target
+            config0.choose_target = function(target)
+                return vim.iter(target):find(function(item)
+                    if string.match(item, choose) then
+                        return item
+                    end
+                end)
+            end
+        end
+
+        require("roslyn.config").setup(config0)
+    end, package.path, config)
 end
 
 return M
