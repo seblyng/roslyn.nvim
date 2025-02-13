@@ -28,7 +28,7 @@ describe("predicts", function()
         })
 
         local root = get_root("Program.cs")
-        local target = predict_target(root)
+        local _, target = predict_target(root)
         assert.are_same(vim.fs.joinpath(scratch, "Foo.sln"), target)
     end)
 
@@ -41,7 +41,7 @@ describe("predicts", function()
         })
 
         local root = get_root("Program.cs")
-        local target = predict_target(root)
+        local _, target = predict_target(root)
         assert.is_nil(target)
     end)
 
@@ -60,7 +60,7 @@ describe("predicts", function()
         })
 
         local root = get_root("Program.cs")
-        local target = predict_target(root)
+        local _, target = predict_target(root)
         assert.are_same(vim.fs.joinpath(scratch, "FooBar.sln"), target)
     end)
 
@@ -79,7 +79,7 @@ describe("predicts", function()
         })
 
         local root = get_root("Program.cs")
-        local target = predict_target(root)
+        local _, target = predict_target(root)
         assert.is_nil(target)
     end)
 
@@ -100,7 +100,7 @@ describe("predicts", function()
         })
 
         local root = get_root("Program.cs")
-        local target = predict_target(root)
+        local _, target = predict_target(root)
         assert.are_same(vim.fs.joinpath(scratch, "FooBar.sln"), target)
     end)
 
@@ -121,7 +121,7 @@ describe("predicts", function()
         })
 
         local root = get_root("Program.cs")
-        local target = predict_target(root)
+        local _, target = predict_target(root)
         assert.are_same(vim.fs.joinpath(scratch, "Foo.sln"), target)
     end)
 end)

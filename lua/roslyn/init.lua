@@ -62,12 +62,29 @@ function M.setup(config)
                 local root = utils.root(opt.buf)
                 vim.b.roslyn_root = root
 
-                local solution = utils.predict_target(root)
+                local multiple, solution = utils.predict_target(root)
 
-                -- We couldn't predict a solution from more than one, and we have lock target
-                -- Wait for users to explicitly choose a target
-                if not solution and root.solutions > 1 and roslyn_config.lock_target then
-                    return
+                if multiple then
+                    -- If the user has `lock_target = true` then wait for them
+                    -- to choose a target explicitly before starting the LSP.
+                    --
+                    -- For `lock_target = false`, being asked to choose a target
+                    -- on every opened file would be annoying, so fall back to
+                    -- default handling.
+                    if roslyn_config.lock_target then
+                        vim.notify(
+                            "Multiple potential target files found. Use `:Roslyn target` to select a target.",
+                            vim.log.levels.INFO,
+                            { title = "roslyn.nvim" }
+                        )
+                        return
+                    end
+
+                    vim.notify(
+                        "Multiple potential target files found. Use `:Roslyn target` to change the target for the current buffer.",
+                        vim.log.levels.INFO,
+                        { title = "roslyn.nvim" }
+                    )
                 end
 
                 if solution then
