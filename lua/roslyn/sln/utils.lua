@@ -4,15 +4,19 @@ local M = {}
 --- Only files matching the provided extension are returned.
 ---
 --- @param dir string The directory path for the search.
---- @param extension string The file extension to look for (e.g., ".sln").
+--- @param extensions string[] The file extensions to look for (e.g., ".sln").
 ---
 --- @return string[] List of file paths that match the specified extension.
-local function find_files_with_extension(dir, extension)
+local function find_files_with_extensions(dir, extensions)
     local matches = {}
 
     for entry, type in vim.fs.dir(dir) do
-        if type == "file" and vim.endswith(entry, extension) then
-            matches[#matches + 1] = vim.fs.normalize(vim.fs.joinpath(dir, entry))
+        if type == "file" then
+            for _, ext in ipairs(extensions) do
+                if vim.endswith(entry, ext) then
+                    matches[#matches + 1] = vim.fs.normalize(vim.fs.joinpath(dir, entry))
+                end
+            end
         end
     end
 
@@ -87,53 +91,60 @@ end
 
 ---@class RoslynNvimRootDir
 ---@field projects? RoslynNvimDirectoryWithFiles
----@field solutions? string[]
----@field solution_filters? string[]
+---@field solutions string[]
+---@field solution_filters string[]
 
 ---@param buffer integer
 ---@return RoslynNvimRootDir
 function M.root(buffer)
-    local broad_search = require("roslyn.config").get().broad_search
-
     local targets = find_targets(buffer)
+    if not targets.csproj_dir then
+        return {
+            solution_filters = {},
+            solutions = {},
+            projects = nil,
+        }
+    end
+
+    local projects = {
+        files = find_files_with_extensions(targets.csproj_dir, { ".csproj" }),
+        directory = targets.csproj_dir,
+    }
+
     local sln = targets.sln_dir
-    local csproj = targets.csproj_dir
+    local slnf = targets.slnf_dir
 
-    if not sln and not csproj then
-        return {}
-    end
-
-    local projects = csproj and { files = find_files_with_extension(csproj, ".csproj"), directory = csproj } or nil
-
-    if not sln then
+    if not require("roslyn.config").get().broad_search then
         return {
-            solutions = nil,
+            solutions = sln and find_files_with_extensions(sln, { ".sln", ".slnx" }) or {},
+            solution_filters = slnf and find_files_with_extensions(slnf, { ".slnf" }) or {},
             projects = projects,
         }
     end
 
-    if broad_search then
-        local git_root = vim.fs.root(buffer, ".git")
-        local search_root = git_root and sln:match(git_root) and git_root or sln
-
-        local solutions, solution_filters = find_solutions(search_root)
-
+    local git_root = vim.fs.root(buffer, ".git")
+    if not sln and not git_root then
         return {
-            solutions = solutions,
-            solution_filters = solution_filters,
+            solutions = {},
+            solution_filters = {},
             projects = projects,
         }
+    end
+
+    local search_root
+    if sln and git_root then
+        search_root = git_root and sln:find(git_root, 1, true) and git_root or sln
     else
-        local slnf = targets.slnf_dir
-        local slns = find_files_with_extension(sln, ".sln")
-        local slnxs = find_files_with_extension(sln, ".slnx")
-
-        return {
-            solutions = vim.list_extend(slns, slnxs),
-            solution_filters = slnf and find_files_with_extension(slnf, ".slnf"),
-            projects = projects,
-        }
+        search_root = sln or git_root --[[@as string]]
     end
+
+    local solutions, solution_filters = find_solutions(search_root)
+
+    return {
+        solutions = solutions,
+        solution_filters = solution_filters,
+        projects = projects,
+    }
 end
 
 ---Tries to predict which target to use if we found some
@@ -141,10 +152,6 @@ end
 ---@param root RoslynNvimRootDir
 ---@return boolean multiple, string? predicted_target
 function M.predict_target(root)
-    if not root.solutions then
-        return false, nil
-    end
-
     local config = require("roslyn.config").get()
     local sln_api = require("roslyn.sln.api")
 

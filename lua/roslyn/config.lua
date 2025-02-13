@@ -32,7 +32,9 @@ local function default_capabilities()
     local cmp_ok, cmp = pcall(require, "cmp_nvim_lsp")
     local blink_ok, blink = pcall(require, "blink.cmp")
     local default = vim.lsp.protocol.make_client_capabilities()
-    return cmp_ok and vim.tbl_deep_extend("force", default, cmp.default_capabilities()) or blink_ok and vim.tbl_deep_extend("force", default, blink.get_lsp_capabilities()) or default
+    return cmp_ok and vim.tbl_deep_extend("force", default, cmp.default_capabilities())
+        or blink_ok and vim.tbl_deep_extend("force", default, blink.get_lsp_capabilities())
+        or default
 end
 
 ---@return string[]
