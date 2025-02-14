@@ -199,6 +199,14 @@ function M.predict_target(root)
     end, package.path, root)
 end
 
+function M.api_projects(target)
+    local sln = vim.fs.joinpath(M.scratch, target)
+    return helpers.exec_lua(function(path, target0)
+        package.path = path
+        return require("roslyn.sln.api").projects(target0)
+    end, package.path, sln)
+end
+
 function M.setup(config)
     helpers.exec_lua(function(path, config0)
         package.path = path
