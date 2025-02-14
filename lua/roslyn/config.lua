@@ -29,9 +29,10 @@ local iswin = not not (sysname:find("windows") or sysname:find("mingw"))
 
 ---@return lsp.ClientCapabilities
 local function default_capabilities()
-    local ok, cmp = pcall(require, "cmp_nvim_lsp")
+    local cmp_ok, cmp = pcall(require, "cmp_nvim_lsp")
+    local blink_ok, blink = pcall(require, "blink.cmp")
     local default = vim.lsp.protocol.make_client_capabilities()
-    return ok and vim.tbl_deep_extend("force", default, cmp.default_capabilities()) or default
+    return cmp_ok and vim.tbl_deep_extend("force", default, cmp.default_capabilities()) or blink_ok and vim.tbl_deep_extend("force", default, blink.get_lsp_capabilities()) or default
 end
 
 ---@return string[]
@@ -77,7 +78,11 @@ end
 local roslyn_config = {
     filewatching = true,
     exe = default_exe(),
-    args = { "--logLevel=Information", "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()) },
+    args = {
+        "--logLevel=Information",
+        "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()),
+        "--stdio",
+    },
     ---@diagnostic disable-next-line: missing-fields
     config = {
         capabilities = default_capabilities(),
@@ -124,6 +129,15 @@ function M.setup(user_config)
         if not roslyn_config.choose_target then
             roslyn_config.choose_target = roslyn_config.choose_sln
         end
+    end
+
+    if not vim.tbl_contains(roslyn_config.args, "--stdio") then
+        vim.notify(
+            "roslyn.nvim requires the `--stdio` argument to be present. Please add it to your configuration",
+            vim.log.levels.WARN,
+            { title = "roslyn.nvim" }
+        )
+        table.insert(roslyn_config.args, "--stdio")
     end
 
     -- HACK: Enable filewatching to later just not watch any files
