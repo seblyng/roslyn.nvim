@@ -46,9 +46,12 @@ local check_lsp = function()
     -- h.info("client info: " .. vim.inspect(roslyn_client))
 
     local sln = vim.g.roslyn_nvim_selected_solution
-    if sln == nil or string.len(sln) then
+    if sln == nil or string.len(sln) < 1 then
         h.warn("solution file not found")
+    else
+        h.ok("Initialized solution: " .. sln)
     end
+
     h.ok(name .. " lsp running correctly.")
     return true
 end

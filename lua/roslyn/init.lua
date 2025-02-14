@@ -39,7 +39,7 @@ function M.setup(config)
                 return roslyn_lsp.start(opt.buf, sln_dir, roslyn_lsp.on_init_sln)
             end
 
-            utils.select_solution(opt.buf)
+            utils.select_solution()
 
             --[[ vim.schedule(function()
                 local root = utils.root(opt.buf)
