@@ -32,7 +32,6 @@ function M.start(bufnr, root_dir, on_init)
             for _, buf in ipairs(buffers) do
                 vim.lsp.util._refresh("textDocument/diagnostic", { bufnr = buf })
             end
-
         end,
         ["workspace/_roslyn_projectHasUnresolvedDependencies"] = function()
             vim.notify("Detected missing dependencies. Run dotnet restore command.", vim.log.levels.ERROR, {
@@ -103,6 +102,7 @@ function M.start(bufnr, root_dir, on_init)
         local lsp_commands = require("roslyn.lsp_commands")
         lsp_commands.fix_all_code_action(client)
         lsp_commands.nested_code_action(client)
+        lsp_commands.completion_complex_edit()
     end
 
     config.on_exit = function(code, signal, client_id)
