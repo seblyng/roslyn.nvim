@@ -91,4 +91,37 @@ function M.nested_code_action(client)
     end
 end
 
+function M.completion_complex_edit()
+    vim.lsp.commands["roslyn.client.completionComplexEdit"] = function(data, _)
+        local arguments = data.arguments
+        local uri = arguments[1].uri
+        local edit = arguments[2]
+        local bufnr = vim.uri_to_bufnr(uri)
+
+        if not vim.api.nvim_buf_is_loaded(bufnr) then
+            vim.fn.bufload(bufnr)
+        end
+
+        local start_row = edit.range.start.line
+        local start_col = edit.range.start.character
+        local end_row = edit.range["end"].line
+        local end_col = edit.range["end"].character
+
+        local newText = edit.newText:gsub("\r\n", "\n")
+        local lines = vim.split(newText, "\n")
+
+        vim.api.nvim_buf_set_text(bufnr, start_row, start_col, end_row, end_col, lines)
+
+        local final_line = start_row + #lines - 1
+        local final_col
+        if #lines == 1 then
+            final_col = start_col + #lines[1]
+        else
+            final_col = #lines[#lines]
+        end
+
+        vim.api.nvim_win_set_cursor(0, { final_line + 1, final_col })
+    end
+end
+
 return M
