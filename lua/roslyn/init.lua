@@ -42,7 +42,7 @@ function M.setup(config)
                 -- to the version installed, so this should be safe
                 local cmd = vim.list_extend(vim.deepcopy(roslyn_config.exe), { "--stdio" })
                 local stderr = vim.system(cmd):wait().stderr
-                if stderr and string.find(stderr, "Unrecognized command or argument '--stdio'.", 0, true) then
+                if stderr and string.find(stderr, "'--stdio'", 0, true) then
                     return vim.notify(
                         "The roslyn language server needs to be updated. Refer to the README for installation steps",
                         vim.log.levels.INFO,
