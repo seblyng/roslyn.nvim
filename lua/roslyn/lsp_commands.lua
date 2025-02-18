@@ -92,6 +92,37 @@ function M.nested_code_action(client)
 end
 
 function M.completion_complex_edit()
+    local function best_cursor_pos(lines, start_row, start_col)
+        local target_i, col
+
+        for i = #lines, 1, -1 do
+            local line = lines[i]
+            for j = #line, 1, -1 do
+                if not line:sub(j, j):match("[%s(){}]") then
+                    target_i = i + 1
+                    col = j
+                    break
+                end
+            end
+            if target_i then
+                break
+            end
+        end
+
+        -- Fallback position if somehow not found
+        if not target_i then
+            target_i = #lines
+            col = #lines[target_i] or 0
+        end
+
+        local row = start_row + target_i - 1
+        if target_i == 1 then
+            col = start_col + col
+        end
+
+        return { row, col }
+    end
+
     vim.lsp.commands["roslyn.client.completionComplexEdit"] = function(data, _)
         local arguments = data.arguments
         local uri = arguments[1].uri
@@ -126,14 +157,7 @@ function M.completion_complex_edit()
             vim.api.nvim_buf_set_lines(bufnr, final_line, final_line + 1, false, { new_final_line_text })
         end
 
-        local final_col
-        if #lines == 1 then
-            final_col = start_col + #lines[1]
-        else
-            final_col = #lines[#lines]
-        end
-
-        vim.api.nvim_win_set_cursor(0, { final_line + 1, final_col })
+        vim.api.nvim_win_set_cursor(0, best_cursor_pos(lines, start_row, start_col))
     end
 end
 
