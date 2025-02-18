@@ -107,12 +107,25 @@ function M.completion_complex_edit()
         local end_row = edit.range["end"].line
         local end_col = edit.range["end"].character
 
-        local newText = edit.newText:gsub("\r\n", "\n")
+        -- It's possible to get corrupted line endings in the newText from the LSP
+        -- Somehow related to typing fast
+        -- Notification(int what)\r\n    {\r\n        base._Notification(what);\r\n    }\r\n\r\n\r
+        local newText = edit.newText:gsub("\r\n", "\n"):gsub("\r", "")
         local lines = vim.split(newText, "\n")
 
         vim.api.nvim_buf_set_text(bufnr, start_row, start_col, end_row, end_col, lines)
 
         local final_line = start_row + #lines - 1
+        local final_line_text = vim.api.nvim_buf_get_lines(bufnr, final_line, final_line + 1, false)[1]
+
+        -- Handle auto-inserted parentheses
+        -- "}" or ";" followed only by at least one of "(", ")", or whitespace at the end of the line
+        if final_line_text:match("[};][()%s]+$") then
+            local new_final_line_text = final_line_text:gsub("([};])[()%s]+$", "%1")
+            lines[#lines] = new_final_line_text
+            vim.api.nvim_buf_set_lines(bufnr, final_line, final_line + 1, false, { new_final_line_text })
+        end
+
         local final_col
         if #lines == 1 then
             final_col = start_col + #lines[1]
