@@ -36,21 +36,21 @@ function M.setup(config)
 				return
 			end
 
-			if not roslyn_version_verified then
-				-- TODO: Remove this in a few months or so
-				-- vim.system will fail with required args not provided if `--stdio` exists as an argument
-				-- to the version installed, so this should be safe
-				local cmd = vim.list_extend(vim.deepcopy(roslyn_config.exe), { "--stdio" })
-				local stderr = vim.system(cmd):wait().stderr
-				if stderr and string.find(stderr, "Unrecognized command or argument '--stdio'.", 0, true) then
-					return vim.notify(
-						"The roslyn language server needs to be updated. Refer to the README for installation steps",
-						vim.log.levels.INFO,
-						{ title = "roslyn.nvim" }
-					)
-				end
-				roslyn_version_verified = true
-			end
+            if not roslyn_version_verified then
+                -- TODO: Remove this in a few months or so
+                -- vim.system will fail with required args not provided if `--stdio` exists as an argument
+                -- to the version installed, so this should be safe
+                local cmd = vim.list_extend(vim.deepcopy(roslyn_config.exe), { "--stdio" })
+                local stderr = vim.system(cmd):wait().stderr
+                if stderr and string.find(stderr, "'--stdio'", 0, true) then
+                    return vim.notify(
+                        "The roslyn language server needs to be updated. Refer to the README for installation steps",
+                        vim.log.levels.INFO,
+                        { title = "roslyn.nvim" }
+                    )
+                end
+                roslyn_version_verified = true
+            end
 
 			-- Lock the target and always start with the currently selected solution
 			if roslyn_config.lock_target and vim.g.roslyn_nvim_selected_solution then

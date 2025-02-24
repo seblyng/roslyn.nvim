@@ -137,17 +137,21 @@ end
 --- Only files matching the provided extension are returned.
 ---
 --- @param dir string The directory path for the search.
---- @param extension string The file extension to look for (e.g., ".sln").
+--- @param extensions string[] The file extensions to look for (e.g., ".sln").
 ---
 --- @return string[] List of file paths that match the specified extension.
-local function find_files_with_extension(dir, extension)
-	local matches = {}
+local function find_files_with_extensions(dir, extensions)
+    local matches = {}
 
-	for entry, type in vim.fs.dir(dir) do
-		if type == "file" and vim.endswith(entry, extension) then
-			matches[#matches + 1] = vim.fs.normalize(vim.fs.joinpath(dir, entry))
-		end
-	end
+    for entry, type in vim.fs.dir(dir) do
+        if type == "file" then
+            for _, ext in ipairs(extensions) do
+                if vim.endswith(entry, ext) then
+                    matches[#matches + 1] = vim.fs.normalize(vim.fs.joinpath(dir, entry))
+                end
+            end
+        end
+    end
 
 	return matches
 end
@@ -187,8 +191,8 @@ end
 
 ---@class RoslynNvimRootDir
 ---@field projects? RoslynNvimDirectoryWithFiles
----@field solutions? string[]
----@field solution_filters? string[]
+---@field solutions string[]
+---@field solution_filters string[]
 
 ---@param buffer integer
 ---@return RoslynNvimRootDir
