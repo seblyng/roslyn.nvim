@@ -109,7 +109,7 @@ M.find_sln_files = function(current_dir)
 		while true do
 			find_in_dir(dir)
 			if #slns > 0 or #slnfs > 0 then
-				vim.notify("solution(s) found" .. vim.inspect(M.merge(slns, slnfs)), vim.log.levels.INFO)
+				debug("solution(s) found" .. vim.inspect(M.merge(slns, slnfs)))
 				break
 			end
 
@@ -141,17 +141,17 @@ end
 ---
 --- @return string[] List of file paths that match the specified extension.
 local function find_files_with_extensions(dir, extensions)
-    local matches = {}
+	local matches = {}
 
-    for entry, type in vim.fs.dir(dir) do
-        if type == "file" then
-            for _, ext in ipairs(extensions) do
-                if vim.endswith(entry, ext) then
-                    matches[#matches + 1] = vim.fs.normalize(vim.fs.joinpath(dir, entry))
-                end
-            end
-        end
-    end
+	for entry, type in vim.fs.dir(dir) do
+		if type == "file" then
+			for _, ext in ipairs(extensions) do
+				if vim.endswith(entry, ext) then
+					matches[#matches + 1] = vim.fs.normalize(vim.fs.joinpath(dir, entry))
+				end
+			end
+		end
+	end
 
 	return matches
 end
@@ -251,18 +251,18 @@ function M.predict_target(root)
 	local sln_api = require("roslyn.sln.api")
 
 	local filtered_targets = vim.iter({ root.solutions, root.solution_filters })
-			:flatten()
-			:filter(function(target)
-				if config_instance.ignore_target and config_instance.ignore_target(target) then
-					return false
-				end
+		:flatten()
+		:filter(function(target)
+			if config_instance.ignore_target and config_instance.ignore_target(target) then
+				return false
+			end
 
-				return not root.projects
-						or vim.iter(root.projects.files):any(function(csproj_file)
-							return sln_api.exists_in_target(target, csproj_file)
-						end)
-			end)
-			:totable()
+			return not root.projects
+				or vim.iter(root.projects.files):any(function(csproj_file)
+					return sln_api.exists_in_target(target, csproj_file)
+				end)
+		end)
+		:totable()
 
 	if #filtered_targets > 1 then
 		local chosen = config_instance.choose_target and config_instance.choose_target(filtered_targets)

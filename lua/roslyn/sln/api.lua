@@ -56,7 +56,7 @@ function M.projects(target)
 	end
 
 	local paths = (target:match("%.sln$") or target:match("%.slnx$")) and projects_core(file, target, sln_match)
-			or target:match("%.slnf$") and projects_core(file, target, slnf_match)
+	or target:match("%.slnf$") and projects_core(file, target, slnf_match)
 
 	file:close()
 
