@@ -53,23 +53,6 @@ M.merge = function(table1, table2)
 	return merged_table
 end
 
-M.set_solution = function(path)
-	if not path then
-		path = path and path or "nil"
-		vim.notify("Incorrect sln/proj file" .. path, vim.log.levels.WARN)
-		return
-	end
-
-	-- Store the selected path
-	vim.g.roslyn_nvim_selected_solution = path
-	vim.notify("Selected: " .. path, vim.log.levels.INFO)
-
-	-- Start lsp
-	local roslyn_lsp = require("roslyn.lsp")
-	local sln_dir = vim.fs.dirname(vim.g.roslyn_nvim_selected_solution)
-	roslyn_lsp.start(vim.api.nvim_get_current_buf(), sln_dir, roslyn_lsp.on_init_sln)
-end
-
 ---@param current_dir string
 ---@return string[] slns, string[] slnfs, string[] csprojs
 M.find_sln_files = function(current_dir)
