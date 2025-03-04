@@ -5,13 +5,13 @@ local utils = require("roslyn.sln.utils")
 local function valid_buffer(buf)
 	local bufname = vim.api.nvim_buf_get_name(buf)
 	return vim.bo[buf].buftype ~= "nofile"
-		and (
-		bufname:match("^/")
-		or bufname:match("^[a-zA-Z]:")
-		or bufname:match("^zipfile://")
-		or bufname:match("^tarfile:")
-		or bufname:match("^roslyn%-source%-generated://")
-	)
+			and (
+				bufname:match("^/")
+				or bufname:match("^[a-zA-Z]:")
+				or bufname:match("^zipfile://")
+				or bufname:match("^tarfile:")
+				or bufname:match("^roslyn%-source%-generated://")
+			)
 end
 
 local M = {}
@@ -89,12 +89,11 @@ function M.setup(config)
 
 				if solution then
 					vim.g.roslyn_nvim_selected_solution = solution
-					return roslyn_lsp.start(opt.buf, vim.fs.dirname(solution), roslyn_lsp
-						.on_init_sln)
+					vim.api.nvim_echo({ { "Solution file found: ", "Normal" } }, true, {})
+					return roslyn_lsp.start(opt.buf, vim.fs.dirname(solution), roslyn_lsp.on_init_sln)
 				elseif root.projects then
 					local dir = root.projects.directory
-					return roslyn_lsp.start(opt.buf, dir,
-						roslyn_lsp.on_init_project(root.projects.files))
+					return roslyn_lsp.start(opt.buf, dir, roslyn_lsp.on_init_project(root.projects.files))
 				end
 
 				-- Fallback to the selected solution if we don't find anything.

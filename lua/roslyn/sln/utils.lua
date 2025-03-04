@@ -70,7 +70,6 @@ M.find_sln_files = function(current_dir)
 		end
 
 		visited_dirs["find_in_dir " .. dir] = true
-		debug("find_in_dir " .. dir)
 		local handle, err = vim.uv.fs_scandir(dir)
 
 		if not handle then
@@ -109,7 +108,7 @@ M.find_sln_files = function(current_dir)
 		while true do
 			find_in_dir(dir)
 			if #slns > 0 or #slnfs > 0 then
-				debug("solution(s) found" .. vim.inspect(M.merge(slns, slnfs)))
+				debug("\nRoslyn solution(s) found" .. vim.inspect(M.merge(slns, slnfs)) .. "\n")
 				break
 			end
 
@@ -126,7 +125,6 @@ M.find_sln_files = function(current_dir)
 				dir = one_up_folder
 			end
 		end
-		debug(vim.inspect(visited_dirs))
 	end
 
 	search_upwards(current_dir)
@@ -154,6 +152,39 @@ local function find_files_with_extensions(dir, extensions)
 	end
 
 	return matches
+end
+
+--- @param dir string
+local function ignore_dir(dir)
+	return dir:match("[Bb]in$") or dir:match("[Oo]bj$")
+end
+
+--- @param path string
+--- @return string[] slns, string[] slnfs
+local function find_solutions(path)
+	local dirs = { path }
+	local slns = {}    --- @type string[]
+	local slnfs = {}   --- @type string[]
+
+	while #dirs > 0 do
+		local dir = table.remove(dirs, 1)
+
+		for other, fs_obj_type in vim.fs.dir(dir) do
+			local name = vim.fs.joinpath(dir, other)
+
+			if fs_obj_type == "file" then
+				if name:match("%.sln$") or name:match("%.slnx$") then
+					slns[#slns + 1] = vim.fs.normalize(name)
+				elseif name:match("%.slnf$") then
+					slnfs[#slnfs + 1] = vim.fs.normalize(name)
+				end
+			elseif fs_obj_type == "directory" and not ignore_dir(name) then
+				dirs[#dirs + 1] = name
+			end
+		end
+	end
+
+	return slns, slnfs
 end
 
 --- @class FindTargetsResult
@@ -203,9 +234,18 @@ function M.root(buffer)
 	local sln = targets.sln_dir
 	local csproj = targets.csproj_dir
 
-	if not sln and not csproj then
-		return {}
+	if not csproj then
+		return {
+			solution_filters = {},
+			solutions = {},
+			projects = nil,
+		}
 	end
+
+	local projects = {
+		files = find_files_with_extensions(targets.csproj_dir, { ".csproj" }),
+		directory = targets.csproj_dir,
+	}
 
 	if broad_search then
 		local current_dir = vim.fn.expand("%:h")     -- Get the current buffer's directory
@@ -218,22 +258,27 @@ function M.root(buffer)
 		}
 	end
 
-	local projects = csproj and { files = find_files_with_extension(csproj, ".csproj"), directory = csproj } or nil
-
-	if not sln then
+	local git_root = vim.fs.root(buffer, ".git")
+	if not sln and not git_root then
 		return {
-			solutions = nil,
+			solutions = {},
+			solution_filters = {},
 			projects = projects,
 		}
 	end
 
-	local slnf = targets.slnf_dir
-	local slns = find_files_with_extension(sln, ".sln")
-	local slnxs = find_files_with_extension(sln, ".slnx")
+	local search_root
+	if sln and git_root then
+		search_root = git_root and sln:find(git_root, 1, true) and git_root or sln
+	else
+		search_root = sln or git_root --[[@as string]]
+	end
+
+	local solutions, solution_filters = find_solutions(search_root)
 
 	return {
-		solutions = vim.list_extend(slns, slnxs),
-		solution_filters = slnf and find_files_with_extension(slnf, ".slnf"),
+		solutions = solutions,
+		solution_filters = solution_filters,
 		projects = projects,
 	}
 end
@@ -251,18 +296,18 @@ function M.predict_target(root)
 	local sln_api = require("roslyn.sln.api")
 
 	local filtered_targets = vim.iter({ root.solutions, root.solution_filters })
-		:flatten()
-		:filter(function(target)
-			if config_instance.ignore_target and config_instance.ignore_target(target) then
-				return false
-			end
+			:flatten()
+			:filter(function(target)
+				if config_instance.ignore_target and config_instance.ignore_target(target) then
+					return false
+				end
 
-			return not root.projects
-				or vim.iter(root.projects.files):any(function(csproj_file)
-					return sln_api.exists_in_target(target, csproj_file)
-				end)
-		end)
-		:totable()
+				return not root.projects
+						or vim.iter(root.projects.files):any(function(csproj_file)
+							return sln_api.exists_in_target(target, csproj_file)
+						end)
+			end)
+			:totable()
 
 	if #filtered_targets > 1 then
 		local chosen = config_instance.choose_target and config_instance.choose_target(filtered_targets)
