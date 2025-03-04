@@ -228,13 +228,10 @@ end
 ---@param buffer integer
 ---@return RoslynNvimRootDir
 function M.root(buffer)
-	local broad_search = config.get().broad_search
 
 	local targets = find_targets(buffer)
-	local sln = targets.sln_dir
-	local csproj = targets.csproj_dir
 
-	if not csproj then
+	if not targets.csproj_dir then
 		return {
 			solution_filters = {},
 			solutions = {},
@@ -242,21 +239,24 @@ function M.root(buffer)
 		}
 	end
 
+	local broad_search = config.get().broad_search
+	if broad_search then
+		local current_dir = vim.fn.expand("%:h")     -- Get the current buffer's directory
+		local slns, sln_filters, csprojs = M.find_sln_files(current_dir)
+
+		return {
+			solutions = slns,
+			solution_filters = sln_filters,
+			projects = { files = csprojs, directory = targets.csproj_dir }
+		}
+	end
+
+
+	local sln = targets.sln_dir
 	local projects = {
 		files = find_files_with_extensions(targets.csproj_dir, { ".csproj" }),
 		directory = targets.csproj_dir,
 	}
-
-	if broad_search then
-		local current_dir = vim.fn.expand("%:h")     -- Get the current buffer's directory
-		local solutions, solution_filters, projs = M.find_sln_files(current_dir)
-
-		return {
-			solutions = solutions,
-			solution_filters = solution_filters,
-			projects = projs,
-		}
-	end
 
 	local git_root = vim.fs.root(buffer, ".git")
 	if not sln and not git_root then
