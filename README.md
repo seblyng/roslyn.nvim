@@ -4,6 +4,12 @@ This is an actively maintained & upgraded [fork](https://github.com/jmederosalva
 
 This standalone plugin was necessary because Roslyn uses a [non-standard](https://github.com/dotnet/roslyn/issues/72871) method of initializing communication with the client and requires additional custom integrations, unlike typical LSP setups in Neovim.
 
+## IMPORTANT
+
+This plugin does not provide Razor support.
+
+Check out https://github.com/tris203/rzls.nvim if you are using Razor.
+
 ## ⚡️ Requirements
 
 - Neovim >= 0.10.0
@@ -16,18 +22,38 @@ https://github.com/user-attachments/assets/a749f6c7-fc87-440c-912d-666d86453bc5
 
 ## 📦 Installation
 
-**Install the Roslyn language server:**
+<details>
+  <summary>Mason</summary>
+  
+  `roslyn` is not in the mason core registry, so a custom registry is used. This is automatically setup if you have mason installed.
+  This registry provides two binaries
+  - `roslyn` (To be used with this repo)
+  - `rzls` (To be used with [rzls.nvim](https://github.com/tris203/rzls.nvim))
 
-1. Navigate to [this feed](https://dev.azure.com/azure-public/vside/_artifacts/feed/vs-impl), search for `Microsoft.CodeAnalysis.LanguageServer` and download the version matching your OS and architecture.
-    > For nix users, install [roslyn-ls](https://search.nixos.org/packages?channel=unstable&show=roslyn-ls) and then you can config this plugin right away.
-2. Unzip the downloaded `.nupkg` and copy the contents of `<zip root>/content/LanguageServer/<yourArch>` inside:
-    - **Linux**: `~/.local/share/nvim/roslyn`
-    - **Windows**: `%LOCALAPPDATA%\nvim-data\roslyn`
-   > **_TIP:_** You can also specify a custom path to the roslyn folder in the setup function.
-3. Check if it's working by running `dotnet Microsoft.CodeAnalysis.LanguageServer.dll --version` in the `roslyn` directory.
+You can then install it with `:MasonInstall roslyn` or through the popup menu by running `:Mason`. It is not available through [mason-lspconfig.nvim](https://github.com/williamboman/mason-lspconfig.nvim) and the `:LspInstall` interface
 
-> [!NOTE]  
-> There's currently an open [pull request](https://github.com/mason-org/mason-registry/pull/6330) to add the Roslyn server to [mason](https://github.com/williamboman/mason.nvim), which would greatly improve the experience. If you are interested in this, please react to the original comment, but don't spam the thread with unnecessary comments.
+**IMPORTANT**
+
+If you are setting up mason with custom registries, make sure that you are either setting it up before `roslyn.nvim` is setup, or also include `github:Crashdummyy/mason-registry` in your `registries` config
+
+**NOTE**
+
+There's currently an open [pull request](https://github.com/mason-org/mason-registry/pull/6330) to add the Roslyn server to [mason](https://github.com/williamboman/mason.nvim), which would greatly improve the experience. If you are interested in this, please react to the original comment, but don't spam the thread with unnecessary comments.
+
+</details>
+
+<details>
+  <summary>Manually</summary>
+  
+  1. Navigate to [this feed](https://dev.azure.com/azure-public/vside/_artifacts/feed/vs-impl), search for `Microsoft.CodeAnalysis.LanguageServer` and download the version matching your OS and architecture.
+     > For nix users, install [roslyn-ls](https://search.nixos.org/packages?channel=unstable&show=roslyn-ls) and then you can config this plugin right away.
+  2. Unzip the downloaded `.nupkg` and copy the contents of `<zip root>/content/LanguageServer/<yourArch>` inside:
+     - **Linux**: `~/.local/share/nvim/roslyn`
+     - **Windows**: `%LOCALAPPDATA%\nvim-data\roslyn`
+       > **_TIP:_** You can also specify a custom path to the roslyn folder in the setup function.
+  3. Check if it's working by running `dotnet Microsoft.CodeAnalysis.LanguageServer.dll --version` in the `roslyn` directory.
+
+</details>
 
 > [!TIP]  
 > For server compatibility check the [roslyn repo](https://github.com/dotnet/roslyn/blob/main/docs/wiki/NuGet-packages.md#versioning)
@@ -36,11 +62,9 @@ https://github.com/user-attachments/assets/a749f6c7-fc87-440c-912d-666d86453bc5
 
 ### [lazy.nvim](https://github.com/folke/lazy.nvim)
 
-
-
 ```lua
 {
-    "seblj/roslyn.nvim",
+    "seblyng/roslyn.nvim",
     ft = "cs",
     opts = {
         -- your configuration comes here; leave empty for default settings
@@ -48,11 +72,10 @@ https://github.com/user-attachments/assets/a749f6c7-fc87-440c-912d-666d86453bc5
 }
 ```
 
-
-
 ## ⚙️ Configuration
 
 The plugin comes with the following defaults:
+
 ```lua
 {
     config = {
@@ -72,6 +95,12 @@ The plugin comes with the following defaults:
         "dotnet",
         vim.fs.joinpath(vim.fn.stdpath("data"), "roslyn", "Microsoft.CodeAnalysis.LanguageServer.dll"),
     },
+    args = {
+        "--logLevel=Information", "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path())
+    },
+  --[[
+  -- args can be used to pass additional flags to the language server
+    ]]
 
     -- NOTE: Set `filewatching` to false if you experience performance problems.
     -- Defaults to true, since turning it off is a hack.
@@ -84,26 +113,49 @@ The plugin comes with the following defaults:
     -- a lot faster to initialize.
     filewatching = true,
 
-    -- Optional function that takes an array of solutions as the only argument. Return the solution you
-    -- want to use. If it returns `nil`, then it falls back to guessing the solution like normal
+    -- Optional function that takes an array of targets as the only argument. Return the target you
+    -- want to use. If it returns `nil`, then it falls back to guessing the target like normal
     -- Example:
     --
-    -- choose_sln = function(sln)
-    --     return vim.iter(sln):find(function(item)
+    -- choose_target = function(target)
+    --     return vim.iter(target):find(function(item)
     --         if string.match(item, "Foo.sln") then
     --             return item
     --         end
     --     end)
     -- end
-    choose_sln = nil,
+    choose_target = nil,
+
+    -- Optional function that takes the selected target as the only argument.
+    -- Returns a boolean of whether it should be ignored to attach to or not
+    --
+    -- I am for example using this to disable a solution with a lot of .NET Framework code on mac
+    -- Example:
+    --
+    -- ignore_target = function(target)
+    --     return string.match(target, "Foo.sln") ~= nil
+    -- end
+    ignore_target = nil,
+
+    -- Whether or not to look for solution files in the child of the (root).
+    -- Set this to true if you have some projects that are not a child of the
+    -- directory with the solution file
+    broad_search = false,
+
+    -- Whether or not to lock the solution target after the first attach.
+    -- This will always attach to the target in `vim.g.roslyn_nvim_selected_solution`.
+    -- NOTE: You can use `:Roslyn target` to change the target
+    lock_target = false,
 })
 ```
-To configure language server specific settings sent to the server, you can modify the `config.settings` map. 
+
+To configure language server specific settings sent to the server, you can modify the `config.settings` map.
 
 > [!NOTE]  
 > These settings are not guaranteed to be up-to-date and new ones can appear in the future. Aditionally, not not all settings are shown here, but only the most relevant ones for Neovim. For a full list, visit [this](https://github.com/dotnet/vscode-csharp/blob/main/test/lsptoolshost/unitTests/configurationMiddleware.test.ts) unit test from the vscode extension and look especially for the ones which **don't** have `vsCodeConfiguration: null`.
 
 ### Background Analysis
+
 `csharp|background_analysis`
 
 These settings control the scope of background diagnostics.
@@ -117,6 +169,7 @@ These settings control the scope of background diagnostics.
   Expected values: `openFiles`, `fullSolution`, `none`
 
 ### Code Lens
+
 `csharp|code_lens`
 
 These settings control the LSP code lens.
@@ -133,6 +186,7 @@ These settings control the LSP code lens.
 > You must refresh the code lens yourself. Check `:h vim.lsp.codelens.refresh()` and the example autocmd.
 
 ### Completions
+
 `csharp|completion`
 
 These settings control how the completions behave.
@@ -150,6 +204,7 @@ These settings control how the completions behave.
   Expected values: `true`, `false`
 
 ### Inlay hints
+
 `csharp|inlay_hints`
 
 These settings control what inlay hints should be displayed.
@@ -192,7 +247,7 @@ These settings control what inlay hints should be displayed.
 
 - `dotnet_suppress_inlay_hints_for_parameters_that_differ_only_by_suffix`  
   Suppress hints when parameter names differ only by suffix.  
-  Expected values: `true`, `false`  
+  Expected values: `true`, `false`
 
 - `dotnet_suppress_inlay_hints_for_parameters_that_match_argument_name`  
   Suppress hints when argument matches parameter name.  
@@ -206,6 +261,7 @@ These settings control what inlay hints should be displayed.
 > These won't have any effect if you don't enable inlay hints in your config. Check `:h vim.lsp.inlay_hint.enable()`.
 
 ### Symbol search
+
 `csharp|symbol_search`
 
 This setting controls how the language server should search for symbols.
@@ -215,6 +271,7 @@ This setting controls how the language server should search for symbols.
   Expected values: `true`, `false`
 
 Example:
+
 ```lua
 opts = {
     config = {
@@ -236,12 +293,18 @@ opts = {
             ["csharp|code_lens"] = {
                 dotnet_enable_references_code_lens = true,
             },
-        }
-    }
+        },
+    },
 }
 ```
 
+## 📚 Commands
+
+- `:Roslyn restart` restarts the server
+- `:Roslyn stop` stops the server
+- `:Roslyn target` chooses a solution if there are multiple to chose from
+
 ## 🚀 Other usage
 
-  - If you have multiple solutions, this plugin tries to guess which one to use. You can change the target with the `:CSTarget` command.
-  - The current solution is always stored in `vim.g.roslyn_nvim_selected_solution`. You can use this, for example, to display the current solution in your statusline.
+- If you have multiple solutions, this plugin tries to guess which one to use. You can change the target with the `:Roslyn target` command.
+- The current solution is always stored in `vim.g.roslyn_nvim_selected_solution`. You can use this, for example, to display the current solution in your statusline.

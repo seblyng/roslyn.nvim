@@ -21,7 +21,7 @@ local subcommand_tbl = {
             roslyn_emitter:on_stopped(function()
                 local attached_buffers = vim.tbl_keys(client.attached_buffers)
                 for _, buffer in ipairs(attached_buffers) do
-                    vim.api.nvim_exec_autocmds("BufEnter", { group = "Roslyn", buffer = buffer })
+                  vim.api.nvim_exec_autocmds("FileType", { group = "Roslyn", buffer = buffer })
                 end
             end)
 
@@ -45,14 +45,31 @@ local subcommand_tbl = {
                 return
             end
 
+            -- TODO: Change this to `client:request` when minimal version is `0.11`
+            ---@diagnostic disable-next-line: missing-parameter, param-type-mismatch
             client.stop(true)
         end,
     },
-}
+    target = {
+        impl = function()
+            local bufnr = vim.api.nvim_get_current_buf()
+            local root = vim.b.roslyn_root or require("roslyn.sln.utils").root(bufnr)
 
----@type table<integer, RoslynSubcommandTable>[]
-local buffer_local_subcommand_tbl = {
-    target = {},
+            local roslyn_lsp = require("roslyn.lsp")
+
+            local targets = vim.iter({ root.solutions, root.solution_filters }):flatten():totable()
+            vim.ui.select(targets or {}, { prompt = "Select target solution: " }, function(file)
+                if not file then
+                    return
+                end
+
+                vim.lsp.stop_client(vim.lsp.get_clients({ name = "roslyn" }), true)
+                vim.g.roslyn_nvim_selected_solution = file
+                local sln_dir = vim.fs.dirname(file)
+                roslyn_lsp.start(bufnr, assert(sln_dir), roslyn_lsp.on_init_sln)
+            end)
+        end,
+    },
 }
 
 ---@param opts table
@@ -61,36 +78,13 @@ local function roslyn(opts)
     local fargs = opts.fargs
     local cmd = fargs[1]
     local args = #fargs > 1 and vim.list_slice(fargs, 2, #fargs) or {}
-    local bufnr = vim.api.nvim_get_current_buf()
     local subcommand = subcommand_tbl[cmd]
-    local buffer_local_subcommand = buffer_local_subcommand_tbl[cmd]
     if type(subcommand) == "table" and type(subcommand.impl) == "function" then
         subcommand.impl(args, opts)
         return
     end
 
-    if
-        type(buffer_local_subcommand) == "table"
-        and type(buffer_local_subcommand[bufnr]) == "table"
-        and type(buffer_local_subcommand[bufnr].impl) == "function"
-    then
-        buffer_local_subcommand[bufnr].impl(args, opts)
-        return
-    end
-
-    vim.notify(cmd_name .. ": Unknown subcommand: " .. cmd, vim.log.levels.ERROR)
-end
-
----@param name string
----@param bufnr integer
----@param subcmd_table RoslynSubcommandTable
-function M.attach_subcommand_to_buffer(name, bufnr, subcmd_table)
-    local subcmd = buffer_local_subcommand_tbl[name]
-    if not subcmd then
-        return vim.notify("Subcommand doesn't exist")
-    end
-
-    subcmd[bufnr] = subcmd_table
+    vim.notify(cmd_name .. ": Unknown subcommand: " .. cmd, vim.log.levels.ERROR, { title = "roslyn.nvim" })
 end
 
 function M.create_roslyn_commands()
@@ -99,31 +93,11 @@ function M.create_roslyn_commands()
         range = true,
         desc = "Interacts with Roslyn",
         complete = function(arg_lead, cmdline, _)
-            local bufnr = vim.api.nvim_get_current_buf()
-            local commands = vim.tbl_keys(subcommand_tbl)
-
-            local buffer_local_commands = vim.iter(vim.tbl_keys(buffer_local_subcommand_tbl))
-                :filter(function(it)
-                    local buffers = vim.tbl_keys(buffer_local_subcommand_tbl[it])
-                    return vim.list_contains(buffers, bufnr)
-                end)
-                :totable()
-
-            local all_commands = vim.list_extend(commands, buffer_local_commands)
+            local all_commands = vim.tbl_keys(subcommand_tbl)
 
             local subcmd, subcmd_arg_lead = cmdline:match("^" .. cmd_name .. "[!]*%s(%S+)%s(.*)$")
             if subcmd and subcmd_arg_lead and subcommand_tbl[subcmd] and subcommand_tbl[subcmd].complete then
                 return subcommand_tbl[subcmd].complete(subcmd_arg_lead)
-            end
-
-            if
-                subcmd
-                and subcmd_arg_lead
-                and buffer_local_subcommand_tbl[bufnr]
-                and buffer_local_subcommand_tbl[bufnr][subcmd]
-                and buffer_local_subcommand_tbl[bufnr][subcmd].complete
-            then
-                return buffer_local_subcommand_tbl[bufnr][subcmd].complete(subcmd_arg_lead)
             end
 
             if cmdline:match("^" .. cmd_name .. "[!]*%s+%w*$") then
