@@ -1,3 +1,4 @@
+local roslyn_emitter = require("roslyn.roslyn_emitter")
 local server = require("roslyn.server")
 local utils = require("roslyn.slnutils")
 local commands = require("roslyn.commands")
@@ -126,6 +127,7 @@ local function lsp_start(cmd, bufnr, root_dir, roslyn_config, on_init)
         server.stop_server(client_id)
         vim.schedule(function()
             vim.notify("Roslyn server stopped", vim.log.levels.INFO)
+            roslyn_emitter:emit_stopped()
         end)
         if roslyn_config.config.on_exit then
             roslyn_config.config.on_exit(code, signal, client_id)

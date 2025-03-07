@@ -1,3 +1,4 @@
+local roslyn_emitter = require("roslyn.roslyn_emitter")
 -- Huge credits to mrcjkb
 -- https://github.com/mrcjkb/rustaceanvim/blob/2fa45427c01ded4d3ecca72e357f8a60fd8e46d4/lua/rustaceanvim/commands/init.lua
 local M = {}
@@ -17,26 +18,24 @@ local subcommand_tbl = {
                 return
             end
 
-            local attached_buffers = vim.tbl_keys(client.attached_buffers)
+            roslyn_emitter:on_stopped(function()
+                local attached_buffers = vim.tbl_keys(client.attached_buffers)
+                for _, buffer in ipairs(attached_buffers) do
+                    vim.api.nvim_exec_autocmds("BufEnter", { group = "Roslyn", buffer = buffer })
+                end
+            end)
 
-            client.stop()
-
-            local timer = vim.uv.new_timer()
-            timer:start(
-                500,
-                100,
-                vim.schedule_wrap(function()
-                    if client.is_stopped() then
-                        for _, buffer in ipairs(attached_buffers) do
-                            vim.api.nvim_exec_autocmds("BufEnter", { group = "Roslyn", buffer = buffer })
-                        end
-                    end
-
-                    if not timer:is_closing() then
-                        timer:close()
-                    end
-                end)
-            )
+            client.stop(true)
+            -- local timer = vim.uv.new_timer()
+            -- timer:start(
+            --     200,
+            --     0,
+            --     vim.schedule_wrap(function()
+            --         vim.api.nvim_feedkeys("j", "n", false)
+            --         vim.api.nvim_feedkeys("k", "n", false)
+            --         timer:close()
+            --     end)
+            -- )
         end,
     },
     stop = {
