@@ -1,6 +1,4 @@
-local server = require("roslyn.server")
-local utils = require("roslyn.slnutils")
-local commands = require("roslyn.commands")
+local utils = require("roslyn.sln.utils")
 
 ---@param buf number
 ---@return boolean

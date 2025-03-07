@@ -1,3 +1,4 @@
+local roslyn_emitter = require("roslyn.roslyn_emitter")
 local M = {}
 
 ---@param bufnr integer
@@ -108,6 +109,7 @@ function M.start(bufnr, root_dir, on_init)
     config.on_exit = function(code, signal, client_id)
         vim.g.roslyn_nvim_selected_solution = nil
         vim.schedule(function()
+            roslyn_emitter:emit_stopped()
             vim.notify("Roslyn server stopped", vim.log.levels.INFO, { title = "roslyn.nvim" })
         end)
         if roslyn_config.config.on_exit then
