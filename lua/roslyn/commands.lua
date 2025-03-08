@@ -18,24 +18,20 @@ local subcommand_tbl = {
                 return
             end
 
-            roslyn_emitter:on_stopped(function()
-                local attached_buffers = vim.tbl_keys(client.attached_buffers)
+            local attached_buffers = vim.tbl_keys(client.attached_buffers)
+
+            local function restart_lsp(remove_listener)
                 for _, buffer in ipairs(attached_buffers) do
-                  vim.api.nvim_exec_autocmds("FileType", { group = "Roslyn", buffer = buffer })
+                    if vim.api.nvim_buf_is_valid(buffer) then
+                        vim.api.nvim_exec_autocmds("FileType", { group = "Roslyn", buffer = buffer })
+                    end
                 end
-            end)
+                remove_listener()
+            end
+
+            roslyn_emitter:on_stopped(restart_lsp)
 
             client.stop(true)
-            -- local timer = vim.uv.new_timer()
-            -- timer:start(
-            --     200,
-            --     0,
-            --     vim.schedule_wrap(function()
-            --         vim.api.nvim_feedkeys("j", "n", false)
-            --         vim.api.nvim_feedkeys("k", "n", false)
-            --         timer:close()
-            --     end)
-            -- )
         end,
     },
     stop = {
