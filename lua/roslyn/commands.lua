@@ -20,16 +20,21 @@ local subcommand_tbl = {
 
             local attached_buffers = vim.tbl_keys(client.attached_buffers)
 
-            local function restart_lsp(remove_listener)
+            ---@type function | nil
+            local remove_listener = nil
+
+            local function restart_lsp()
                 for _, buffer in ipairs(attached_buffers) do
                     if vim.api.nvim_buf_is_valid(buffer) then
                         vim.api.nvim_exec_autocmds("FileType", { group = "Roslyn", buffer = buffer })
                     end
                 end
-                remove_listener()
+                if remove_listener then
+                    remove_listener()
+                end
             end
 
-            roslyn_emitter:on_stopped(restart_lsp)
+            remove_listener = roslyn_emitter:on("stopped", restart_lsp)
 
             client.stop(true)
         end,
