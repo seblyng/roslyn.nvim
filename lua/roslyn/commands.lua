@@ -36,7 +36,8 @@ local subcommand_tbl = {
 
             remove_listener = roslyn_emitter:on("stopped", restart_lsp)
 
-            client.stop(true)
+            local force_stop = vim.loop.os_uname().sysname == "Windows_NT"
+            client.stop(force_stop)
         end,
     },
     stop = {
