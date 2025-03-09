@@ -1,7 +1,7 @@
 local M = {}
 
 ---@class InternalRoslynNvimConfig
----@field filewatching boolean
+---@field filewatching string values: auto, force-nvim, force-ls
 ---@field exe string[]
 ---@field args string[]
 ---@field config vim.lsp.ClientConfig
@@ -78,7 +78,7 @@ end
 
 ---@type InternalRoslynNvimConfig
 local roslyn_config = {
-    filewatching = true,
+    filewatching = "auto",
     exe = default_exe(),
     args = {
         "--logLevel=Information",
@@ -142,9 +142,34 @@ function M.setup(user_config)
         table.insert(roslyn_config.args, "--stdio")
     end
 
+    -- filewatching: replace legacy boolean value (true -> auto; false -> force-nvim)
+    if type(roslyn_config.filewatching) == "boolean" then
+        if roslyn_config.filewatching then
+            roslyn_config.filewatching = "auto"
+        else
+            roslyn_config.filewatching = "force-nvim"
+        end
+        vim.notify(
+            "Value of the `filewatching` option should be 'auto' (default), 'force-nvim' or 'force-ls'.",
+            vim.log.levels.WARN,
+            { title = "roslyn.nvim" }
+        )
+    end
+
+    -- filewatching: disable client capability in 'force-ls' mode
+    if roslyn_config.filewatching == "force-ls" then
+        roslyn_config.config.capabilities = vim.tbl_deep_extend("force", roslyn_config.config.capabilities, {
+            workspace = {
+                didChangeWatchedFiles = {
+                    dynamicRegistration = false,
+                },
+            },
+        })
+    end
+
     -- HACK: Enable filewatching to later just not watch any files
     -- This is to not make the server watch files and make everything super slow in certain situations
-    if not roslyn_config.filewatching then
+    if roslyn_config.filewatching == "force-nvim" then
         roslyn_config.config.capabilities = vim.tbl_deep_extend("force", roslyn_config.config.capabilities, {
             workspace = {
                 didChangeWatchedFiles = {

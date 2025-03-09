@@ -12,7 +12,7 @@ function M.start(bufnr, root_dir, on_init)
     config.root_dir = root_dir
     config.handlers = vim.tbl_deep_extend("force", {
         ["client/registerCapability"] = function(err, res, ctx)
-            if not roslyn_config.filewatching then
+            if roslyn_config.filewatching == "force-nvim" then
                 for _, reg in ipairs(res.registrations) do
                     if reg.method == "workspace/didChangeWatchedFiles" then
                         reg.registerOptions.watchers = {}
