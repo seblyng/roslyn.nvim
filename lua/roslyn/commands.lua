@@ -1,3 +1,4 @@
+local roslyn_emitter = require("roslyn.roslyn_emitter")
 -- Huge credits to mrcjkb
 -- https://github.com/mrcjkb/rustaceanvim/blob/2fa45427c01ded4d3ecca72e357f8a60fd8e46d4/lua/rustaceanvim/commands/init.lua
 local M = {}
@@ -19,28 +20,24 @@ local subcommand_tbl = {
 
             local attached_buffers = vim.tbl_keys(client.attached_buffers)
 
-            -- TODO: Change this to `client:request` when minimal version is `0.11`
-            ---@diagnostic disable-next-line: missing-parameter
-            client.stop()
+            ---@type function | nil
+            local remove_listener = nil
 
-            local timer = vim.uv.new_timer()
-            timer:start(
-                500,
-                100,
-                vim.schedule_wrap(function()
-                    -- TODO: Change this to `client:request` when minimal version is `0.11`
-                    ---@diagnostic disable-next-line: missing-parameter
-                    if client.is_stopped() then
-                        for _, buffer in ipairs(attached_buffers) do
-                            vim.api.nvim_exec_autocmds("FileType", { group = "Roslyn", buffer = buffer })
-                        end
+            local function restart_lsp()
+                for _, buffer in ipairs(attached_buffers) do
+                    if vim.api.nvim_buf_is_valid(buffer) then
+                        vim.api.nvim_exec_autocmds("FileType", { group = "Roslyn", buffer = buffer })
                     end
+                end
+                if remove_listener then
+                    remove_listener()
+                end
+            end
 
-                    if not timer:is_closing() then
-                        timer:close()
-                    end
-                end)
-            )
+            remove_listener = roslyn_emitter:on("stopped", restart_lsp)
+
+            local force_stop = vim.loop.os_uname().sysname == "Windows_NT"
+            client.stop(force_stop)
         end,
     },
     stop = {
