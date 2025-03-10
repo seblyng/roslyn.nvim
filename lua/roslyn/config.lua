@@ -1,7 +1,7 @@
 local M = {}
 
 ---@class InternalRoslynNvimConfig
----@field filewatching string "auto" | "off" | "roslyn"
+---@field filewatching "auto" | "off" | "roslyn"
 ---@field exe string[]
 ---@field args string[]
 ---@field config vim.lsp.ClientConfig
