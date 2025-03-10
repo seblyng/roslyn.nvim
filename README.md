@@ -102,16 +102,12 @@ The plugin comes with the following defaults:
   -- args can be used to pass additional flags to the language server
     ]]
 
-    -- NOTE: Set `filewatching` to false if you experience performance problems.
-    -- Defaults to true, since turning it off is a hack.
-    -- If you notice that the server is _super_ slow, it is probably because of file watching
-    -- Neovim becomes super unresponsive on some large codebases, because it schedules the file watching on the event loop.
-    -- This issue goes away by disabling this capability, but roslyn will fallback to its own file watching,
-    -- which can make the server super slow to initialize.
-    -- Setting this option to false will indicate to the server that neovim will do the file watching.
-    -- However, in `hacks.lua` I will also just don't start off any watchers, which seems to make the server
-    -- a lot faster to initialize.
-    filewatching = true,
+    -- "auto" | "roslyn" | "off"
+    --
+    -- - "auto": Does nothing for filewatching, leaving everything as default
+    -- - "roslyn": Turns off neovim filewatching which will make roslyn do the filewatching
+    -- - "off": Hack to turn off all filewatching. (Can be used if you notice performance issues)
+    filewatching = "auto",
 
     -- Optional function that takes an array of targets as the only argument. Return the target you
     -- want to use. If it returns `nil`, then it falls back to guessing the target like normal

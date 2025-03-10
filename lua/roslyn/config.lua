@@ -1,7 +1,7 @@
 local M = {}
 
 ---@class InternalRoslynNvimConfig
----@field filewatching boolean
+---@field filewatching "auto" | "off" | "roslyn"
 ---@field exe string[]
 ---@field args string[]
 ---@field config vim.lsp.ClientConfig
@@ -13,7 +13,7 @@ local M = {}
 ---@field lock_target boolean
 
 ---@class RoslynNvimConfig
----@field filewatching? boolean
+---@field filewatching? boolean | "auto" | "off" | "roslyn"
 ---@field exe? string|string[]
 ---@field args? string[]
 ---@field config? vim.lsp.ClientConfig
@@ -78,7 +78,7 @@ end
 
 ---@type InternalRoslynNvimConfig
 local roslyn_config = {
-    filewatching = true,
+    filewatching = "auto",
     exe = default_exe(),
     args = {
         "--logLevel=Information",
@@ -142,13 +142,23 @@ function M.setup(user_config)
         table.insert(roslyn_config.args, "--stdio")
     end
 
+    -- filewatching: replace legacy boolean value (true -> auto; false -> off)
+    if type(roslyn_config.filewatching) == "boolean" then
+        roslyn_config.filewatching = roslyn_config.filewatching and "auto" or "off"
+        vim.notify(
+            "Value of the `filewatching` option should be 'auto' (default), 'off' or 'roslyn'.",
+            vim.log.levels.WARN,
+            { title = "roslyn.nvim" }
+        )
+    end
+
     -- HACK: Enable filewatching to later just not watch any files
     -- This is to not make the server watch files and make everything super slow in certain situations
-    if not roslyn_config.filewatching then
+    if roslyn_config.filewatching == "off" or roslyn_config.filewatching == "roslyn" then
         roslyn_config.config.capabilities = vim.tbl_deep_extend("force", roslyn_config.config.capabilities, {
             workspace = {
                 didChangeWatchedFiles = {
-                    dynamicRegistration = true,
+                    dynamicRegistration = roslyn_config.filewatching == "off",
                 },
             },
         })
