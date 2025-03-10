@@ -6,6 +6,8 @@ This standalone plugin was necessary because Roslyn uses a [non-standard](https:
 
 ## IMPORTANT
 
+### USE v4 OF THE LANGUAGE SERVER. USING v5 IS AT YOUR OWN RISK AS OF NOW: [SEE THIS](https://github.com/seblyng/roslyn.nvim/issues/150)
+
 This plugin does not provide Razor support.
 
 Check out https://github.com/tris203/rzls.nvim if you are using Razor.
