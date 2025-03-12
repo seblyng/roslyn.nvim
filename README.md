@@ -68,6 +68,8 @@ There's currently an open [pull request](https://github.com/mason-org/mason-regi
 {
     "seblyng/roslyn.nvim",
     ft = "cs",
+    ---@module 'roslyn.config'
+    ---@type RoslynNvimConfig
     opts = {
         -- your configuration comes here; leave empty for default settings
     }
