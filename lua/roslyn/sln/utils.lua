@@ -228,7 +228,6 @@ end
 ---@param buffer integer
 ---@return RoslynNvimRootDir
 function M.root(buffer)
-
 	local targets = find_targets(buffer)
 
 	if not targets.csproj_dir then
@@ -247,10 +246,9 @@ function M.root(buffer)
 		return {
 			solutions = slns,
 			solution_filters = sln_filters,
-			projects = { files = csprojs, directory = targets.csproj_dir }
+			projects = { files = csprojs, directory = targets.csproj_dir },
 		}
 	end
-
 
 	local sln = targets.sln_dir
 	local projects = {
@@ -296,18 +294,22 @@ function M.predict_target(root)
 	local sln_api = require("roslyn.sln.api")
 
 	local filtered_targets = vim.iter({ root.solutions, root.solution_filters })
-		:flatten()
-		:filter(function(target)
-			if config_instance.ignore_target and config_instance.ignore_target(target) then
-				return false
-			end
+			:flatten()
+			:filter(function(target)
+				if config_instance.ignore_target and config_instance.ignore_target(target) then
+					return false
+				end
 
-			return not root.projects
-				or vim.iter(root.projects.files):any(function(csproj_file)
-					return sln_api.exists_in_target(target, csproj_file)
-				end)
-		end)
-		:totable()
+				if config_instance.broad_search then
+					return true
+				else
+					return not root.projects
+							or vim.iter(root.projects.files):any(function(csproj_file)
+								return sln_api.exists_in_target(target, csproj_file)
+							end)
+				end
+			end)
+			:totable()
 
 	if #filtered_targets > 1 then
 		local chosen = config_instance.choose_target and config_instance.choose_target(filtered_targets)
