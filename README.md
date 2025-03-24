@@ -270,6 +270,16 @@ This setting controls how the language server should search for symbols.
   Search symbols in reference assemblies.  
   Expected values: `true`, `false`
 
+### Formatting
+
+`csharp|formatting`
+
+This setting controls how the language server should format code.
+
+- `dotnet_organize_imports_on_format`  
+  Sort using directives on format alphabetically.  
+  Expected values: `true`, `false`
+
 Example:
 
 ```lua
