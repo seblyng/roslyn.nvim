@@ -151,6 +151,9 @@ The plugin comes with the following defaults:
 
 To configure language server specific settings sent to the server, you can modify the `config.settings` map.
 
+Some tips and tricks that may be useful, but not in the scope of this plugin,
+are documented in the [wiki](https://github.com/seblyng/roslyn.nvim/wiki).
+
 > [!NOTE]  
 > These settings are not guaranteed to be up-to-date and new ones can appear in the future. Aditionally, not not all settings are shown here, but only the most relevant ones for Neovim. For a full list, visit [this](https://github.com/dotnet/vscode-csharp/blob/main/test/lsptoolshost/unitTests/configurationMiddleware.test.ts) unit test from the vscode extension and look especially for the ones which **don't** have `vsCodeConfiguration: null`.
 
@@ -268,6 +271,16 @@ This setting controls how the language server should search for symbols.
 
 - `dotnet_search_reference_assemblies`  
   Search symbols in reference assemblies.  
+  Expected values: `true`, `false`
+
+### Formatting
+
+`csharp|formatting`
+
+This setting controls how the language server should format code.
+
+- `dotnet_organize_imports_on_format`  
+  Sort using directives on format alphabetically.  
   Expected values: `true`, `false`
 
 Example:
