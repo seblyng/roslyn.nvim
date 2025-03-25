@@ -5,13 +5,13 @@ local utils = require("roslyn.sln.utils")
 local function valid_buffer(buf)
 	local bufname = vim.api.nvim_buf_get_name(buf)
 	return vim.bo[buf].buftype ~= "nofile"
-			and (
-				bufname:match("^/")
-				or bufname:match("^[a-zA-Z]:")
-				or bufname:match("^zipfile://")
-				or bufname:match("^tarfile:")
-				or bufname:match("^roslyn%-source%-generated://")
-			)
+		and (
+		bufname:match("^/")
+		or bufname:match("^[a-zA-Z]:")
+		or bufname:match("^zipfile://")
+		or bufname:match("^tarfile:")
+		or bufname:match("^roslyn%-source%-generated://")
+	)
 end
 
 local M = {}
