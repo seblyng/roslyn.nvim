@@ -96,12 +96,61 @@ local function resolve_filewatching_capabilities(default)
     end
 end
 
+local function handle_deprecated_options()
+    ---@diagnostic disable-next-line: undefined-field
+    local legacy_config = roslyn_config.config
+
+    if legacy_config then
+        vim.notify(
+            "The `config` option is deprecated. Use `vim.lsp.config` instead",
+            vim.log.levels.WARN,
+            { title = "roslyn.nvim" }
+        )
+        vim.lsp.config.roslyn = vim.tbl_deep_extend("force", vim.lsp.config.roslyn or {}, legacy_config)
+    end
+
+    ---@diagnostic disable-next-line: undefined-field
+    local exe = roslyn_config.exe
+    ---@diagnostic disable-next-line: undefined-field
+    local args = roslyn_config.args
+
+    if exe then
+        if args then
+            vim.notify(
+                "The `args` option is deprecated. Use `vim.lsp.config.roslyn.cmd` instead",
+                vim.log.levels.WARN,
+                { title = "roslyn.nvim" }
+            )
+        end
+
+        args = args and args
+            or {
+                "--logLevel=Information",
+                "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()),
+                "--stdio",
+            }
+
+        vim.notify(
+            "The `exe` option is deprecated. Use `vim.lsp.config.roslyn.cmd` instead",
+            vim.log.levels.WARN,
+            { title = "roslyn.nvim" }
+        )
+
+        exe = type(exe) == "string" and { exe } or exe
+        vim.lsp.config.roslyn = vim.tbl_deep_extend("force", vim.lsp.config.roslyn or {}, {
+            cmd = vim.list_extend(vim.deepcopy(exe), vim.deepcopy(args)),
+        })
+    end
+end
+
 ---@param user_config? RoslynNvimConfig
 ---@return InternalRoslynNvimConfig
 function M.setup(user_config)
     try_setup_mason()
 
     roslyn_config = vim.tbl_deep_extend("force", roslyn_config, user_config or {})
+
+    handle_deprecated_options()
 
     local config = vim.lsp.config.roslyn or {}
 
