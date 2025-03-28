@@ -18,6 +18,10 @@ local M = {}
 
 ---@param config? RoslynNvimConfig
 function M.setup(config)
+    if vim.fn.has("nvim-0.11") == 0 then
+        return vim.notify("This plugin requires at least nvim 0.11", vim.log.levels.WARN, { title = "roslyn.nvim" })
+    end
+
     local roslyn_config = require("roslyn.config").setup(config)
 
     if not vim.lsp.config.roslyn.cmd then
