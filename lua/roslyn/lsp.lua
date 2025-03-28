@@ -5,23 +5,9 @@ local M = {}
 ---@param root_dir string
 ---@param on_init fun(client: vim.lsp.Client)
 function M.start(bufnr, root_dir, on_init)
-    local roslyn_config = require("roslyn.config").get()
-
-    local config = vim.deepcopy(roslyn_config.config)
-    config.cmd = vim.list_extend(vim.deepcopy(roslyn_config.exe), vim.deepcopy(roslyn_config.args))
-    config.name = "roslyn"
+    local config = vim.lsp.config.roslyn
     config.root_dir = root_dir
     config.handlers = vim.tbl_deep_extend("force", {
-        ["client/registerCapability"] = function(err, res, ctx)
-            if roslyn_config.filewatching == "off" then
-                for _, reg in ipairs(res.registrations) do
-                    if reg.method == "workspace/didChangeWatchedFiles" then
-                        reg.registerOptions.watchers = {}
-                    end
-                end
-            end
-            return vim.lsp.handlers["client/registerCapability"](err, res, ctx)
-        end,
         ["workspace/projectInitializationComplete"] = function(_, _, ctx)
             vim.notify("Roslyn project initialization complete", vim.log.levels.INFO, { title = "roslyn.nvim" })
 
@@ -43,9 +29,7 @@ function M.start(bufnr, root_dir, on_init)
         ["workspace/_roslyn_projectNeedsRestore"] = function(_, result, ctx)
             local client = assert(vim.lsp.get_client_by_id(ctx.client_id))
 
-            -- TODO: Change this to `client:request` when minimal version is `0.11`
-            ---@diagnostic disable-next-line: param-type-mismatch
-            client.request("workspace/_roslyn_restore", result, function(err, response)
+            client:request("workspace/_roslyn_restore", result, function(err, response)
                 if err then
                     vim.notify(err.message, vim.log.levels.ERROR, { title = "roslyn.nvim" })
                 end
@@ -87,16 +71,14 @@ function M.start(bufnr, root_dir, on_init)
                         resultId = vim.b[buf].resultId,
                     }
 
-                    -- TODO: Change this to `client:request` when minimal version is `0.11`
-                    ---@diagnostic disable-next-line: param-type-mismatch
-                    client.request("sourceGeneratedDocument/_roslyn_getText", params, handler, buf)
+                    client:request("sourceGeneratedDocument/_roslyn_getText", params, handler, buf)
                 end
             end
         end,
     }, config.handlers or {})
     config.on_init = function(client, initialize_result)
-        if roslyn_config.config.on_init then
-            roslyn_config.config.on_init(client, initialize_result)
+        if config.on_init then
+            config.on_init(client, initialize_result)
         end
         on_init(client)
 
@@ -112,8 +94,8 @@ function M.start(bufnr, root_dir, on_init)
             roslyn_emitter:emit("stopped")
             vim.notify("Roslyn server stopped", vim.log.levels.INFO, { title = "roslyn.nvim" })
         end)
-        if roslyn_config.config.on_exit then
-            roslyn_config.config.on_exit(code, signal, client_id)
+        if config.on_exit then
+            config.on_exit(code, signal, client_id)
         end
     end
 
@@ -151,9 +133,7 @@ function M.start(bufnr, root_dir, on_init)
                 resultId = nil,
             }
 
-            -- TODO: Change this to `client:request` when minimal version is `0.11`
-            ---@diagnostic disable-next-line: param-type-mismatch
-            client.request("sourceGeneratedDocument/_roslyn_getText", params, handler, buf)
+            client:request("sourceGeneratedDocument/_roslyn_getText", params, handler, buf)
             -- Need to block. Otherwise logic could run that sets the cursor to a position
             -- that's still missing.
             vim.wait(1000, function()
@@ -170,9 +150,7 @@ function M.on_init_sln(solution)
     return function(client)
         vim.g.roslyn_nvim_selected_solution = solution
         vim.notify("Initializing Roslyn client for " .. solution, vim.log.levels.INFO, { title = "roslyn.nvim" })
-        -- TODO: Change this to `client:request` when minimal version is `0.11`
-        ---@diagnostic disable-next-line: param-type-mismatch
-        client.notify("solution/open", {
+        client:notify("solution/open", {
             solution = vim.uri_from_fname(solution),
         })
     end
@@ -182,9 +160,7 @@ end
 function M.on_init_project(files)
     return function(client)
         vim.notify("Initializing Roslyn client for projects", vim.log.levels.INFO, { title = "roslyn.nvim" })
-        -- TODO: Change this to `client:request` when minimal version is `0.11`
-        ---@diagnostic disable-next-line: param-type-mismatch
-        client.notify("project/open", {
+        client:notify("project/open", {
             projects = vim.tbl_map(function(file)
                 return vim.uri_from_fname(file)
             end, files),

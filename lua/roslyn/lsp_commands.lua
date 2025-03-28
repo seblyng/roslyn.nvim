@@ -30,8 +30,7 @@ end
 local function handle_fix_all_code_action(client, data)
     local flavors = data.arguments[1].FixAllFlavors
     vim.ui.select(flavors, { prompt = "Pick a fix all scope:" }, function(flavor)
-        -- TODO: Change this to `client:request` when minimal version is `0.11`
-        client.request("codeAction/resolveFixAll", {
+        client:request("codeAction/resolveFixAll", {
             title = data.title,
             data = data.arguments[1],
             scope = flavor,
@@ -72,9 +71,7 @@ function M.nested_code_action(client)
             if action.code_action.data.FixAllFlavors then
                 handle_fix_all_code_action(client, action.code_action.command)
             else
-                -- TODO: Change this to `client:request` when minimal version is `0.11`
-                ---@diagnostic disable-next-line: param-type-mismatch
-                client.request("codeAction/resolve", {
+                client:request("codeAction/resolve", {
                     title = action.code_action.title,
                     data = action.code_action.data,
                     ---@diagnostic disable-next-line: param-type-mismatch

@@ -37,7 +37,7 @@ local subcommand_tbl = {
             remove_listener = roslyn_emitter:on("stopped", restart_lsp)
 
             local force_stop = vim.loop.os_uname().sysname == "Windows_NT"
-            client.stop(force_stop)
+            client:stop(force_stop)
         end,
     },
     stop = {
@@ -47,9 +47,7 @@ local subcommand_tbl = {
                 return
             end
 
-            -- TODO: Change this to `client:request` when minimal version is `0.11`
-            ---@diagnostic disable-next-line: missing-parameter, param-type-mismatch
-            client.stop(true)
+            client:stop(true)
         end,
     },
     target = {
