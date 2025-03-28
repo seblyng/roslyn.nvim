@@ -76,9 +76,12 @@ function M.start(bufnr, root_dir, on_init)
             end
         end,
     }, config.handlers or {})
+
+    local _on_init, _on_exit = vim.lsp.config.roslyn.on_init, vim.lsp.config.roslyn.on_exit
+
     config.on_init = function(client, initialize_result)
-        if config.on_init then
-            config.on_init(client, initialize_result)
+        if _on_init then
+            _on_init(client, initialize_result)
         end
         on_init(client)
 
@@ -94,8 +97,8 @@ function M.start(bufnr, root_dir, on_init)
             roslyn_emitter:emit("stopped")
             vim.notify("Roslyn server stopped", vim.log.levels.INFO, { title = "roslyn.nvim" })
         end)
-        if config.on_exit then
-            config.on_exit(code, signal, client_id)
+        if _on_exit then
+            _on_exit(code, signal, client_id)
         end
     end
 
