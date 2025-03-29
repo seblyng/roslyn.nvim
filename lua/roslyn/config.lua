@@ -21,6 +21,28 @@ local M = {}
 local sysname = vim.uv.os_uname().sysname:lower()
 local iswin = not not (sysname:find("windows") or sysname:find("mingw"))
 
+-- TODO(seb): Remove this in a couple of months after release
+local function try_resolve_legacy_path()
+    local legacy_path = vim.fs.joinpath(vim.fn.stdpath("data"), "roslyn", "Microsoft.CodeAnalysis.LanguageServer.dll")
+
+    if vim.uv.fs_stat(legacy_path) then
+        vim.notify(
+            "The default cmd location of roslyn is deprecated.\nEither download through mason, or specify the location through `vim.lsp.config.roslyn.cmd` as specified in the README",
+            vim.log.levels.WARN,
+            { title = "roslyn.nvim" }
+        )
+        return {
+            "dotnet",
+            legacy_path,
+            "--logLevel=Information",
+            "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()),
+            "--stdio",
+        }
+    end
+
+    return nil
+end
+
 ---@return string[]?
 local function default_cmd()
     local data = vim.fn.stdpath("data") --[[@as string]]
@@ -29,7 +51,7 @@ local function default_cmd()
     local mason_installation = iswin and string.format("%s.cmd", mason_path) or mason_path
 
     if vim.uv.fs_stat(mason_installation) == nil then
-        return nil
+        return try_resolve_legacy_path()
     end
 
     return {
@@ -96,6 +118,7 @@ local function resolve_filewatching_capabilities(default)
     end
 end
 
+-- TODO(seb): Remove this in a couple of months after release
 local function handle_deprecated_options()
     ---@diagnostic disable-next-line: undefined-field
     local legacy_config = roslyn_config.config
