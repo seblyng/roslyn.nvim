@@ -59,6 +59,7 @@ vim.lsp.config.roslyn = {
         "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()),
         "--stdio",
     },
+    -- Add other options here
 }
 ```
 
@@ -72,14 +73,14 @@ vim.lsp.config.roslyn = {
 ### [lazy.nvim](https://github.com/folke/lazy.nvim)
 
 ```lua
-{
+return {
     "seblyng/roslyn.nvim",
     ft = "cs",
     ---@module 'roslyn.config'
     ---@type RoslynNvimConfig
     opts = {
         -- your configuration comes here; leave empty for default settings
-    }
+    },
 }
 ```
 
@@ -88,7 +89,7 @@ vim.lsp.config.roslyn = {
 The plugin comes with the following defaults:
 
 ```lua
-{
+opts = {
     -- "auto" | "roslyn" | "off"
     --
     -- - "auto": Does nothing for filewatching, leaving everything as default
@@ -129,7 +130,7 @@ The plugin comes with the following defaults:
     -- This will always attach to the target in `vim.g.roslyn_nvim_selected_solution`.
     -- NOTE: You can use `:Roslyn target` to change the target
     lock_target = false,
-})
+}
 ```
 
 To configure language server specific settings sent to the server, you can use the `vim.lsp.config` interface with `roslyn` as the name of the server.
