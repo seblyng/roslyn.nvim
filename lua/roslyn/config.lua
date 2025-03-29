@@ -18,50 +18,6 @@ local M = {}
 ---@field broad_search? boolean
 ---@field lock_target? boolean
 
-local sysname = vim.uv.os_uname().sysname:lower()
-local iswin = not not (sysname:find("windows") or sysname:find("mingw"))
-
--- TODO(seb): Remove this in a couple of months after release
-local function try_resolve_legacy_path()
-    local legacy_path = vim.fs.joinpath(vim.fn.stdpath("data"), "roslyn", "Microsoft.CodeAnalysis.LanguageServer.dll")
-
-    if vim.uv.fs_stat(legacy_path) then
-        vim.notify(
-            "The default cmd location of roslyn is deprecated.\nEither download through mason, or specify the location through `vim.lsp.config.roslyn.cmd` as specified in the README",
-            vim.log.levels.WARN,
-            { title = "roslyn.nvim" }
-        )
-        return {
-            "dotnet",
-            legacy_path,
-            "--logLevel=Information",
-            "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()),
-            "--stdio",
-        }
-    end
-
-    return nil
-end
-
----@return string[]?
-local function default_cmd()
-    local data = vim.fn.stdpath("data") --[[@as string]]
-
-    local mason_path = vim.fs.joinpath(data, "mason", "bin", "roslyn")
-    local mason_installation = iswin and string.format("%s.cmd", mason_path) or mason_path
-
-    if vim.uv.fs_stat(mason_installation) == nil then
-        return try_resolve_legacy_path()
-    end
-
-    return {
-        mason_installation,
-        "--logLevel=Information",
-        "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()),
-        "--stdio",
-    }
-end
-
 local function try_setup_mason()
     local ok, mason = pcall(require, "mason")
     if not ok then
@@ -105,8 +61,7 @@ end
 -- HACK: Enable or disable filewatching based on config options
 -- `off` enables filewatching but just ignores all files to watch at a later stage
 -- `roslyn` disables filewatching to force the server to take care of this
----@param default vim.lsp.Config
-local function resolve_filewatching_capabilities(default)
+local function resolve_filewatching_capabilities()
     if roslyn_config.filewatching == "off" or roslyn_config.filewatching == "roslyn" then
         return {
             didChangeWatchedFiles = {
@@ -114,6 +69,7 @@ local function resolve_filewatching_capabilities(default)
             },
         }
     else
+        local default = vim.lsp.config.roslyn or {}
         return default.capabilities and default.capabilities.workspace or nil
     end
 end
@@ -174,19 +130,11 @@ function M.setup(user_config)
 
     handle_deprecated_options()
 
-    local config = vim.lsp.config.roslyn or {}
-
-    vim.lsp.config.roslyn = vim.tbl_deep_extend("force", config, {
-        cmd = config and config.cmd or default_cmd(),
+    -- HACK: Set filewatching capabilities here based on filewatching option to the plugin
+    vim.lsp.config("roslyn", {
         capabilities = {
-            textDocument = {
-                diagnostic = {
-                    dynamicRegistration = true,
-                },
-            },
-            workspace = resolve_filewatching_capabilities(config),
+            workspace = resolve_filewatching_capabilities(),
         },
-        -- HACK: Doesn't show any diagnostics if we do not set this to true
         handlers = {
             ["client/registerCapability"] = function(err, res, ctx)
                 if roslyn_config.filewatching == "off" then
