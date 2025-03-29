@@ -121,14 +121,13 @@ local function handle_deprecated_options()
                 vim.log.levels.WARN,
                 { title = "roslyn.nvim" }
             )
-        end
-
-        args = args and args
-            or {
+        else
+            args = {
                 "--logLevel=Information",
                 "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()),
                 "--stdio",
             }
+        end
 
         vim.notify(
             "The `exe` option is deprecated. Use `vim.lsp.config.roslyn.cmd` instead",
