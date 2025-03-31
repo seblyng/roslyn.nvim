@@ -85,7 +85,7 @@ local function handle_deprecated_options()
             vim.log.levels.WARN,
             { title = "roslyn.nvim" }
         )
-        vim.lsp.config.roslyn = vim.tbl_deep_extend("force", vim.lsp.config.roslyn or {}, legacy_config)
+        vim.lsp.config("roslyn", legacy_config)
     end
 
     ---@diagnostic disable-next-line: undefined-field
@@ -115,7 +115,7 @@ local function handle_deprecated_options()
         )
 
         exe = type(exe) == "string" and { exe } or exe
-        vim.lsp.config.roslyn = vim.tbl_deep_extend("force", vim.lsp.config.roslyn or {}, {
+        vim.lsp.config("roslyn", {
             cmd = vim.list_extend(vim.deepcopy(exe), vim.deepcopy(args)),
         })
     end
@@ -130,8 +130,8 @@ function M.setup(user_config)
 
     handle_deprecated_options()
 
-    -- HACK: Set filewatching capabilities here based on filewatching option to the plugin
     vim.lsp.config("roslyn", {
+        -- HACK: Set filewatching capabilities here based on filewatching option to the plugin
         capabilities = {
             workspace = resolve_filewatching_capabilities(),
         },
