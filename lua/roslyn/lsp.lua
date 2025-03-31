@@ -1,10 +1,47 @@
 local M = {}
 
+local has_resolved_legacy_path = false
+
+-- TODO(seb): Remove this in a couple of months or so
+local function try_resolve_legacy_path()
+    local legacy_path = vim.fs.joinpath(vim.fn.stdpath("data"), "roslyn", "Microsoft.CodeAnalysis.LanguageServer.dll")
+
+    if vim.uv.fs_stat(legacy_path) and not vim.lsp.config.roslyn.cmd then
+        vim.notify(
+            "The default cmd location of roslyn is deprecated.\nEither download through mason, or specify the location through `vim.lsp.config.roslyn.cmd` as specified in the README",
+            vim.log.levels.WARN,
+            { title = "roslyn.nvim" }
+        )
+        vim.lsp.config.roslyn.cmd = {
+            "dotnet",
+            legacy_path,
+            "--logLevel=Information",
+            "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()),
+            "--stdio",
+        }
+    end
+
+    return nil
+end
+
 ---@param bufnr integer
 ---@param root_dir string
 ---@param on_init fun(client: vim.lsp.Client)
 function M.start(bufnr, root_dir, on_init)
     local _on_init, _on_exit = vim.lsp.config.roslyn.on_init, vim.lsp.config.roslyn.on_exit
+
+    if not has_resolved_legacy_path then
+        try_resolve_legacy_path()
+    end
+
+    -- TODO(seb): Remove this in a couple of months or so
+    if not vim.lsp.config.roslyn.cmd then
+        return vim.notify(
+            "No `cmd` for roslyn detected.\nEither install through mason or specify the path yourself through `vim.lsp.config.roslyn.cmd`",
+            vim.log.levels.WARN,
+            { title = "roslyn.nvim" }
+        )
+    end
 
     vim.lsp.config("roslyn", {
         root_dir = root_dir,
