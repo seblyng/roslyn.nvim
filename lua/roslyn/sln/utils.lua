@@ -30,7 +30,7 @@ M.is_excluded = function(name)
 end
 
 M.patterns = {
-    sln = "%.sln[x]?$",   -- % is excape char symbol
+    sln = "%.sln[x]?$", -- % is excape char symbol
     slnf = "%.slnf$",
     csproj = "%.csproj$",
 }
@@ -59,9 +59,9 @@ M.find_sln_files = function(current_dir)
     local visited_dirs = {}
     local extracted_dirs = {}
 
-    local slns = {}      --- @type string[]
-    local slnfs = {}     --- @type string[]
-    local csprojs = {}   --- @type string[]
+    local slns = {}    --- @type string[]
+    local slnfs = {}   --- @type string[]
+    local csprojs = {} --- @type string[]
 
     ---finds proj or sln files in the directory
     local function find_in_dir(dir)
@@ -116,7 +116,7 @@ M.find_sln_files = function(current_dir)
                 dir = table.remove(extracted_dirs, 1)
                 debug("extracted_dirs entry used" .. dir)
             else
-                local one_up_folder = vim.uv.fs_realpath(path .. "/..")         -- Move to parent directory
+                local one_up_folder = vim.uv.fs_realpath(path .. "/..") -- Move to parent directory
                 debug("searching one up folder " .. one_up_folder)
                 if one_up_folder == path then
                     break
@@ -163,8 +163,8 @@ end
 --- @return string[] slns, string[] slnfs
 local function find_solutions(path)
     local dirs = { path }
-    local slns = {}    --- @type string[]
-    local slnfs = {}   --- @type string[]
+    local slns = {}  --- @type string[]
+    local slnfs = {} --- @type string[]
 
     while #dirs > 0 do
         local dir = table.remove(dirs, 1)
@@ -240,7 +240,7 @@ function M.root(buffer)
 
     local broad_search = config.get().broad_search
     if broad_search then
-        local current_dir = vim.fn.expand("%:h")     -- Get the current buffer's directory
+        local current_dir = vim.fn.expand("%:h") -- Get the current buffer's directory
         local slns, sln_filters, csprojs = M.find_sln_files(current_dir)
 
         return {
@@ -302,12 +302,12 @@ function M.predict_target(root)
 
             if config_instance.broad_search then
                 return true
-            else
-                return not root.projects
-                    or vim.iter(root.projects.files):any(function(csproj_file)
-                        return sln_api.exists_in_target(target, csproj_file)
-                    end)
             end
+
+            return not root.projects
+                or vim.iter(root.projects.files):any(function(csproj_file)
+                    return sln_api.exists_in_target(target, csproj_file)
+                end)
         end)
         :totable()
 

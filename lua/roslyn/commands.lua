@@ -60,6 +60,9 @@ local subcommand_tbl = {
             local roslyn_lsp = require("roslyn.lsp")
 
             local targets = vim.iter({ root.solutions, root.solution_filters }):flatten():totable()
+            if require("roslyn.config").get().broad_search then
+                targets = vim.iter({ root.solutions, root.solution_filters, root.projects.files }):flatten():totable()
+            end
             vim.ui.select(targets or {}, { prompt = "Select target solution: " }, function(file)
                 if not file then
                     return

@@ -110,7 +110,7 @@ local check_lsp = function()
         h.ok("Initialized solution: " .. sln)
     end
 
-    h.ok(name .. " lsp running correctly.")
+    h.ok(name .. " lsp running OK.")
     return true
 end
 

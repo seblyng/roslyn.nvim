@@ -1,5 +1,0 @@
-describe("roslyn", function()
-    it("shoud return sln files", function()
-        require("roslyn.sln.util").find_sln_files("D:/Playground/C# Testing/mvc sample")
-    end)
-end)
