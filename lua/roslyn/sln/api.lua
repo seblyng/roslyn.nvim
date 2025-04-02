@@ -63,25 +63,6 @@ function M.projects(target)
     return paths
 end
 
----Checks if a project is part of a solution or not
----@deprecated Renamed to `exists_in_target`.
----@param solution string
----@param project string Full path to the csproj file
----@return boolean
-function M.exists_in_solution(solution, project)
-    vim.notify(
-        "`exists_in_solution` has been renamed `exists_in_target` and may be removed in a future release",
-        vim.log.levels.WARN,
-        { title = "roslyn.nvim" }
-    )
-
-    local projects = M.projects(solution)
-
-    return vim.iter(projects):find(function(it)
-        return it == project
-    end) ~= nil
-end
-
 ---Checks if a project is part of a solution/solution filter or not
 ---@param target string Path to the solution or solution filter
 ---@param project string Full path to the project's csproj file

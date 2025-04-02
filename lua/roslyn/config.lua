@@ -112,49 +112,6 @@ function M.setup(user_config)
     roslyn_config = vim.tbl_deep_extend("force", roslyn_config, user_config or {})
     roslyn_config.exe = type(roslyn_config.exe) == "string" and { roslyn_config.exe } or roslyn_config.exe
 
-    if roslyn_config.ignore_sln then
-        vim.notify(
-            "The `ignore_sln` option is deprecated. Please use `ignore_target` instead, which also receives solution filter files if present",
-            vim.log.levels.WARN,
-            { title = "roslyn.nvim" }
-        )
-
-        if not roslyn_config.ignore_target then
-            roslyn_config.ignore_target = roslyn_config.ignore_sln
-        end
-    end
-
-    if roslyn_config.choose_sln then
-        vim.notify(
-            "The `choose_sln` option is deprecated. Please use `choose_target` instead, which also receives solution filter files if present",
-            vim.log.levels.WARN,
-            { title = "roslyn.nvim" }
-        )
-
-        if not roslyn_config.choose_target then
-            roslyn_config.choose_target = roslyn_config.choose_sln
-        end
-    end
-
-    if not vim.tbl_contains(roslyn_config.args, "--stdio") then
-        vim.notify(
-            "roslyn.nvim requires the `--stdio` argument to be present. Please add it to your configuration",
-            vim.log.levels.WARN,
-            { title = "roslyn.nvim" }
-        )
-        table.insert(roslyn_config.args, "--stdio")
-    end
-
-    -- filewatching: replace legacy boolean value (true -> auto; false -> off)
-    if type(roslyn_config.filewatching) == "boolean" then
-        roslyn_config.filewatching = roslyn_config.filewatching and "auto" or "off"
-        vim.notify(
-            "Value of the `filewatching` option should be 'auto' (default), 'off' or 'roslyn'.",
-            vim.log.levels.WARN,
-            { title = "roslyn.nvim" }
-        )
-    end
-
     -- HACK: Enable filewatching to later just not watch any files
     -- This is to not make the server watch files and make everything super slow in certain situations
     if roslyn_config.filewatching == "off" or roslyn_config.filewatching == "roslyn" then
