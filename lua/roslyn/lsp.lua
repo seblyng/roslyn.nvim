@@ -2,6 +2,9 @@ local M = {}
 
 local has_resolved_legacy_path = false
 
+local has_resolved_on_methods = false
+local _on_init, _on_exit
+
 -- TODO(seb): Remove this in a couple of months or so
 local function try_resolve_legacy_path()
     local legacy_path = vim.fs.joinpath(vim.fn.stdpath("data"), "roslyn", "Microsoft.CodeAnalysis.LanguageServer.dll")
@@ -28,7 +31,11 @@ end
 ---@param root_dir string
 ---@param on_init fun(client: vim.lsp.Client)
 function M.start(bufnr, root_dir, on_init)
-    local _on_init, _on_exit = vim.lsp.config.roslyn.on_init, vim.lsp.config.roslyn.on_exit
+    -- TODO(seb): This is not so nice, but I think it works
+    if not has_resolved_on_methods then
+        _on_init, _on_exit = vim.lsp.config.roslyn.on_init, vim.lsp.config.roslyn.on_exit
+        has_resolved_on_methods = true
+    end
 
     if not has_resolved_legacy_path then
         try_resolve_legacy_path()
