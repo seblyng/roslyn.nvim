@@ -11,6 +11,12 @@ local cmd_name = "Roslyn"
 
 ---@type RoslynSubcommandTable[]
 local subcommand_tbl = {
+    log = {
+        impl = function()
+            local log = require("roslyn.log")
+            vim.cmd(string.format("tabnew %s", log.__log_file_path))
+        end,
+    },
     restart = {
         impl = function()
             local client = vim.lsp.get_clients({ name = "roslyn" })[1]
