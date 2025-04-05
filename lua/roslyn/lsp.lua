@@ -39,6 +39,7 @@ function M.start(bufnr, root_dir, on_init)
 
     if not has_resolved_legacy_path then
         try_resolve_legacy_path()
+        has_resolved_legacy_path = true
     end
 
     -- TODO(seb): Remove this in a couple of months or so
