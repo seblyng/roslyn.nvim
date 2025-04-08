@@ -47,7 +47,6 @@ function M.setup(config)
 
             vim.schedule(function()
                 local root = utils.root(opt.buf)
-                require("roslyn.log").log(vim.inspect(root))
                 vim.b.roslyn_root = root
 
                 local multiple, solution = utils.predict_target(root)
