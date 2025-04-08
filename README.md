@@ -51,7 +51,7 @@ There's currently an open [pull request](https://github.com/mason-org/mason-regi
   3. Check if it's working by running `dotnet Microsoft.CodeAnalysis.LanguageServer.dll --version` in the `<target>` directory.
   4. Configure it like this:
 ```lua
-vim.lsp.config.roslyn = {
+vim.lsp.config("roslyn", {
     cmd = {
         "dotnet",
         "<target>/Microsoft.CodeAnalysis.LanguageServer.dll",
@@ -60,7 +60,7 @@ vim.lsp.config.roslyn = {
         "--stdio",
     },
     -- Add other options here
-}
+})
 ```
 
 </details>
@@ -138,7 +138,7 @@ To configure language server specific settings sent to the server, you can use t
 ## Example
 
 ```lua
-vim.lsp.config.roslyn = {
+vim.lsp.config("roslyn", {
     on_init = function()
         print("This will run when the server initializes!")
     end,
@@ -151,7 +151,7 @@ vim.lsp.config.roslyn = {
             dotnet_enable_references_code_lens = true,
         },
     },
-}
+})
 ```
 
 Some tips and tricks that may be useful, but not in the scope of this plugin,
