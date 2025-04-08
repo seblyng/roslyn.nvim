@@ -1,177 +1,92 @@
-local roslyn_emitter = require("roslyn.roslyn_emitter")
 local M = {}
+
+local has_resolved_legacy_path = false
+
+local has_resolved_on_methods = false
+local _on_init, _on_exit
+
+-- TODO(seb): Remove this in a couple of months or so
+local function try_resolve_legacy_path()
+    local legacy_path = vim.fs.joinpath(vim.fn.stdpath("data"), "roslyn", "Microsoft.CodeAnalysis.LanguageServer.dll")
+
+    if vim.uv.fs_stat(legacy_path) and not vim.lsp.config.roslyn.cmd then
+        vim.notify(
+            "The default cmd location of roslyn is deprecated.\nEither download through mason, or specify the location through `vim.lsp.config.roslyn.cmd` as specified in the README",
+            vim.log.levels.WARN,
+            { title = "roslyn.nvim" }
+        )
+        vim.lsp.config.roslyn.cmd = {
+            "dotnet",
+            legacy_path,
+            "--logLevel=Information",
+            "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()),
+            "--stdio",
+        }
+    end
+
+    return nil
+end
 
 ---@param bufnr integer
 ---@param root_dir string
----@param on_init fun(client: vim.lsp.Client)
-function M.start(bufnr, root_dir, on_init)
-    local roslyn_config = require("roslyn.config").get()
-
-    local config = vim.deepcopy(roslyn_config.config)
-    config.cmd = vim.list_extend(vim.deepcopy(roslyn_config.exe), vim.deepcopy(roslyn_config.args))
-    config.name = "roslyn"
-    config.root_dir = root_dir
-    config.handlers = vim.tbl_deep_extend("force", {
-        ["client/registerCapability"] = function(err, res, ctx)
-            if roslyn_config.filewatching == "off" then
-                for _, reg in ipairs(res.registrations) do
-                    if reg.method == "workspace/didChangeWatchedFiles" then
-                        reg.registerOptions.watchers = {}
-                    end
-                end
-            end
-            return vim.lsp.handlers["client/registerCapability"](err, res, ctx)
-        end,
-        ["workspace/projectInitializationComplete"] = function(_, _, ctx)
-            vim.notify("Roslyn project initialization complete", vim.log.levels.INFO, { title = "roslyn.nvim" })
-
-            ---NOTE: This is used by rzls.nvim for init
-            vim.api.nvim_exec_autocmds("User", { pattern = "RoslynInitialized", modeline = false })
-            _G.roslyn_initialized = true
-
-            local buffers = vim.lsp.get_buffers_by_client_id(ctx.client_id)
-            for _, buf in ipairs(buffers) do
-                vim.lsp.util._refresh("textDocument/diagnostic", { bufnr = buf })
-            end
-        end,
-        ["workspace/_roslyn_projectHasUnresolvedDependencies"] = function()
-            vim.notify("Detected missing dependencies. Run dotnet restore command.", vim.log.levels.ERROR, {
-                title = "roslyn.nvim",
-            })
-            return vim.NIL
-        end,
-        ["workspace/_roslyn_projectNeedsRestore"] = function(_, result, ctx)
-            local client = assert(vim.lsp.get_client_by_id(ctx.client_id))
-
-            -- TODO: Change this to `client:request` when minimal version is `0.11`
-            ---@diagnostic disable-next-line: param-type-mismatch
-            client.request("workspace/_roslyn_restore", result, function(err, response)
-                if err then
-                    vim.notify(err.message, vim.log.levels.ERROR, { title = "roslyn.nvim" })
-                end
-                if response then
-                    for _, v in ipairs(response) do
-                        vim.notify(v.message, vim.log.levels.INFO, { title = "roslyn.nvim" })
-                    end
-                end
-            end)
-
-            return vim.NIL
-        end,
-        ["workspace/refreshSourceGeneratedDocument"] = function(_, _, ctx)
-            local client = assert(vim.lsp.get_client_by_id(ctx.client_id))
-            for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-                local uri = vim.api.nvim_buf_get_name(buf)
-                if vim.api.nvim_buf_get_name(buf):match("^roslyn%-source%-generated://") then
-                    local function handler(err, result)
-                        assert(not err, vim.inspect(err))
-                        if vim.b[buf].resultId == result.resultId then
-                            return
-                        end
-                        local content = result.text
-                        if content == nil then
-                            content = ""
-                        end
-                        local normalized = string.gsub(content, "\r\n", "\n")
-                        local source_lines = vim.split(normalized, "\n", { plain = true })
-                        vim.bo[buf].modifiable = true
-                        vim.api.nvim_buf_set_lines(buf, 0, -1, false, source_lines)
-                        vim.b[buf].resultId = result.resultId
-                        vim.bo[buf].modifiable = false
-                    end
-
-                    local params = {
-                        textDocument = {
-                            uri = uri,
-                        },
-                        resultId = vim.b[buf].resultId,
-                    }
-
-                    -- TODO: Change this to `client:request` when minimal version is `0.11`
-                    ---@diagnostic disable-next-line: param-type-mismatch
-                    client.request("sourceGeneratedDocument/_roslyn_getText", params, handler, buf)
-                end
-            end
-        end,
-    }, config.handlers or {})
-    config.on_init = function(client, initialize_result)
-        if roslyn_config.config.on_init then
-            roslyn_config.config.on_init(client, initialize_result)
-        end
-        on_init(client)
-
-        local lsp_commands = require("roslyn.lsp_commands")
-        lsp_commands.fix_all_code_action(client)
-        lsp_commands.nested_code_action(client)
-        lsp_commands.completion_complex_edit()
+---@param roslyn_on_init fun(client: vim.lsp.Client)
+function M.start(bufnr, root_dir, roslyn_on_init)
+    -- TODO(seb): This is not so nice, but I think it works
+    if not has_resolved_on_methods then
+        _on_init, _on_exit = vim.lsp.config.roslyn.on_init, vim.lsp.config.roslyn.on_exit
+        has_resolved_on_methods = true
     end
 
-    config.on_exit = function(code, signal, client_id)
-        vim.g.roslyn_nvim_selected_solution = nil
-        vim.schedule(function()
-            roslyn_emitter:emit("stopped")
-            vim.notify("Roslyn server stopped", vim.log.levels.INFO, { title = "roslyn.nvim" })
-        end)
-        if roslyn_config.config.on_exit then
-            roslyn_config.config.on_exit(code, signal, client_id)
-        end
+    if not has_resolved_legacy_path then
+        try_resolve_legacy_path()
+        has_resolved_legacy_path = true
     end
 
-    vim.api.nvim_create_autocmd({ "BufReadCmd" }, {
-        pattern = "roslyn-source-generated://*",
-        callback = function()
-            local uri = vim.fn.expand("<amatch>")
-            local buf = vim.api.nvim_get_current_buf()
-            vim.bo[buf].modifiable = true
-            vim.bo[buf].swapfile = false
-            vim.bo[buf].buftype = "nowrite"
-            -- This triggers FileType event which should fire up the lsp client if not already running
-            vim.bo[buf].filetype = "cs"
-            local client = vim.lsp.get_clients({ name = "roslyn" })[1]
-            assert(client, "Must have a `roslyn` client to load roslyn source generated file")
+    -- TODO(seb): Remove this in a couple of months or so
+    if not vim.lsp.config.roslyn.cmd then
+        return vim.notify(
+            "No `cmd` for roslyn detected.\nEither install through mason or specify the path yourself through `vim.lsp.config.roslyn.cmd`",
+            vim.log.levels.WARN,
+            { title = "roslyn.nvim" }
+        )
+    end
 
-            local content
-            local function handler(err, result)
-                assert(not err, vim.inspect(err))
-                content = result.text
-                if content == nil then
-                    content = ""
-                end
-                local normalized = string.gsub(content, "\r\n", "\n")
-                local source_lines = vim.split(normalized, "\n", { plain = true })
-                vim.api.nvim_buf_set_lines(buf, 0, -1, false, source_lines)
-                vim.b[buf].resultId = result.resultId
-                vim.bo[buf].modifiable = false
-            end
+    local on_init = type(_on_init) == "table" and _on_init or { _on_init }
+    local on_exit = type(_on_exit) == "table" and _on_exit or { _on_exit }
 
-            local params = {
-                textDocument = {
-                    uri = uri,
-                },
-                resultId = nil,
-            }
+    vim.lsp.config("roslyn", {
+        root_dir = root_dir,
+        on_init = {
+            function(client)
+                roslyn_on_init(client)
 
-            -- TODO: Change this to `client:request` when minimal version is `0.11`
-            ---@diagnostic disable-next-line: param-type-mismatch
-            client.request("sourceGeneratedDocument/_roslyn_getText", params, handler, buf)
-            -- Need to block. Otherwise logic could run that sets the cursor to a position
-            -- that's still missing.
-            vim.wait(1000, function()
-                return content ~= nil
-            end)
-        end,
+                local lsp_commands = require("roslyn.lsp_commands")
+                lsp_commands.fix_all_code_action(client)
+                lsp_commands.nested_code_action(client)
+                lsp_commands.completion_complex_edit()
+            end,
+            unpack(on_init),
+        },
+        on_exit = {
+            function()
+                vim.g.roslyn_nvim_selected_solution = nil
+                vim.schedule(function()
+                    require("roslyn.roslyn_emitter"):emit("stopped")
+                    vim.notify("Roslyn server stopped", vim.log.levels.INFO, { title = "roslyn.nvim" })
+                end)
+            end,
+            unpack(on_exit),
+        },
     })
 
-    vim.lsp.start(config, { bufnr = bufnr })
+    vim.lsp.start(vim.lsp.config.roslyn, { bufnr = bufnr })
 end
 
 ---@param client vim.lsp.Client
 function M.on_init_sln(client)
     local target = vim.g.roslyn_nvim_selected_solution
     vim.notify("Initializing Roslyn client for " .. target, vim.log.levels.INFO, { title = "roslyn.nvim" })
-    -- TODO: Change this to `client:request` when minimal version is `0.11`
-    ---@diagnostic disable-next-line: param-type-mismatch
-    client.notify("solution/open", {
+    client:notify("solution/open", {
         solution = vim.uri_from_fname(target),
     })
 end
@@ -180,9 +95,7 @@ end
 function M.on_init_project(files)
     return function(client)
         vim.notify("Initializing Roslyn client for projects", vim.log.levels.INFO, { title = "roslyn.nvim" })
-        -- TODO: Change this to `client:request` when minimal version is `0.11`
-        ---@diagnostic disable-next-line: param-type-mismatch
-        client.notify("project/open", {
+        client:notify("project/open", {
             projects = vim.tbl_map(function(file)
                 return vim.uri_from_fname(file)
             end, files),
