@@ -3,52 +3,30 @@ local M = {}
 local sysname = vim.uv.os_uname().sysname:lower()
 local iswin = not not (sysname:find("windows") or sysname:find("mingw"))
 
----@param file file* The file handle to the solution file
----@param solution string The path to the solution file
----@param match function A function that takes a line from the file, and returns a project path if the line contains a reference to a project file.
----@return string[] paths Paths to the projects in the solution
-local function projects_core(file, solution, match)
-    local paths = {}
-
-    for line in file:lines() do
-        local path = match(line, vim.fn.fnamemodify(solution, ":e"))
-        if path then
-            local normalized_path = iswin and path or path:gsub("\\", "/")
-            local dirname = vim.fs.dirname(solution)
-            local fullpath = vim.fs.joinpath(dirname, normalized_path)
-            local normalized = vim.fs.normalize(fullpath)
-            table.insert(paths, normalized)
-        end
-    end
-
-    return paths
-end
-
 --- Attempts to extract the project path from a line in a solution file
 ---@param line string
----@param type "slnx" | "sln"
+---@param target string
 ---@return string? path The path to the project file
-local function sln_match(line, type)
-    if type == "sln" then
+local function sln_match(line, target)
+    local ext = vim.fn.fnamemodify(target, ":e")
+
+    if ext == "sln" then
         local id, name, path = line:match('Project%("{(.-)}"%).*= "(.-)", "(.-)", "{.-}"')
         if id and name and path and path:match("%.csproj$") then
             return path
         end
-    elseif type == "slnx" then
+    elseif ext == "slnx" then
         local path = line:match('<Project Path="([^"]+)"')
         if path and path:match("%.csproj$") then
             return path
         end
+    elseif ext == "slnf" then
+        return line:match('"(.*%.csproj)"')
+    elseif ext == "" then
+        error(string.format("Extension not found for `%s`", target))
     else
-        error("Unknown type " .. type)
+        error(string.format("Unknown extension `%s` for solution: `%s`", ext, target))
     end
-end
-
---- Attempts to extract the project path from a line in a solution filter file
----@param line string
----@return string? path The path to the project file
-local function slnf_match(line)
-    return line:match('"(.*%.csproj)"')
 end
 
 ---@param target string Path to solution or solution filter file
@@ -59,8 +37,18 @@ function M.projects(target)
         return {}
     end
 
-    local paths = (target:match("%.sln$") or target:match("%.slnx$")) and projects_core(file, target, sln_match)
-        or target:match("%.slnf$") and projects_core(file, target, slnf_match)
+    local paths = {}
+
+    for line in file:lines() do
+        local path = sln_match(line, target)
+        if path then
+            local normalized_path = iswin and path or path:gsub("\\", "/")
+            local dirname = vim.fs.dirname(target)
+            local fullpath = vim.fs.joinpath(dirname, normalized_path)
+            local normalized = vim.fs.normalize(fullpath)
+            table.insert(paths, normalized)
+        end
+    end
 
     file:close()
 

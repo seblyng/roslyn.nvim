@@ -181,6 +181,57 @@ function M.create_sln_file(path, projects)
     return M.create_file(path, sln_string)
 end
 
+function M.create_slnf_file(path, projects)
+    local lines = {}
+
+    local function append(line)
+        table.insert(lines, line)
+    end
+
+    -- Header section
+    append("{")
+    append(string.format('  "path": %s,', path))
+    append('  "projects": [')
+
+    for _, proj in ipairs(projects) do
+        append(string.format('    "%s"', proj.path))
+    end
+
+    append("  ]")
+    append("}")
+    --     ]
+
+    -- Combine all lines into one string.
+    local sln_string = table.concat(lines, "\n")
+    return M.create_file(path, sln_string)
+end
+
+function M.create_slnx_file(path, projects)
+    local lines = {}
+
+    local function append(line)
+        table.insert(lines, line)
+    end
+
+    -- Header section
+    append("<Solution>")
+    append("  <Configurations>")
+    append('    <Platform Name="Any CPU" />')
+    append('    <Platform Name="x64" />')
+    append('    <Platform Name="x86" />')
+    append("  </Configurations>")
+
+    for _, proj in ipairs(projects) do
+        append(string.format('  <Project Path="%s" />', proj.path))
+    end
+
+    append("</Solution>")
+
+    -- Combine all lines into one string.
+    local sln_string = table.concat(lines, "\n")
+    return M.create_file(path, sln_string)
+end
+
 function M.get_root(file_path)
     command("edit " .. vim.fs.joinpath(M.scratch, file_path))
 
