@@ -82,7 +82,7 @@ describe("api", function()
         })
 
         local _, err = pcall(api_projects, ".sln")
-        assert.is_not_nil(string.find(err, "Extension not found for"))
+        assert.is_not_nil(string.find(err, "Unknown extension `` for solution"))
     end)
 
     it("returns empty if file does not exist", function()

@@ -22,8 +22,6 @@ local function sln_match(line, target)
         end
     elseif ext == "slnf" then
         return line:match('"(.*%.csproj)"')
-    elseif ext == "" then
-        error(string.format("Extension not found for `%s`", target))
     else
         error(string.format("Unknown extension `%s` for solution: `%s`", ext, target))
     end
