@@ -165,15 +165,17 @@ function M.start(bufnr, root_dir, on_init)
     vim.lsp.start(config, { bufnr = bufnr })
 end
 
----@param client vim.lsp.Client
-function M.on_init_sln(client)
-    local target = vim.g.roslyn_nvim_selected_solution
-    vim.notify("Initializing Roslyn client for " .. target, vim.log.levels.INFO, { title = "roslyn.nvim" })
-    -- TODO: Change this to `client:request` when minimal version is `0.11`
-    ---@diagnostic disable-next-line: param-type-mismatch
-    client.notify("solution/open", {
-        solution = vim.uri_from_fname(target),
-    })
+---@param solution string
+function M.on_init_sln(solution)
+    return function(client)
+        vim.g.roslyn_nvim_selected_solution = solution
+        vim.notify("Initializing Roslyn client for " .. solution, vim.log.levels.INFO, { title = "roslyn.nvim" })
+        -- TODO: Change this to `client:request` when minimal version is `0.11`
+        ---@diagnostic disable-next-line: param-type-mismatch
+        client.notify("solution/open", {
+            solution = vim.uri_from_fname(solution),
+        })
+    end
 end
 
 ---@param files string[]

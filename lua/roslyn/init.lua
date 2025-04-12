@@ -34,9 +34,10 @@ function M.setup(config)
             end
 
             -- Lock the target and always start with the currently selected solution
-            if roslyn_config.lock_target and vim.g.roslyn_nvim_selected_solution then
-                local sln_dir = vim.fs.dirname(vim.g.roslyn_nvim_selected_solution)
-                return roslyn_lsp.start(opt.buf, sln_dir, roslyn_lsp.on_init_sln)
+            local selected_solution = vim.g.roslyn_nvim_selected_solution
+            if roslyn_config.lock_target and selected_solution then
+                local sln_dir = vim.fs.dirname(selected_solution)
+                return roslyn_lsp.start(opt.buf, sln_dir, roslyn_lsp.on_init_sln(selected_solution))
             end
 
             vim.schedule(function()
@@ -60,8 +61,7 @@ function M.setup(config)
                 end
 
                 if solution then
-                    vim.g.roslyn_nvim_selected_solution = solution
-                    return roslyn_lsp.start(opt.buf, vim.fs.dirname(solution), roslyn_lsp.on_init_sln)
+                    return roslyn_lsp.start(opt.buf, vim.fs.dirname(solution), roslyn_lsp.on_init_sln(solution))
                 elseif root.projects then
                     local dir = root.projects.directory
                     return roslyn_lsp.start(opt.buf, dir, roslyn_lsp.on_init_project(root.projects.files))
@@ -69,9 +69,9 @@ function M.setup(config)
 
                 -- Fallback to the selected solution if we don't find anything.
                 -- This makes it work kind of like vscode for the decoded files
-                if vim.g.roslyn_nvim_selected_solution then
-                    local sln_dir = vim.fs.dirname(vim.g.roslyn_nvim_selected_solution)
-                    return roslyn_lsp.start(opt.buf, sln_dir, roslyn_lsp.on_init_sln)
+                if selected_solution then
+                    local sln_dir = vim.fs.dirname(selected_solution)
+                    return roslyn_lsp.start(opt.buf, sln_dir, roslyn_lsp.on_init_sln(selected_solution))
                 end
             end)
         end,

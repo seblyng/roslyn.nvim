@@ -66,9 +66,8 @@ local subcommand_tbl = {
                 end
 
                 vim.lsp.stop_client(vim.lsp.get_clients({ name = "roslyn" }), true)
-                vim.g.roslyn_nvim_selected_solution = file
                 local sln_dir = vim.fs.dirname(file)
-                roslyn_lsp.start(bufnr, assert(sln_dir), roslyn_lsp.on_init_sln)
+                roslyn_lsp.start(bufnr, assert(sln_dir), roslyn_lsp.on_init_sln(file))
             end)
         end,
     },
