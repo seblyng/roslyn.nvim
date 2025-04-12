@@ -33,11 +33,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - uses: leafo/gh-actions-lua@v9
+      - uses: leafo/gh-actions-lua@v11
         with:
           luaVersion: "5.1.5"
 
-      - uses: leafo/gh-actions-luarocks@v4
+      - uses: leafo/gh-actions-luarocks@v5
 
       - name: Download nvim-test
         run: make nvim-test
