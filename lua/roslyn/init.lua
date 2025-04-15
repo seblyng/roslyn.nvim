@@ -19,7 +19,7 @@ local M = {}
 ---@param config? RoslynNvimConfig
 function M.setup(config)
     if vim.fn.has("nvim-0.11") == 0 then
-        return vim.notify("This plugin requires at least nvim 0.11", vim.log.levels.WARN, { title = "roslyn.nvim" })
+        return vim.notify("roslyn.nvim requires at least nvim 0.11", vim.log.levels.WARN, { title = "roslyn.nvim" })
     end
 
     local roslyn_config = require("roslyn.config").setup(config)
@@ -28,8 +28,6 @@ function M.setup(config)
 
     vim.treesitter.language.register("c_sharp", "csharp")
 
-    require("roslyn.commands").create_roslyn_commands()
-
     vim.api.nvim_create_autocmd({ "FileType" }, {
         group = vim.api.nvim_create_augroup("Roslyn", { clear = true }),
         pattern = { "cs", "roslyn-source-generated://*" },
@@ -37,6 +35,8 @@ function M.setup(config)
             if not valid_buffer(opt.buf) then
                 return
             end
+
+            require("roslyn.commands").create_roslyn_commands()
 
             -- Lock the target and always start with the currently selected solution
             local selected_solution = vim.g.roslyn_nvim_selected_solution
