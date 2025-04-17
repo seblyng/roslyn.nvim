@@ -57,14 +57,7 @@ function M.start(bufnr, root_dir, roslyn_on_init)
     vim.lsp.config("roslyn", {
         root_dir = root_dir,
         on_init = {
-            function(client)
-                roslyn_on_init(client)
-
-                local lsp_commands = require("roslyn.lsp_commands")
-                lsp_commands.fix_all_code_action(client)
-                lsp_commands.nested_code_action(client)
-                lsp_commands.completion_complex_edit()
-            end,
+            roslyn_on_init,
             unpack(on_init),
         },
         on_exit = {

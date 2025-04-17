@@ -30,6 +30,17 @@ return {
             },
         },
     },
+    commands = {
+        ["roslyn.client.fixAllCodeAction"] = function(data, ctx)
+            require("roslyn.lsp_commands").fix_all_code_action(data, ctx)
+        end,
+        ["roslyn.client.nestedCodeAction"] = function(data, ctx)
+            require("roslyn.lsp_commands").nested_code_action(data, ctx)
+        end,
+        ["roslyn.client.completionComplexEdit"] = function(data)
+            require("roslyn.lsp_commands").completion_complex_edit(data)
+        end,
+    },
     handlers = {
         ["workspace/projectInitializationComplete"] = function(_, _, ctx)
             vim.notify("Roslyn project initialization complete", vim.log.levels.INFO, { title = "roslyn.nvim" })
