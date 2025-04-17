@@ -3,7 +3,7 @@ local M = {}
 local has_resolved_legacy_path = false
 
 local has_resolved_on_methods = false
-local _on_init, _on_exit
+local _on_init
 
 -- TODO(seb): Remove this in a couple of months or so
 local function try_resolve_legacy_path()
@@ -33,7 +33,7 @@ end
 function M.start(bufnr, root_dir, roslyn_on_init)
     -- TODO(seb): This is not so nice, but I think it works
     if not has_resolved_on_methods then
-        _on_init, _on_exit = vim.lsp.config.roslyn.on_init, vim.lsp.config.roslyn.on_exit
+        _on_init = vim.lsp.config.roslyn.on_init
         has_resolved_on_methods = true
     end
 
@@ -52,23 +52,12 @@ function M.start(bufnr, root_dir, roslyn_on_init)
     end
 
     local on_init = type(_on_init) == "table" and _on_init or { _on_init }
-    local on_exit = type(_on_exit) == "table" and _on_exit or { _on_exit }
 
     vim.lsp.config("roslyn", {
         root_dir = root_dir,
         on_init = {
             roslyn_on_init,
             unpack(on_init),
-        },
-        on_exit = {
-            function()
-                vim.g.roslyn_nvim_selected_solution = nil
-                vim.schedule(function()
-                    require("roslyn.roslyn_emitter"):emit("stopped")
-                    vim.notify("Roslyn server stopped", vim.log.levels.INFO, { title = "roslyn.nvim" })
-                end)
-            end,
-            unpack(on_exit),
         },
     })
 

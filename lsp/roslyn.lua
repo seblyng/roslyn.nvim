@@ -30,6 +30,20 @@ return {
             },
         },
     },
+    before_init = function(_, config)
+        local on_exit = type(config.on_exit) == "table" and config.on_exit or { config.on_exit }
+        config.on_exit = {
+            function()
+                vim.g.roslyn_nvim_selected_solution = nil
+                vim.schedule(function()
+                    require("roslyn.roslyn_emitter"):emit("stopped")
+                    vim.notify("Roslyn server stopped", vim.log.levels.INFO, { title = "roslyn.nvim" })
+                end)
+            end,
+            unpack(on_exit),
+        }
+        P(config)
+    end,
     commands = {
         ["roslyn.client.fixAllCodeAction"] = function(data, ctx)
             require("roslyn.lsp_commands").fix_all_code_action(data, ctx)
