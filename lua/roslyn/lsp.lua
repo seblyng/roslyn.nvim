@@ -1,6 +1,32 @@
 local roslyn_emitter = require("roslyn.roslyn_emitter")
 local M = {}
 
+local has_resolved_legacy_path = false
+
+---@param roslyn_config InternalRoslynNvimConfig
+local function try_resolve_legacy_path(roslyn_config)
+    local legacy_path = vim.fs.joinpath(vim.fn.stdpath("data"), "roslyn", "Microsoft.CodeAnalysis.LanguageServer.dll")
+
+    if vim.uv.fs_stat(legacy_path) and not roslyn_config.config.cmd then
+        vim.notify(
+            "The default cmd location of roslyn is deprecated.\nEither download through mason, or specify the location through `config` option as specified in the README",
+            vim.log.levels.WARN,
+            { title = "roslyn.nvim" }
+        )
+        return vim.list_extend(
+            { "dotnet", legacy_path },
+            ---@diagnostic disable-next-line: undefined-field
+            vim.deepcopy(roslyn_config.args or {
+                "--logLevel=Information",
+                "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()),
+                "--stdio",
+            })
+        )
+    end
+
+    return nil
+end
+
 ---@param bufnr integer
 ---@param root_dir string
 ---@param on_init fun(client: vim.lsp.Client)
@@ -8,7 +34,13 @@ function M.start(bufnr, root_dir, on_init)
     local roslyn_config = require("roslyn.config").get()
 
     local config = vim.deepcopy(roslyn_config.config)
-    config.cmd = vim.list_extend(vim.deepcopy(roslyn_config.exe), vim.deepcopy(roslyn_config.args))
+
+    if not config.cmd and not has_resolved_legacy_path then
+        ---@diagnostic disable-next-line: assign-type-mismatch
+        config.cmd = try_resolve_legacy_path(roslyn_config)
+        has_resolved_legacy_path = true
+    end
+
     config.name = "roslyn"
     config.root_dir = root_dir
     config.handlers = vim.tbl_deep_extend("force", {
