@@ -25,14 +25,12 @@ function M.setup(config)
     vim.api.nvim_create_autocmd({ "BufReadCmd" }, {
         group = group,
         pattern = "roslyn-source-generated://*",
-        callback = function()
-            local uri = vim.fn.expand("<amatch>")
-            local buf = vim.api.nvim_get_current_buf()
-            vim.bo[buf].modifiable = true
-            vim.bo[buf].swapfile = false
-            vim.bo[buf].buftype = "nowrite"
+        callback = function(args)
+            vim.bo[args.buf].modifiable = true
+            vim.bo[args.buf].swapfile = false
+
             -- This triggers FileType event which should fire up the lsp client if not already running
-            vim.bo[buf].filetype = "cs"
+            vim.bo[args.buf].filetype = "cs"
             local client = vim.lsp.get_clients({ name = "roslyn" })[1]
             assert(client, "Must have a `roslyn` client to load roslyn source generated file")
 
@@ -45,19 +43,19 @@ function M.setup(config)
                 end
                 local normalized = string.gsub(content, "\r\n", "\n")
                 local source_lines = vim.split(normalized, "\n", { plain = true })
-                vim.api.nvim_buf_set_lines(buf, 0, -1, false, source_lines)
-                vim.b[buf].resultId = result.resultId
-                vim.bo[buf].modifiable = false
+                vim.api.nvim_buf_set_lines(args.buf, 0, -1, false, source_lines)
+                vim.b[args.buf].resultId = result.resultId
+                vim.bo[args.buf].modifiable = false
             end
 
             local params = {
                 textDocument = {
-                    uri = uri,
+                    uri = args.match,
                 },
                 resultId = nil,
             }
 
-            client:request("sourceGeneratedDocument/_roslyn_getText", params, handler, buf)
+            client:request("sourceGeneratedDocument/_roslyn_getText", params, handler, args.buf)
             -- Need to block. Otherwise logic could run that sets the cursor to a position
             -- that's still missing.
             vim.wait(1000, function()

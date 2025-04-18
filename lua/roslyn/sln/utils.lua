@@ -117,9 +117,10 @@ end
 ---@return string?
 function M.root_dir(bufnr)
     local config = require("roslyn.config").get()
+    local selected_solution = vim.g.roslyn_nvim_selected_solution
     local targets = find_targets(bufnr)
     if not targets.csproj_file then
-        return nil
+        return selected_solution and vim.fs.dirname(selected_solution) or nil
     end
 
     local sln = targets.sln_dir
@@ -149,7 +150,7 @@ function M.root_dir(bufnr)
             )
         end
     else
-        return vim.fs.dirname(filtered_targets[1])
+        return vim.fs.dirname(filtered_targets[1]) or selected_solution and vim.fs.dirname(selected_solution) or nil
     end
 end
 
