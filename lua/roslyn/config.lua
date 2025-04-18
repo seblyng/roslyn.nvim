@@ -2,8 +2,6 @@ local M = {}
 
 ---@class InternalRoslynNvimConfig
 ---@field filewatching "auto" | "off" | "roslyn"
----@field exe string[]
----@field args string[]
 ---@field config vim.lsp.ClientConfig
 ---@field choose_sln? fun(solutions: string[]): string?
 ---@field ignore_sln? fun(solution: string): boolean
@@ -14,8 +12,6 @@ local M = {}
 
 ---@class RoslynNvimConfig
 ---@field filewatching? boolean | "auto" | "off" | "roslyn"
----@field exe? string|string[]
----@field args? string[]
 ---@field config? vim.lsp.ClientConfig
 ---@field choose_sln? fun(solutions: string[]): string?
 ---@field ignore_sln? fun(solution: string): boolean
@@ -37,18 +33,23 @@ local function default_capabilities()
         or default
 end
 
----@return string[]
-local function default_exe()
+---@return string[]?
+local function default_cmd()
     local data = vim.fn.stdpath("data") --[[@as string]]
 
     local mason_path = vim.fs.joinpath(data, "mason", "bin", "roslyn")
     local mason_installation = iswin and string.format("%s.cmd", mason_path) or mason_path
 
-    if vim.uv.fs_stat(mason_installation) ~= nil then
-        return { mason_installation }
-    else
-        return { "dotnet", vim.fs.joinpath(data, "roslyn", "Microsoft.CodeAnalysis.LanguageServer.dll") }
+    if vim.uv.fs_stat(mason_installation) == nil then
+        return nil
     end
+
+    return {
+        mason_installation,
+        "--logLevel=Information",
+        "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()),
+        "--stdio",
+    }
 end
 
 local function try_setup_mason()
@@ -79,14 +80,9 @@ end
 ---@type InternalRoslynNvimConfig
 local roslyn_config = {
     filewatching = "auto",
-    exe = default_exe(),
-    args = {
-        "--logLevel=Information",
-        "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()),
-        "--stdio",
-    },
-    ---@diagnostic disable-next-line: missing-fields
     config = {
+        ---@diagnostic disable-next-line: assign-type-mismatch
+        cmd = default_cmd(),
         capabilities = default_capabilities(),
     },
     choose_sln = nil,
@@ -101,13 +97,47 @@ function M.get()
     return roslyn_config
 end
 
+local function handle_deprecated_options()
+    ---@diagnostic disable-next-line: undefined-field
+    local exe = roslyn_config.exe
+    ---@diagnostic disable-next-line: undefined-field
+    local args = roslyn_config.args
+
+    if exe or args then
+        if args then
+            vim.notify(
+                "The `args` option is deprecated. Use `config.cmd` instead",
+                vim.log.levels.WARN,
+                { title = "roslyn.nvim" }
+            )
+        else
+            args = {
+                "--logLevel=Information",
+                "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()),
+                "--stdio",
+            }
+        end
+
+        vim.notify(
+            "The `exe` option is deprecated. Use `config.cmd` instead",
+            vim.log.levels.WARN,
+            { title = "roslyn.nvim" }
+        )
+
+        exe = type(exe) == "string" and { exe } or exe
+        ---@diagnostic disable-next-line: inject-field
+        roslyn_config.cmd = vim.list_extend(vim.deepcopy(exe), vim.deepcopy(args))
+    end
+end
+
 ---@param user_config? RoslynNvimConfig
 ---@return InternalRoslynNvimConfig
 function M.setup(user_config)
     try_setup_mason()
 
+    handle_deprecated_options()
+
     roslyn_config = vim.tbl_deep_extend("force", roslyn_config, user_config or {})
-    roslyn_config.exe = type(roslyn_config.exe) == "string" and { roslyn_config.exe } or roslyn_config.exe
 
     -- HACK: Enable filewatching to later just not watch any files
     -- This is to not make the server watch files and make everything super slow in certain situations
