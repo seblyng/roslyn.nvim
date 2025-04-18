@@ -20,27 +20,6 @@ local function default_cmd()
     }
 end
 
-local function on_init_sln(solution)
-    return function(client)
-        vim.g.roslyn_nvim_selected_solution = solution
-        vim.notify("Initializing Roslyn client for " .. solution, vim.log.levels.INFO, { title = "roslyn.nvim" })
-        client:notify("solution/open", {
-            solution = vim.uri_from_fname(solution),
-        })
-    end
-end
-
-local function on_init_projects(projects)
-    return function(client)
-        vim.notify("Initializing Roslyn client for projects", vim.log.levels.INFO, { title = "roslyn.nvim" })
-        client:notify("project/open", {
-            projects = vim.tbl_map(function(file)
-                return vim.uri_from_fname(file)
-            end, projects),
-        })
-    end
-end
-
 return {
     filetypes = { "cs" },
     cmd = default_cmd(),
@@ -63,10 +42,12 @@ return {
     end,
     on_init = {
         function(client)
+            local on_init = require("roslyn.lsp.on_init")
+
             local config = require("roslyn.config").get()
             local selected_solution = vim.g.roslyn_nvim_selected_solution
             if config.lock_target and selected_solution then
-                return on_init_sln(selected_solution)(client)
+                return on_init.sln(selected_solution)(client)
             end
 
             local bufnr = vim.api.nvim_get_current_buf()
@@ -74,16 +55,16 @@ return {
 
             local solution = utils.predict_target(bufnr, files)
             if solution then
-                return on_init_sln(solution)(client)
+                return on_init.sln(solution)(client)
             end
 
             local csproj = utils.find_files_with_extensions(client.config.root_dir, { ".csproj" })
             if #csproj > 0 then
-                return on_init_projects(csproj)(client)
+                return on_init.projects(csproj)(client)
             end
 
             if selected_solution then
-                return on_init_sln(selected_solution)(client)
+                return on_init.sln(selected_solution)(client)
             end
         end,
     },

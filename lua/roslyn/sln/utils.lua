@@ -114,6 +114,21 @@ local function resolve_root(buffer, sln)
 end
 
 ---@param bufnr integer
+---@return string[]
+function M.targets(bufnr)
+    local targets = find_targets(bufnr)
+    if not targets.csproj_file then
+        return {}
+    end
+
+    local sln = targets.sln_dir
+
+    return require("roslyn.config").get().broad_search and find_solutions(resolve_root(bufnr, sln))
+        or sln and M.find_files_with_extensions(sln, { ".sln", ".slnx", ".slnf" })
+        or {}
+end
+
+---@param bufnr integer
 ---@return string?
 function M.root_dir(bufnr)
     local config = require("roslyn.config").get()
