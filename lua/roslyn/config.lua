@@ -88,6 +88,9 @@ local roslyn_config = {
     ---@diagnostic disable-next-line: missing-fields
     config = {
         capabilities = default_capabilities(),
+        cmd_env = {
+            Configuration = vim.env.Configuration or "Debug",
+        },
     },
     choose_sln = nil,
     ignore_sln = nil,
