@@ -32,6 +32,17 @@ local function on_init_sln(solution)
     end
 end
 
+local function on_init_projects(projects)
+    return function(client)
+        vim.notify("Initializing Roslyn client for projects", vim.log.levels.INFO, { title = "roslyn.nvim" })
+        client:notify("project/open", {
+            projects = vim.tbl_map(function(file)
+                return vim.uri_from_fname(file)
+            end, projects),
+        })
+    end
+end
+
 return {
     filetypes = { "cs" },
     cmd = default_cmd(),
@@ -70,13 +81,7 @@ return {
 
             local csproj = utils.find_files_with_extensions(client.config.root_dir, { ".csproj" })
             if #csproj > 0 then
-                vim.notify("Initializing Roslyn client for projects", vim.log.levels.INFO, { title = "roslyn.nvim" })
-                client:notify("project/open", {
-                    projects = vim.tbl_map(function(file)
-                        return vim.uri_from_fname(file)
-                    end, csproj),
-                })
-                return
+                return on_init_projects(csproj)(client)
             end
 
             if selected_solution then
