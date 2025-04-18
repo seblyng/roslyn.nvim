@@ -57,15 +57,21 @@ local subcommand_tbl = {
 
             local roslyn_lsp = require("roslyn.lsp")
 
-            local targets = vim.iter({ root.solutions, root.solution_filters }):flatten():totable()
+            local targets = vim.iter(root.solutions):flatten():totable()
             vim.ui.select(targets or {}, { prompt = "Select target solution: " }, function(file)
                 if not file then
                     return
                 end
 
                 vim.lsp.stop_client(vim.lsp.get_clients({ name = "roslyn" }), true)
-                local sln_dir = vim.fs.dirname(file)
-                roslyn_lsp.start(bufnr, assert(sln_dir), roslyn_lsp.on_init_sln(file))
+                vim.lsp.start({
+                    root_dir = vim.fs.dirname(file),
+                    on_init = function(client)
+                        roslyn_lsp.on_init_sln(file)(client)
+                    end,
+                    cmd = vim.lsp.config.roslyn.cmd,
+                    unpack(vim.lsp.config.roslyn),
+                })
             end)
         end,
     },
