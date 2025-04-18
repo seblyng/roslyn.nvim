@@ -33,6 +33,7 @@ local function on_init_sln(solution)
 end
 
 return {
+    filetypes = { "cs" },
     cmd = default_cmd(),
     cmd_env = {
         Configuration = vim.env.Configuration or "Debug",

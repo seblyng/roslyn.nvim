@@ -24,9 +24,25 @@ local subcommand_tbl = {
             local remove_listener = nil
 
             local function restart_lsp()
+                local config = vim.lsp.config["roslyn"]
                 for _, buffer in ipairs(attached_buffers) do
-                    if vim.api.nvim_buf_is_valid(buffer) then
-                        vim.api.nvim_exec_autocmds("FileType", { group = "Roslyn", buffer = buffer })
+                    if type(config.root_dir) == "function" then
+                        config.root_dir(buffer, function(root_dir)
+                            config.root_dir = root_dir
+                            vim.schedule(function()
+                                vim.lsp.start(config, {
+                                    bufnr = buffer,
+                                    reuse_client = config.reuse_client,
+                                    _root_markers = config.root_markers,
+                                })
+                            end)
+                        end)
+                    else
+                        vim.lsp.start(config, {
+                            bufnr = buffer,
+                            reuse_client = config.reuse_client,
+                            _root_markers = config.root_markers,
+                        })
                     end
                 end
                 if remove_listener then
