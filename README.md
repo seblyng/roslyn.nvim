@@ -139,8 +139,8 @@ To configure language server specific settings sent to the server, you can use t
 
 ```lua
 vim.lsp.config("roslyn", {
-    on_init = function()
-        print("This will run when the server initializes!")
+    on_attach = function()
+        print("This will run when the server attaches!")
     end,
     settings = {
         ["csharp|inlay_hints"] = {
