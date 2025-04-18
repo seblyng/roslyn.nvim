@@ -232,22 +232,24 @@ function M.create_slnx_file(path, projects)
     return M.create_file(path, sln_string)
 end
 
-function M.get_root(file_path)
+function M.get_root_dir(file_path)
     command("edit " .. vim.fs.joinpath(M.scratch, file_path))
 
     return helpers.exec_lua(function(path)
         package.path = path
         local bufnr = vim.api.nvim_get_current_buf()
-        return require("roslyn.sln.utils").root(bufnr)
+        return require("roslyn.sln.utils").root_dir(bufnr)
     end, package.path)
 end
 
 ---@return string?
-function M.predict_target(root)
-    return helpers.exec_lua(function(path, root0)
+function M.predict_target(file_path, targets)
+    command("edit " .. vim.fs.joinpath(M.scratch, file_path))
+    return helpers.exec_lua(function(path, targets0)
         package.path = path
-        return require("roslyn.sln.utils").predict_target(root0)
-    end, package.path, root)
+        local bufnr = vim.api.nvim_get_current_buf()
+        return require("roslyn.sln.utils").predict_target(bufnr, targets0)
+    end, package.path, targets)
 end
 
 function M.api_projects(target)
