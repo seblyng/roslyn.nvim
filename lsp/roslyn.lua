@@ -34,6 +34,9 @@ end
 
 return {
     cmd = default_cmd(),
+    cmd_env = {
+        Configuration = vim.env.Configuration or "Debug",
+    },
     capabilities = {
         textDocument = {
             -- HACK: Doesn't show any diagnostics if we do not set this to true
