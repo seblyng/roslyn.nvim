@@ -81,6 +81,7 @@ require("roslyn").setup({
     ---@type RoslynNvimConfig
     opts = {
         -- your configuration comes here; leave empty for default settings
+        -- NOTE: You must configure `cmd` in `config.cmd` unless you have installed via mason
     }
 }
 ```
@@ -91,17 +92,12 @@ The plugin comes with the following defaults:
 
 ```lua
 {
+    ---@type vim.lsp.ClientConfig
     config = {
-        cmd = {
-            "dotnet",
-            vim.fs.joinpath(vim.fn.stdpath("data"), "roslyn", "Microsoft.CodeAnalysis.LanguageServer.dll"),
-            "--logLevel=Information", "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path())
-        },
         -- Here you can pass in any options that that you would like to pass to `vim.lsp.start`.
         -- Use `:h vim.lsp.ClientConfig` to see all possible options.
         -- The only options that are overwritten and won't have any effect by setting here:
         --     - `name`
-        --     - `cmd`
         --     - `root_dir`
     },
     -- "auto" | "roslyn" | "off"

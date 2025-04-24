@@ -103,6 +103,7 @@ local function handle_deprecated_options()
     ---@diagnostic disable-next-line: undefined-field
     local args = roslyn_config.args
 
+    -- Warn users about exe and args being deprecated
     if exe or args then
         if args then
             vim.notify(
@@ -125,8 +126,19 @@ local function handle_deprecated_options()
         )
 
         exe = type(exe) == "string" and { exe } or exe
-        ---@diagnostic disable-next-line: inject-field
-        roslyn_config.cmd = vim.list_extend(vim.deepcopy(exe), vim.deepcopy(args))
+        roslyn_config.config.cmd = vim.list_extend(vim.deepcopy(exe), vim.deepcopy(args))
+    end
+
+    -- Warn users about using the default path without explicitly configurating it
+    -- is now deprecated
+    local legacy_path = vim.fs.joinpath(vim.fn.stdpath("data"), "roslyn", "Microsoft.CodeAnalysis.LanguageServer.dll")
+    if vim.uv.fs_stat(legacy_path) and not roslyn_config.config.cmd then
+        vim.notify(
+            "The default cmd location of roslyn is deprecated.\nEither download through mason, or specify the location through `config` option as specified in the README",
+            vim.log.levels.WARN,
+            { title = "roslyn.nvim" }
+        )
+        roslyn_config.config.cmd = vim.list_extend({ "dotnet", legacy_path }, args)
     end
 end
 
@@ -135,9 +147,9 @@ end
 function M.setup(user_config)
     try_setup_mason()
 
-    handle_deprecated_options()
-
     roslyn_config = vim.tbl_deep_extend("force", roslyn_config, user_config or {})
+
+    handle_deprecated_options()
 
     -- HACK: Enable filewatching to later just not watch any files
     -- This is to not make the server watch files and make everything super slow in certain situations
