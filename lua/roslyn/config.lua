@@ -87,38 +87,6 @@ local function handle_deprecated_options()
         )
         vim.lsp.config("roslyn", legacy_config)
     end
-
-    ---@diagnostic disable-next-line: undefined-field
-    local exe = roslyn_config.exe
-    ---@diagnostic disable-next-line: undefined-field
-    local args = roslyn_config.args
-
-    if exe then
-        if args then
-            vim.notify(
-                "The `args` option is deprecated. Use `vim.lsp.config.roslyn.cmd` instead",
-                vim.log.levels.WARN,
-                { title = "roslyn.nvim" }
-            )
-        else
-            args = {
-                "--logLevel=Information",
-                "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()),
-                "--stdio",
-            }
-        end
-
-        vim.notify(
-            "The `exe` option is deprecated. Use `vim.lsp.config.roslyn.cmd` instead",
-            vim.log.levels.WARN,
-            { title = "roslyn.nvim" }
-        )
-
-        exe = type(exe) == "string" and { exe } or exe
-        vim.lsp.config("roslyn", {
-            cmd = vim.list_extend(vim.deepcopy(exe), vim.deepcopy(args)),
-        })
-    end
 end
 
 ---@param user_config? RoslynNvimConfig
