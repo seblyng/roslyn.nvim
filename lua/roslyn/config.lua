@@ -34,7 +34,7 @@ local function default_capabilities()
 end
 
 ---@return string[]?
-local function default_cmd()
+local function get_mason_exe()
     local data = vim.fn.stdpath("data") --[[@as string]]
 
     local mason_path = vim.fs.joinpath(data, "mason", "bin", "roslyn")
@@ -44,12 +44,7 @@ local function default_cmd()
         return nil
     end
 
-    return {
-        mason_installation,
-        "--logLevel=Information",
-        "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()),
-        "--stdio",
-    }
+    return { mason_installation }
 end
 
 local function try_setup_mason()
@@ -80,9 +75,8 @@ end
 ---@type InternalRoslynNvimConfig
 local roslyn_config = {
     filewatching = "auto",
+    ---@diagnostic disable-next-line: missing-fields
     config = {
-        ---@diagnostic disable-next-line: assign-type-mismatch
-        cmd = default_cmd(),
         capabilities = default_capabilities(),
     },
     choose_sln = nil,
@@ -97,49 +91,65 @@ function M.get()
     return roslyn_config
 end
 
-local function handle_deprecated_options()
+---@param user_config RoslynNvimConfig
+local function deprecate_args(user_config)
     ---@diagnostic disable-next-line: undefined-field
-    local exe = roslyn_config.exe
+    if user_config.args then
+        vim.notify(
+            "The `args` option is deprecated. Use `config.cmd` instead",
+            vim.log.levels.WARN,
+            { title = "roslyn.nvim" }
+        )
+    end
+end
+
+---@param user_config RoslynNvimConfig
+---@return string[]?
+local function deprecate_exe(user_config)
     ---@diagnostic disable-next-line: undefined-field
-    local args = roslyn_config.args
-
-    -- Warn users about exe and args being deprecated
-    if exe or args then
-        if args then
-            vim.notify(
-                "The `args` option is deprecated. Use `config.cmd` instead",
-                vim.log.levels.WARN,
-                { title = "roslyn.nvim" }
-            )
-        else
-            args = {
-                "--logLevel=Information",
-                "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()),
-                "--stdio",
-            }
-        end
-
+    if user_config.exe then
         vim.notify(
             "The `exe` option is deprecated. Use `config.cmd` instead",
             vim.log.levels.WARN,
             { title = "roslyn.nvim" }
         )
+    end
+end
 
-        exe = type(exe) == "string" and { exe } or exe
-        roslyn_config.config.cmd = vim.list_extend(vim.deepcopy(exe), vim.deepcopy(args))
+---@param user_config RoslynNvimConfig
+local function resolve_user_cmd(user_config)
+    local mason_exe = get_mason_exe()
+
+    ---@diagnostic disable-next-line: undefined-field
+    local args = user_config.args and vim.deepcopy(user_config.args)
+        or {
+            "--logLevel=Information",
+            "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()),
+            "--stdio",
+        }
+
+    -- If we have mason then use that
+    if mason_exe then
+        return vim.list_extend(mason_exe, args)
     end
 
-    -- Warn users about using the default path without explicitly configurating it
-    -- is now deprecated
+    ---@diagnostic disable-next-line: undefined-field
+    local exe = user_config.exe and vim.deepcopy(user_config.exe) or nil
+    if exe then
+        exe = type(exe) == "string" and { exe } or exe
+        return vim.list_extend(exe, args)
+    end
+
     local legacy_path = vim.fs.joinpath(vim.fn.stdpath("data"), "roslyn", "Microsoft.CodeAnalysis.LanguageServer.dll")
-    if vim.uv.fs_stat(legacy_path) and not roslyn_config.config.cmd then
+    if vim.uv.fs_stat(legacy_path) then
         vim.notify(
-            "The default cmd location of roslyn is deprecated.\nEither download through mason, or specify the location through `config` option as specified in the README",
+            "The default cmd location of roslyn is deprecated.\nEither download through mason, or specify through `config.cmd` as specified in the README",
             vim.log.levels.WARN,
             { title = "roslyn.nvim" }
         )
-        roslyn_config.config.cmd = vim.list_extend({ "dotnet", legacy_path }, args)
     end
+
+    return vim.list_extend({ "dotnet", legacy_path }, args)
 end
 
 ---@param user_config? RoslynNvimConfig
@@ -147,9 +157,17 @@ end
 function M.setup(user_config)
     try_setup_mason()
 
-    roslyn_config = vim.tbl_deep_extend("force", roslyn_config, user_config or {})
+    user_config = user_config or {}
+    user_config.config = user_config.config or {}
 
-    handle_deprecated_options()
+    deprecate_args(user_config)
+    deprecate_exe(user_config)
+
+    if not user_config.config.cmd then
+        user_config.config.cmd = user_config.config.cmd or resolve_user_cmd(user_config)
+    end
+
+    roslyn_config = vim.tbl_deep_extend("force", roslyn_config, user_config)
 
     -- HACK: Enable filewatching to later just not watch any files
     -- This is to not make the server watch files and make everything super slow in certain situations
