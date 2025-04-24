@@ -8,7 +8,7 @@ function M.start(bufnr, root_dir, on_init)
     local roslyn_config = require("roslyn.config").get()
 
     local config = vim.deepcopy(roslyn_config.config)
-    config.cmd = vim.list_extend(vim.deepcopy(roslyn_config.exe), vim.deepcopy(roslyn_config.args))
+
     config.name = "roslyn"
     config.root_dir = root_dir
     config.handlers = vim.tbl_deep_extend("force", {

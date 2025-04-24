@@ -47,11 +47,22 @@ There's currently an open [pull request](https://github.com/mason-org/mason-regi
   
   1. Navigate to [this feed](https://dev.azure.com/azure-public/vside/_artifacts/feed/vs-impl), search for `Microsoft.CodeAnalysis.LanguageServer` and download the version matching your OS and architecture.
      > For nix users, install [roslyn-ls](https://search.nixos.org/packages?channel=unstable&show=roslyn-ls) and then you can config this plugin right away.
-  2. Unzip the downloaded `.nupkg` and copy the contents of `<zip root>/content/LanguageServer/<yourArch>` inside:
-     - **Linux**: `~/.local/share/nvim/roslyn`
-     - **Windows**: `%LOCALAPPDATA%\nvim-data\roslyn`
-       > **_TIP:_** You can also specify a custom path to the roslyn folder in the setup function.
-  3. Check if it's working by running `dotnet Microsoft.CodeAnalysis.LanguageServer.dll --version` in the `roslyn` directory.
+  2. Unzip the downloaded `.nupkg` and copy the contents of `<zip root>/content/LanguageServer/<yourArch>` to `<target>`
+  3. Check if it's working by running `dotnet Microsoft.CodeAnalysis.LanguageServer.dll --version` in the `<target>` directory.
+  4. Configure it like this:
+```lua
+require("roslyn").setup({
+    config = {
+        cmd = {
+            "dotnet",
+            "<target>/Microsoft.CodeAnalysis.LanguageServer.dll",
+            "--logLevel=Information",
+            "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()),
+            "--stdio",
+        },
+    },
+})
+```
 
 </details>
 
@@ -70,6 +81,7 @@ There's currently an open [pull request](https://github.com/mason-org/mason-regi
     ---@type RoslynNvimConfig
     opts = {
         -- your configuration comes here; leave empty for default settings
+        -- NOTE: You must configure `cmd` in `config.cmd` unless you have installed via mason
     }
 }
 ```
@@ -80,30 +92,14 @@ The plugin comes with the following defaults:
 
 ```lua
 {
+    ---@type vim.lsp.ClientConfig
     config = {
         -- Here you can pass in any options that that you would like to pass to `vim.lsp.start`.
         -- Use `:h vim.lsp.ClientConfig` to see all possible options.
         -- The only options that are overwritten and won't have any effect by setting here:
         --     - `name`
-        --     - `cmd`
         --     - `root_dir`
     },
-
-    --[[
-    -- if you installed `roslyn-ls` by nix, use the following:
-      exe = 'Microsoft.CodeAnalysis.LanguageServer',
-    ]]
-    exe = {
-        "dotnet",
-        vim.fs.joinpath(vim.fn.stdpath("data"), "roslyn", "Microsoft.CodeAnalysis.LanguageServer.dll"),
-    },
-    args = {
-        "--logLevel=Information", "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path())
-    },
-  --[[
-  -- args can be used to pass additional flags to the language server
-    ]]
-
     -- "auto" | "roslyn" | "off"
     --
     -- - "auto": Does nothing for filewatching, leaving everything as default
