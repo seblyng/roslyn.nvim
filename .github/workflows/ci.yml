@@ -23,7 +23,8 @@ jobs:
 
       matrix:
         neovim_branch:
-          - "v0.10.3"
+          - "v0.10.4"
+          - "v0.11.0"
           - "nightly"
 
     env:
@@ -33,11 +34,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - uses: leafo/gh-actions-lua@v9
+      - uses: leafo/gh-actions-lua@v11
         with:
           luaVersion: "5.1.5"
 
-      - uses: leafo/gh-actions-luarocks@v4
+      - uses: leafo/gh-actions-luarocks@v5
+        with:
+          luarocksVersion: "3.11.1"
 
       - name: Download nvim-test
         run: make nvim-test
