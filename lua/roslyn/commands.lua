@@ -69,7 +69,9 @@ local subcommand_tbl = {
     target = {
         impl = function()
             local bufnr = vim.api.nvim_get_current_buf()
-            local targets = require("roslyn.sln.utils").targets(bufnr)
+            local utils = require("roslyn.sln.utils")
+            local broad_search = require("roslyn.config").get().broad_search
+            local targets = broad_search and utils.find_solutions_broad(bufnr) or utils.find_solutions(bufnr)
             vim.ui.select(targets or {}, { prompt = "Select target solution: " }, function(file)
                 if not file then
                     return
@@ -78,7 +80,9 @@ local subcommand_tbl = {
                 vim.lsp.stop_client(vim.lsp.get_clients({ name = "roslyn" }), true)
                 vim.lsp.start({
                     root_dir = vim.fs.dirname(file),
-                    on_init = require("roslyn.lsp.on_init").sln(file),
+                    on_init = function(client)
+                        require("roslyn.lsp.on_init").sln(client, file)
+                    end,
                     cmd = vim.lsp.config.roslyn.cmd,
                     unpack(vim.lsp.config.roslyn),
                 })

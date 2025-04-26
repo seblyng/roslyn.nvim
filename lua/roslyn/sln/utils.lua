@@ -41,15 +41,36 @@ local function filter_targets(targets, csproj)
         :totable()
 end
 
---- @param dir string
-local function ignore_dir(dir)
-    return dir:match("[Bb]in$") or dir:match("[Oo]bj$")
+---@param buffer number
+local function resolve_broad_search_root(buffer)
+    local sln_root = vim.fs.root(buffer, function(fname, _)
+        return fname:match("%.sln$") ~= nil or fname:match("%.slnx$") ~= nil
+    end)
+
+    local git_root = vim.fs.root(buffer, ".git")
+    if sln_root and git_root then
+        return git_root and sln_root:find(git_root, 1, true) and git_root or sln_root
+    else
+        return sln_root or git_root
+    end
 end
 
---- @param path string?
---- @return string[] slns
-local function find_solutions(path)
-    local dirs = { path }
+function M.find_solutions(bufnr)
+    return vim.fs.find(function(name)
+        return name:match("%.sln$") or name:match("%.slnx$") or name:match("%.slnf$")
+    end, { upward = true, path = vim.api.nvim_buf_get_name(bufnr), limit = math.huge })
+end
+
+-- Dirs we are not looking for solutions inside
+local ignored_dirs = {
+    "obj",
+    "bin",
+    ".git",
+}
+
+function M.find_solutions_broad(bufnr)
+    local root = resolve_broad_search_root(bufnr)
+    local dirs = { root }
     local slns = {} --- @type string[]
 
     while #dirs > 0 do
@@ -62,7 +83,7 @@ local function find_solutions(path)
                 if name:match("%.sln$") or name:match("%.slnx$") or name:match("%.slnf$") then
                     slns[#slns + 1] = vim.fs.normalize(name)
                 end
-            elseif fs_obj_type == "directory" and not ignore_dir(name) then
+            elseif fs_obj_type == "directory" and not vim.list_contains(ignored_dirs, vim.fs.basename(name)) then
                 dirs[#dirs + 1] = name
             end
         end
@@ -71,89 +92,20 @@ local function find_solutions(path)
     return slns
 end
 
---- @class FindTargetsResult
---- @field csproj_file string?
---- @field sln_dir string?
-
---- Searches for the directory of a project and/or solution to use for the buffer.
----@param buffer integer
----@return FindTargetsResult
-local function find_targets(buffer)
-    -- We should always find csproj/slnf files "on the way" to the solution file,
-    -- so walk once towards the solution, and capture them as we go by.
-    local csproj_file = nil
-
-    local sln_dir = vim.fs.root(buffer, function(name, path)
-        if not csproj_file and name:match("%.csproj$") then
-            csproj_file = vim.fs.joinpath(path, name)
-        end
-
-        return name:match("%.sln$") ~= nil or name:match("%.slnx$")
-    end)
-
-    return { csproj_file = csproj_file, sln_dir = sln_dir }
-end
-
----@class RoslynNvimDirectoryWithFiles
----@field directory string
----@field files string[]
-
----@class RoslynNvimRootDir
----@field projects? RoslynNvimDirectoryWithFiles
----@field solutions string[]
-
----@param buffer number
----@param sln string?
-local function resolve_root(buffer, sln)
-    local git_root = vim.fs.root(buffer, ".git")
-    if sln and git_root then
-        return git_root and sln:find(git_root, 1, true) and git_root or sln
-    else
-        return sln or git_root
-    end
-end
-
----@param bufnr integer
----@return string[]
-function M.targets(bufnr)
-    local targets = find_targets(bufnr)
-    if not targets.csproj_file then
-        return {}
-    end
-
-    local sln = targets.sln_dir
-
-    return require("roslyn.config").get().broad_search and find_solutions(resolve_root(bufnr, sln))
-        or sln and M.find_files_with_extensions(sln, { ".sln", ".slnx", ".slnf" })
-        or {}
-end
-
----@param bufnr integer
----@return string?
-function M.root_dir(bufnr)
-    local config = require("roslyn.config").get()
-    local selected_solution = vim.g.roslyn_nvim_selected_solution
-    local targets = find_targets(bufnr)
-    if not targets.csproj_file then
-        return selected_solution and vim.fs.dirname(selected_solution) or nil
-    end
-
-    local sln = targets.sln_dir
-
-    local solutions = require("roslyn.config").get().broad_search and find_solutions(resolve_root(bufnr, sln))
-        or sln and M.find_files_with_extensions(sln, { ".sln", ".slnx", ".slnf" })
-        or {}
-
+---@param bufnr number
+---@param solutions string[]
+function M.root_dir(bufnr, solutions)
     if #solutions == 1 then
         return vim.fs.dirname(solutions[1])
     end
 
-    if #solutions == 0 then
-        return vim.fs.dirname(targets.csproj_file)
-    end
+    local csproj = vim.fs.find(function(name)
+        return name:match("%.csproj$") ~= nil
+    end, { upward = true, path = vim.api.nvim_buf_get_name(bufnr) })[1]
 
-    local filtered_targets = filter_targets(solutions, targets.csproj_file)
+    local filtered_targets = filter_targets(solutions, csproj)
     if #filtered_targets > 1 then
+        local config = require("roslyn.config").get()
         local chosen = config.choose_target and config.choose_target(filtered_targets)
         if chosen then
             return vim.fs.dirname(chosen)
@@ -165,21 +117,22 @@ function M.root_dir(bufnr)
             )
         end
     else
-        return vim.fs.dirname(filtered_targets[1]) or selected_solution and vim.fs.dirname(selected_solution) or nil
+        local selected_solution = vim.g.roslyn_nvim_selected_solution
+        return vim.fs.dirname(filtered_targets[1])
+            or selected_solution and vim.fs.dirname(selected_solution)
+            or csproj and vim.fs.dirname(csproj)
     end
 end
 
 ---@param bufnr number
 ---@param targets string[]
----@param csproj_file? string
 ---@return string?
-function M.predict_target(bufnr, targets, csproj_file)
+function M.predict_target(bufnr, targets)
     local config = require("roslyn.config").get()
 
-    local csproj = csproj_file
-        or vim.fs.find(function(name)
-            return name:match("%.csproj$") ~= nil
-        end, { upward = true, path = vim.api.nvim_buf_get_name(bufnr) })[1]
+    local csproj = vim.fs.find(function(name)
+        return name:match("%.csproj$") ~= nil
+    end, { upward = true, path = vim.api.nvim_buf_get_name(bufnr) })[1]
 
     local filtered_targets = filter_targets(targets, csproj)
     if #filtered_targets > 1 then

@@ -20,7 +20,9 @@ local function default_cmd()
     }
 end
 
+---@type vim.lsp.Config
 return {
+    name = "roslyn",
     filetypes = { "cs" },
     cmd = default_cmd(),
     cmd_env = {
@@ -35,7 +37,9 @@ return {
         },
     },
     root_dir = function(bufnr, on_dir)
-        local root_dir = utils.root_dir(bufnr)
+        local config = require("roslyn.config")
+        local solutions = config.get().broad_search and utils.find_solutions_broad(bufnr) or utils.find_solutions(bufnr)
+        local root_dir = utils.root_dir(bufnr, solutions)
         if root_dir then
             on_dir(root_dir)
         end
@@ -47,7 +51,7 @@ return {
             local config = require("roslyn.config").get()
             local selected_solution = vim.g.roslyn_nvim_selected_solution
             if config.lock_target and selected_solution then
-                return on_init.sln(selected_solution)(client)
+                return on_init.sln(client, selected_solution)
             end
 
             local bufnr = vim.api.nvim_get_current_buf()
@@ -55,16 +59,16 @@ return {
 
             local solution = utils.predict_target(bufnr, files)
             if solution then
-                return on_init.sln(solution)(client)
+                return on_init.sln(client, solution)
             end
 
             local csproj = utils.find_files_with_extensions(client.config.root_dir, { ".csproj" })
             if #csproj > 0 then
-                return on_init.projects(csproj)(client)
+                return on_init.projects(client, csproj)
             end
 
             if selected_solution then
-                return on_init.sln(selected_solution)(client)
+                return on_init.sln(client, selected_solution)
             end
         end,
     },
