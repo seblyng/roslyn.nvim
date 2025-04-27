@@ -5,6 +5,35 @@ local M = {}
 
 local cmd_name = "Roslyn"
 
+local function start_lsp(bufnr, sln_file)
+    local roslyn_lsp = require("roslyn.lsp")
+    if not sln_file then
+        return
+    end
+
+    local clients = vim.lsp.get_clients({ name = "roslyn" })
+    if #clients > 0 then
+        vim.notify("\n" .. cmd_name .. " server already running", vim.log.levels.WARNING, { title = "roslyn.nvim" })
+        return
+    end
+
+    local sln_dir = vim.fs.dirname(sln_file)
+    roslyn_lsp.start(bufnr, assert(sln_dir), roslyn_lsp.on_init_sln(sln_file))
+end
+
+local function select_sln_and_start_lsp()
+    local bufnr = vim.api.nvim_get_current_buf()
+    local root = vim.b.roslyn_root or require("roslyn.sln.utils").root(bufnr)
+    local targets = vim.iter({ root.solutions, root.solution_filters }):flatten():totable()
+    if #targets == 1 then
+        start_lsp(bufnr, targets[1])
+        return
+    end
+    vim.ui.select(targets or {}, { prompt = "Select target solution: " }, function(file)
+        start_lsp(bufnr, file)
+    end)
+end
+
 ---@class RoslynSubcommandTable
 ---@field impl fun(args: string[], opts: vim.api.keyset.user_command) The command implementation
 ---@field complete? fun(subcmd_arg_lead: string): string[] Command completions callback, taking the lead of the subcommand's arguments
@@ -69,6 +98,11 @@ local subcommand_tbl = {
                 local sln_dir = vim.fs.dirname(file)
                 roslyn_lsp.start(bufnr, assert(sln_dir), roslyn_lsp.on_init_sln(file))
             end)
+        end,
+    },
+    start = {
+        impl = function()
+            select_sln_and_start_lsp()
         end,
     },
 }
