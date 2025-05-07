@@ -23,18 +23,24 @@ https://github.com/user-attachments/assets/a749f6c7-fc87-440c-912d-666d86453bc5
 <details>
   <summary>Mason</summary>
   
-  `roslyn` is not in the mason core registry, so a custom registry is used. This is automatically setup if you have mason installed.
+  `roslyn` is not in the mason core registry, so a custom registry is used.
   This registry provides two binaries
   - `roslyn` (To be used with this repo)
   - `rzls` (To be used with [rzls.nvim](https://github.com/tris203/rzls.nvim))
 
-You can then install it with `:MasonInstall roslyn` or through the popup menu by running `:Mason`. It is not available through [mason-lspconfig.nvim](https://github.com/williamboman/mason-lspconfig.nvim) and the `:LspInstall` interface.
+You need to set up the custom registry like this
 
+```lua
+require("mason").setup({
+    registries = {
+        "github:mason-org/mason-registry",
+        "github:Crashdummyy/mason-registry",
+    },
+})
+```
+
+You can then install it with `:MasonInstall roslyn` or through the popup menu by running `:Mason`. It is not available through [mason-lspconfig.nvim](https://github.com/williamboman/mason-lspconfig.nvim) and the `:LspInstall` interface
 When installing the server through mason, the cmd is automatically added to the LSP config, so no need to add it manually
-
-**IMPORTANT**
-
-If you are setting up mason with custom registries, make sure that you are either setting it up before `roslyn.nvim` is setup, or also include `github:Crashdummyy/mason-registry` in your `registries` config
 
 **NOTE**
 
@@ -289,6 +295,7 @@ This setting controls how the language server should format code.
 ## 📚 Commands
 
 - `:Roslyn restart` restarts the server
+- `:Roslyn start` starts the server
 - `:Roslyn stop` stops the server
 - `:Roslyn target` chooses a solution if there are multiple to chose from
 
