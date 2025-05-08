@@ -33,22 +33,6 @@ function M.get()
     return roslyn_config
 end
 
--- HACK: Enable or disable filewatching based on config options
--- `off` enables filewatching but just ignores all files to watch at a later stage
--- `roslyn` disables filewatching to force the server to take care of this
-local function resolve_filewatching_capabilities()
-    if roslyn_config.filewatching == "off" or roslyn_config.filewatching == "roslyn" then
-        return {
-            didChangeWatchedFiles = {
-                dynamicRegistration = roslyn_config.filewatching == "off",
-            },
-        }
-    else
-        local default = vim.lsp.config.roslyn or {}
-        return default.capabilities and default.capabilities.workspace or nil
-    end
-end
-
 -- TODO(seb): Remove this in a couple of months after release
 local function handle_deprecated_options()
     ---@diagnostic disable-next-line: undefined-field
@@ -71,24 +55,21 @@ function M.setup(user_config)
 
     handle_deprecated_options()
 
-    vim.lsp.config("roslyn", {
-        -- HACK: Set filewatching capabilities here based on filewatching option to the plugin
-        capabilities = {
-            workspace = resolve_filewatching_capabilities(),
-        },
-        handlers = {
-            ["client/registerCapability"] = function(err, res, ctx)
-                if roslyn_config.filewatching == "off" then
-                    for _, reg in ipairs(res.registrations) do
-                        if reg.method == "workspace/didChangeWatchedFiles" then
-                            reg.registerOptions.watchers = {}
-                        end
-                    end
-                end
-                return vim.lsp.handlers["client/registerCapability"](err, res, ctx)
-            end,
-        },
-    })
+    -- HACK: Enable or disable filewatching based on config options
+    -- `off` enables filewatching but just ignores all files to watch at a later stage
+    -- `roslyn` disables filewatching to force the server to take care of this
+    if roslyn_config.filewatching == "off" or roslyn_config.filewatching == "roslyn" then
+        vim.lsp.config("roslyn", {
+            -- HACK: Set filewatching capabilities here based on filewatching option to the plugin
+            capabilities = {
+                workspace = {
+                    didChangeWatchedFiles = {
+                        dynamicRegistration = roslyn_config.filewatching == "off",
+                    },
+                },
+            },
+        })
+    end
 
     return roslyn_config
 end

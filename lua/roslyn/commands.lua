@@ -5,6 +5,7 @@ local M = {}
 
 local cmd_name = "Roslyn"
 
+-- TODO(seb): Fix this before merging
 local function start_lsp(bufnr, sln_file)
     local roslyn_lsp = require("roslyn.lsp")
     if not sln_file then

@@ -1,4 +1,14 @@
 return {
+    ["client/registerCapability"] = function(err, res, ctx)
+        if require("roslyn.config").get().filewatching == "off" then
+            for _, reg in ipairs(res.registrations) do
+                if reg.method == "workspace/didChangeWatchedFiles" then
+                    reg.registerOptions.watchers = {}
+                end
+            end
+        end
+        return vim.lsp.handlers["client/registerCapability"](err, res, ctx)
+    end,
     ["workspace/projectInitializationComplete"] = function(_, _, ctx)
         vim.notify("Roslyn project initialization complete", vim.log.levels.INFO, { title = "roslyn.nvim" })
 
