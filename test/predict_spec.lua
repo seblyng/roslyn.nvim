@@ -4,7 +4,6 @@ local system = helpers.fn.system
 local create_file = helpers.create_file
 local create_sln_file = helpers.create_sln_file
 local predict_target = helpers.predict_target
-local get_root = helpers.get_root
 local scratch = helpers.scratch
 local setup = helpers.setup
 
@@ -27,8 +26,11 @@ describe("predicts", function()
             { name = "Baz", path = [[Foo\Bar\Baz.csproj]] },
         })
 
-        local root = get_root("Program.cs")
-        local _, target = predict_target(root)
+        local targets = {
+            vim.fs.joinpath(scratch, "Foo.sln"),
+        }
+
+        local target = predict_target("Program.cs", targets)
         assert.are_same(vim.fs.joinpath(scratch, "Foo.sln"), target)
     end)
 
@@ -40,8 +42,11 @@ describe("predicts", function()
             { name = "Baz", path = [[Foo\Bar\Baz.csproj]] },
         })
 
-        local root = get_root("Program.cs")
-        local _, target = predict_target(root)
+        local targets = {
+            vim.fs.joinpath(scratch, "Foo.sln"),
+        }
+
+        local target = predict_target("Program.cs", targets)
         assert.is_nil(target)
     end)
 
@@ -59,8 +64,12 @@ describe("predicts", function()
             { name = "Baz", path = [[Foo\Bar\Baz.csproj]] },
         })
 
-        local root = get_root("Program.cs")
-        local _, target = predict_target(root)
+        local targets = {
+            vim.fs.joinpath(scratch, "Foo.sln"),
+            vim.fs.joinpath(scratch, "FooBar.sln"),
+        }
+
+        local target = predict_target("Program.cs", targets)
         assert.are_same(vim.fs.joinpath(scratch, "FooBar.sln"), target)
     end)
 
@@ -78,8 +87,12 @@ describe("predicts", function()
             { name = "Baz", path = [[Foo\Bar\Baz.csproj]] },
         })
 
-        local root = get_root("Program.cs")
-        local _, target = predict_target(root)
+        local targets = {
+            vim.fs.joinpath(scratch, "Foo.sln"),
+            vim.fs.joinpath(scratch, "FooBar.sln"),
+        }
+
+        local target = predict_target("Program.cs", targets)
         assert.is_nil(target)
     end)
 
@@ -99,8 +112,12 @@ describe("predicts", function()
             { name = "Baz", path = [[Foo\Bar\Baz.csproj]] },
         })
 
-        local root = get_root("Program.cs")
-        local _, target = predict_target(root)
+        local targets = {
+            vim.fs.joinpath(scratch, "Foo.sln"),
+            vim.fs.joinpath(scratch, "FooBar.sln"),
+        }
+
+        local target = predict_target("Program.cs", targets)
         assert.are_same(vim.fs.joinpath(scratch, "FooBar.sln"), target)
     end)
 
@@ -120,8 +137,12 @@ describe("predicts", function()
             { name = "Baz", path = [[Foo\Bar\Baz.csproj]] },
         })
 
-        local root = get_root("Program.cs")
-        local _, target = predict_target(root)
+        local targets = {
+            vim.fs.joinpath(scratch, "Foo.sln"),
+            vim.fs.joinpath(scratch, "FooBar.sln"),
+        }
+
+        local target = predict_target("Program.cs", targets)
         assert.are_same(vim.fs.joinpath(scratch, "Foo.sln"), target)
     end)
 end)
