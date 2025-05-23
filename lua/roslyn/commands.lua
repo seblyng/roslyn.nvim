@@ -5,34 +5,27 @@ local M = {}
 
 local cmd_name = "Roslyn"
 
--- TODO(seb): Fix this before merging
-local function start_lsp(bufnr, sln_file)
-    local roslyn_lsp = require("roslyn.lsp")
-    if not sln_file then
-        return
+---@param bufnr integer
+---@param config vim.lsp.Config
+local start_lsp = function(bufnr, config)
+    if type(config.root_dir) == "function" then
+        config.root_dir(bufnr, function(root_dir)
+            config.root_dir = root_dir
+            vim.schedule(function()
+                vim.lsp.start(config, {
+                    bufnr = bufnr,
+                    reuse_client = config.reuse_client,
+                    _root_markers = config.root_markers,
+                })
+            end)
+        end)
+    else
+        vim.lsp.start(config, {
+            bufnr = bufnr,
+            reuse_client = config.reuse_client,
+            _root_markers = config.root_markers,
+        })
     end
-
-    local clients = vim.lsp.get_clients({ name = "roslyn" })
-    if #clients > 0 then
-        vim.notify("\n" .. cmd_name .. " server already running", vim.log.levels.WARNING, { title = "roslyn.nvim" })
-        return
-    end
-
-    local sln_dir = vim.fs.dirname(sln_file)
-    roslyn_lsp.start(bufnr, assert(sln_dir), roslyn_lsp.on_init_sln(sln_file))
-end
-
-local function select_sln_and_start_lsp()
-    local bufnr = vim.api.nvim_get_current_buf()
-    local root = vim.b.roslyn_root or require("roslyn.sln.utils").root(bufnr)
-    local targets = vim.iter({ root.solutions, root.solution_filters }):flatten():totable()
-    if #targets == 1 then
-        start_lsp(bufnr, targets[1])
-        return
-    end
-    vim.ui.select(targets or {}, { prompt = "Select target solution: " }, function(file)
-        start_lsp(bufnr, file)
-    end)
 end
 
 ---@class RoslynSubcommandTable
@@ -56,24 +49,7 @@ local subcommand_tbl = {
             local function restart_lsp()
                 local config = vim.lsp.config["roslyn"]
                 for _, buffer in ipairs(attached_buffers) do
-                    if type(config.root_dir) == "function" then
-                        config.root_dir(buffer, function(root_dir)
-                            config.root_dir = root_dir
-                            vim.schedule(function()
-                                vim.lsp.start(config, {
-                                    bufnr = buffer,
-                                    reuse_client = config.reuse_client,
-                                    _root_markers = config.root_markers,
-                                })
-                            end)
-                        end)
-                    else
-                        vim.lsp.start(config, {
-                            bufnr = buffer,
-                            reuse_client = config.reuse_client,
-                            _root_markers = config.root_markers,
-                        })
-                    end
+                    start_lsp(buffer, config)
                 end
                 if remove_listener then
                     remove_listener()
@@ -121,7 +97,32 @@ local subcommand_tbl = {
     },
     start = {
         impl = function()
-            select_sln_and_start_lsp()
+            local bufnr = vim.api.nvim_get_current_buf()
+            local utils = require("roslyn.sln.utils")
+            local broad_search = require("roslyn.config").get().broad_search
+            local solutions = broad_search and utils.find_solutions_broad(bufnr) or utils.find_solutions(bufnr)
+
+            -- If we have more than one solution, immediately ask to pick one
+            if #solutions > 1 then
+                vim.ui.select(solutions or {}, { prompt = "Select target solution: " }, function(file)
+                    if not file then
+                        return
+                    end
+
+                    vim.lsp.start({
+                        root_dir = vim.fs.dirname(file),
+                        on_init = function(client)
+                            require("roslyn.lsp.on_init").sln(client, file)
+                        end,
+                        cmd = vim.lsp.config.roslyn.cmd,
+                        unpack(vim.lsp.config.roslyn),
+                    })
+                end)
+                return
+            end
+
+            -- Fallback to try to start the server normally
+            start_lsp(bufnr, vim.lsp.config["roslyn"])
         end,
     },
 }
