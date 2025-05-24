@@ -1,5 +1,3 @@
-local M = {}
-
 ---@class RoslynCodeAction
 ---@field title string
 ---@field code_action table
@@ -30,8 +28,7 @@ end
 local function handle_fix_all_code_action(client, data)
     local flavors = data.arguments[1].FixAllFlavors
     vim.ui.select(flavors, { prompt = "Pick a fix all scope:" }, function(flavor)
-        -- TODO: Change this to `client:request` when minimal version is `0.11`
-        client.request("codeAction/resolveFixAll", {
+        client:request("codeAction/resolveFixAll", {
             title = data.title,
             data = data.arguments[1],
             scope = flavor,
@@ -46,16 +43,44 @@ local function handle_fix_all_code_action(client, data)
     end)
 end
 
----@param client vim.lsp.Client
-function M.fix_all_code_action(client)
-    vim.lsp.commands["roslyn.client.fixAllCodeAction"] = function(data)
-        handle_fix_all_code_action(client, data)
+local function best_cursor_pos(lines, start_row, start_col)
+    local target_i, col
+
+    for i = #lines, 1, -1 do
+        local line = lines[i]
+        for j = #line, 1, -1 do
+            if not line:sub(j, j):match("[%s(){}]") then
+                target_i = i + 1
+                col = j
+                break
+            end
+        end
+        if target_i then
+            break
+        end
     end
+
+    -- Fallback position if somehow not found
+    if not target_i then
+        target_i = #lines
+        col = #lines[target_i] or 0
+    end
+
+    local row = start_row + target_i - 1
+    if target_i == 1 then
+        col = start_col + col
+    end
+
+    return { row, col }
 end
 
----@param client vim.lsp.Client
-function M.nested_code_action(client)
-    vim.lsp.commands["roslyn.client.nestedCodeAction"] = function(data)
+return {
+    ["roslyn.client.fixAllCodeAction"] = function(data, ctx)
+        local client = assert(vim.lsp.get_client_by_id(ctx.client_id))
+        handle_fix_all_code_action(client, data)
+    end,
+    ["roslyn.client.nestedCodeAction"] = function(data, ctx)
+        local client = assert(vim.lsp.get_client_by_id(ctx.client_id))
         local args = data.arguments[1]
         local code_actions = get_code_actions(args.NestedCodeActions)
         local titles = vim.iter(code_actions)
@@ -72,9 +97,7 @@ function M.nested_code_action(client)
             if action.code_action.data.FixAllFlavors then
                 handle_fix_all_code_action(client, action.code_action.command)
             else
-                -- TODO: Change this to `client:request` when minimal version is `0.11`
-                ---@diagnostic disable-next-line: param-type-mismatch
-                client.request("codeAction/resolve", {
+                client:request("codeAction/resolve", {
                     title = action.code_action.title,
                     data = action.code_action.data,
                     ---@diagnostic disable-next-line: param-type-mismatch
@@ -88,42 +111,8 @@ function M.nested_code_action(client)
                 end)
             end
         end)
-    end
-end
-
-function M.completion_complex_edit()
-    local function best_cursor_pos(lines, start_row, start_col)
-        local target_i, col
-
-        for i = #lines, 1, -1 do
-            local line = lines[i]
-            for j = #line, 1, -1 do
-                if not line:sub(j, j):match("[%s(){}]") then
-                    target_i = i + 1
-                    col = j
-                    break
-                end
-            end
-            if target_i then
-                break
-            end
-        end
-
-        -- Fallback position if somehow not found
-        if not target_i then
-            target_i = #lines
-            col = #lines[target_i] or 0
-        end
-
-        local row = start_row + target_i - 1
-        if target_i == 1 then
-            col = start_col + col
-        end
-
-        return { row, col }
-    end
-
-    vim.lsp.commands["roslyn.client.completionComplexEdit"] = function(data, _)
+    end,
+    ["roslyn.client.completionComplexEdit"] = function(data)
         local arguments = data.arguments
         local uri = arguments[1].uri
         local edit = arguments[2]
@@ -158,7 +147,5 @@ function M.completion_complex_edit()
         end
 
         vim.api.nvim_win_set_cursor(0, best_cursor_pos(lines, start_row, start_col))
-    end
-end
-
-return M
+    end,
+}

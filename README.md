@@ -2,8 +2,6 @@
 
 This is an actively maintained & upgraded [fork](https://github.com/jmederosalvarado/roslyn.nvim) that interacts with the improved & open-source C# [Roslyn](https://github.com/dotnet/roslyn) language server, meant to replace the old and discontinued OmniSharp. This language server is currently used in the [Visual Studio Code C# Extension](https://github.com/dotnet/vscode-csharp), which is shipped with the standard C# Dev Kit.
 
-This standalone plugin was necessary because Roslyn uses a [non-standard](https://github.com/dotnet/roslyn/issues/72871) method of initializing communication with the client and requires additional custom integrations, unlike typical LSP setups in Neovim.
-
 ## IMPORTANT
 
 This plugin does not provide Razor support.
@@ -12,7 +10,7 @@ Check out https://github.com/tris203/rzls.nvim if you are using Razor.
 
 ## ⚡️ Requirements
 
-- Neovim >= 0.10.0
+- Neovim >= 0.11.0
 - Roslyn language server downloaded locally
 - .NET SDK installed and `dotnet` command available
 
@@ -42,6 +40,7 @@ require("mason").setup({
 ```
 
 You can then install it with `:MasonInstall roslyn` or through the popup menu by running `:Mason`. It is not available through [mason-lspconfig.nvim](https://github.com/williamboman/mason-lspconfig.nvim) and the `:LspInstall` interface
+When installing the server through mason, the cmd is automatically added to the LSP config, so no need to add it manually
 
 **NOTE**
 
@@ -58,16 +57,15 @@ There's currently an open [pull request](https://github.com/mason-org/mason-regi
   3. Check if it's working by running `dotnet Microsoft.CodeAnalysis.LanguageServer.dll --version` in the `<target>` directory.
   4. Configure it like this:
 ```lua
-require("roslyn").setup({
-    config = {
-        cmd = {
-            "dotnet",
-            "<target>/Microsoft.CodeAnalysis.LanguageServer.dll",
-            "--logLevel=Information",
-            "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()),
-            "--stdio",
-        },
+vim.lsp.config("roslyn", {
+    cmd = {
+        "dotnet",
+        "<target>/Microsoft.CodeAnalysis.LanguageServer.dll",
+        "--logLevel=Information",
+        "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()),
+        "--stdio",
     },
+    -- Add other options here
 })
 ```
 
@@ -81,15 +79,14 @@ require("roslyn").setup({
 ### [lazy.nvim](https://github.com/folke/lazy.nvim)
 
 ```lua
-{
+return {
     "seblyng/roslyn.nvim",
     ft = "cs",
     ---@module 'roslyn.config'
     ---@type RoslynNvimConfig
     opts = {
         -- your configuration comes here; leave empty for default settings
-        -- NOTE: You must configure `cmd` in `config.cmd` unless you have installed via mason
-    }
+    },
 }
 ```
 
@@ -98,15 +95,7 @@ require("roslyn").setup({
 The plugin comes with the following defaults:
 
 ```lua
-{
-    ---@type vim.lsp.ClientConfig
-    config = {
-        -- Here you can pass in any options that that you would like to pass to `vim.lsp.start`.
-        -- Use `:h vim.lsp.ClientConfig` to see all possible options.
-        -- The only options that are overwritten and won't have any effect by setting here:
-        --     - `name`
-        --     - `root_dir`
-    },
+opts = {
     -- "auto" | "roslyn" | "off"
     --
     -- - "auto": Does nothing for filewatching, leaving everything as default
@@ -147,10 +136,29 @@ The plugin comes with the following defaults:
     -- This will always attach to the target in `vim.g.roslyn_nvim_selected_solution`.
     -- NOTE: You can use `:Roslyn target` to change the target
     lock_target = false,
-})
+}
 ```
 
-To configure language server specific settings sent to the server, you can modify the `config.settings` map.
+To configure language server specific settings sent to the server, you can use the `vim.lsp.config` interface with `roslyn` as the name of the server.
+
+## Example
+
+```lua
+vim.lsp.config("roslyn", {
+    on_attach = function()
+        print("This will run when the server attaches!")
+    end,
+    settings = {
+        ["csharp|inlay_hints"] = {
+            csharp_enable_inlay_hints_for_implicit_object_creation = true,
+            csharp_enable_inlay_hints_for_implicit_variable_types = true,
+        },
+        ["csharp|code_lens"] = {
+            dotnet_enable_references_code_lens = true,
+        },
+    },
+})
+```
 
 Some tips and tricks that may be useful, but not in the scope of this plugin,
 are documented in the [wiki](https://github.com/seblyng/roslyn.nvim/wiki).
@@ -283,34 +291,6 @@ This setting controls how the language server should format code.
 - `dotnet_organize_imports_on_format`  
   Sort using directives on format alphabetically.  
   Expected values: `true`, `false`
-
-Example:
-
-```lua
-opts = {
-    config = {
-        settings = {
-            ["csharp|inlay_hints"] = {
-                csharp_enable_inlay_hints_for_implicit_object_creation = true,
-                csharp_enable_inlay_hints_for_implicit_variable_types = true,
-                csharp_enable_inlay_hints_for_lambda_parameter_types = true,
-                csharp_enable_inlay_hints_for_types = true,
-                dotnet_enable_inlay_hints_for_indexer_parameters = true,
-                dotnet_enable_inlay_hints_for_literal_parameters = true,
-                dotnet_enable_inlay_hints_for_object_creation_parameters = true,
-                dotnet_enable_inlay_hints_for_other_parameters = true,
-                dotnet_enable_inlay_hints_for_parameters = true,
-                dotnet_suppress_inlay_hints_for_parameters_that_differ_only_by_suffix = true,
-                dotnet_suppress_inlay_hints_for_parameters_that_match_argument_name = true,
-                dotnet_suppress_inlay_hints_for_parameters_that_match_method_intent = true,
-            },
-            ["csharp|code_lens"] = {
-                dotnet_enable_references_code_lens = true,
-            },
-        },
-    },
-}
-```
 
 ## 📚 Commands
 
