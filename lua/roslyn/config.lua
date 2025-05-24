@@ -2,8 +2,6 @@ local M = {}
 
 ---@class InternalRoslynNvimConfig
 ---@field filewatching "auto" | "off" | "roslyn"
----@field choose_sln? fun(solutions: string[]): string?
----@field ignore_sln? fun(solution: string): boolean
 ---@field choose_target? fun(targets: string[]): string?
 ---@field ignore_target? fun(target: string): boolean
 ---@field broad_search boolean
@@ -11,8 +9,6 @@ local M = {}
 
 ---@class RoslynNvimConfig
 ---@field filewatching? boolean | "auto" | "off" | "roslyn"
----@field choose_sln? fun(solutions: string[]): string?
----@field ignore_sln? fun(solution: string): boolean
 ---@field choose_target? fun(targets: string[]): string?
 ---@field ignore_target? fun(target: string): boolean
 ---@field broad_search? boolean
@@ -21,8 +17,6 @@ local M = {}
 ---@type InternalRoslynNvimConfig
 local roslyn_config = {
     filewatching = "auto",
-    choose_sln = nil,
-    ignore_sln = nil,
     choose_target = nil,
     ignore_target = nil,
     broad_search = false,
