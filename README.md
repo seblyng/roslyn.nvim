@@ -14,6 +14,20 @@ Check out https://github.com/tris203/rzls.nvim if you are using Razor.
 - Roslyn language server downloaded locally
 - .NET SDK installed and `dotnet` command available
 
+## Difference to nvim-lspconfig
+
+`roslyn` is now a part of [nvim-lspconfig](https://github.com/neovim/nvim-lspconfig), but it does not implement all things that are implemented here. This plugin
+tries to keep things minimal but still implement some things that is not suited for [nvim-lspconfig](https://github.com/neovim/nvim-lspconfig).
+A couple of additional things this plugin implements
+
+- Support for multiple solutions
+- Broad root_dir detection support. Meaning it will search for solutions upward in parent directories if `broad_search` option is set
+- Support for source generated files
+- Support for `Fix all`, `Nested code actions` and `Complex edit`.
+- Treesitter support for docs
+  - Can easily be enabled with `vim.treesitter.language.register("c_sharp", "csharp")` though
+- `Roslyn target` command to switch between multiple solutions
+
 ## Demo
 
 https://github.com/user-attachments/assets/a749f6c7-fc87-440c-912d-666d86453bc5
