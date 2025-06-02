@@ -40,9 +40,7 @@ return {
         local config = require("roslyn.config")
         local solutions = config.get().broad_search and utils.find_solutions_broad(bufnr) or utils.find_solutions(bufnr)
         local root_dir = utils.root_dir(bufnr, solutions)
-        if root_dir then
-            on_dir(root_dir)
-        end
+        on_dir(root_dir or vim.fn.getcwd())
     end,
     on_init = {
         function(client)
