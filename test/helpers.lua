@@ -232,14 +232,14 @@ function M.create_slnx_file(path, projects)
     return M.create_file(path, sln_string)
 end
 
-function M.get_root_dir(file_path, solutions)
+function M.get_root_dir(file_path, solutions, preselected)
     command("edit " .. vim.fs.joinpath(M.scratch, file_path))
 
-    return helpers.exec_lua(function(path, solutions0)
+    return helpers.exec_lua(function(path, solutions0, preselected0)
         package.path = path
         local bufnr = vim.api.nvim_get_current_buf()
-        return require("roslyn.sln.utils").root_dir(bufnr, solutions0)
-    end, package.path, solutions)
+        return require("roslyn.sln.utils").root_dir(bufnr, solutions0, preselected0)
+    end, package.path, solutions, preselected)
 end
 
 function M.find_solutions(file_path)

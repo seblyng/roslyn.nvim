@@ -5,6 +5,7 @@ local create_file = helpers.create_file
 local get_root_dir = helpers.get_root_dir
 local find_solutions = helpers.find_solutions
 local find_solutions_broad = helpers.find_solutions_broad
+local create_sln_file = helpers.create_sln_file
 local scratch = helpers.scratch
 
 helpers.env()
@@ -71,5 +72,39 @@ describe("root_dir tests", function()
         local root_dir = get_root_dir("src/Foo/Program.cs", solutions)
 
         assert.are_same(vim.fs.joinpath(scratch, "src", "Bar"), root_dir)
+    end)
+
+    it("finds root_dir if already attached to solution previously", function()
+        create_file("Program.cs")
+        create_file("Bar.csproj")
+
+        create_sln_file("Foo.sln", {
+            { name = "Foo", path = "Bar.csproj" },
+            { name = "Baz", path = [[Foo\Bar\Baz.csproj]] },
+        })
+
+        create_sln_file("FooBar.sln", {
+            { name = "Foo", path = "Bar.csproj" },
+            { name = "Baz", path = [[Foo\Bar\Baz.csproj]] },
+        })
+
+        local solutions = find_solutions_broad("Program.cs")
+
+        -- Multiple solutions, no solution found because we haven't attached
+        -- to a solution previously
+        local root_dir = get_root_dir("Program.cs", solutions)
+        assert.is_nil(root_dir)
+
+        -- Already called `get_root_dir` once and "attached" to a solution.
+        -- Simulate that we have already attached to `solutions[1]`, and
+        -- assert that we select that if it is a part of the available solutions
+        -- and provided
+        root_dir = get_root_dir("Program.cs", solutions, solutions[1])
+        assert.are_same(vim.fs.dirname(solutions[1]), root_dir)
+
+        -- If the "attached" solution doesn't exist for the given file `Program.cs`
+        -- we cannot use it's directory as a root dir.
+        root_dir = get_root_dir("Program.cs", solutions, "NotExisting.sln")
+        assert.is_nil(root_dir)
     end)
 end)

@@ -94,7 +94,8 @@ end
 
 ---@param bufnr number
 ---@param solutions string[]
-function M.root_dir(bufnr, solutions)
+---@param preselected_sln string?
+function M.root_dir(bufnr, solutions, preselected_sln)
     if #solutions == 1 then
         return vim.fs.dirname(solutions[1])
     end
@@ -110,6 +111,10 @@ function M.root_dir(bufnr, solutions)
         if chosen then
             return vim.fs.dirname(chosen)
         else
+            if preselected_sln and vim.list_contains(filtered_targets, preselected_sln) then
+                return vim.fs.dirname(preselected_sln)
+            end
+
             return vim.notify(
                 "Multiple potential target files found. Use `:Roslyn target` to select a target.",
                 vim.log.levels.INFO,

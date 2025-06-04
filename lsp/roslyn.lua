@@ -39,7 +39,7 @@ return {
     root_dir = function(bufnr, on_dir)
         local config = require("roslyn.config")
         local solutions = config.get().broad_search and utils.find_solutions_broad(bufnr) or utils.find_solutions(bufnr)
-        local root_dir = utils.root_dir(bufnr, solutions)
+        local root_dir = utils.root_dir(bufnr, solutions, vim.g.roslyn_nvim_selected_solution)
         if root_dir then
             on_dir(root_dir)
         end
