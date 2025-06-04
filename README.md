@@ -56,6 +56,9 @@ require("mason").setup({
 You can then install it with `:MasonInstall roslyn` or through the popup menu by running `:Mason`. It is not available through [mason-lspconfig.nvim](https://github.com/williamboman/mason-lspconfig.nvim) and the `:LspInstall` interface
 When installing the server through mason, the cmd is automatically added to the LSP config, so no need to add it manually
 
+The stable version of `roslyn` is provided through `roslyn` in the mason registry. This is the same version as in vscode.
+If you want the bleeding edge features, you can choose `roslyn-unstable`. Be aware of breaking changes if you choose this version
+
 **NOTE**
 
 There's currently an open [pull request](https://github.com/mason-org/mason-registry/pull/6330) to add the Roslyn server to [mason](https://github.com/williamboman/mason.nvim), which would greatly improve the experience. If you are interested in this, please react to the original comment, but don't spam the thread with unnecessary comments.
