@@ -129,11 +129,12 @@ function M.root_dir(bufnr, solutions, preselected_sln)
             end
 
             log.log("root_dir: Multiple potential target files found. Use :Roslyn target to select a target.")
-            return vim.notify(
+            vim.notify(
                 "Multiple potential target files found. Use `:Roslyn target` to select a target.",
                 vim.log.levels.INFO,
                 { title = "roslyn.nvim" }
             )
+            return nil
         end
     else
         local selected_solution = vim.g.roslyn_nvim_selected_solution
