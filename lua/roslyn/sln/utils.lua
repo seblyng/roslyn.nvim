@@ -1,3 +1,4 @@
+local log = require("roslyn.log")
 local sln_api = require("roslyn.sln.api")
 
 local M = {}
@@ -56,9 +57,11 @@ local function resolve_broad_search_root(buffer)
 end
 
 function M.find_solutions(bufnr)
-    return vim.fs.find(function(name)
+    local results = vim.fs.find(function(name)
         return name:match("%.sln$") or name:match("%.slnx$") or name:match("%.slnf$")
     end, { upward = true, path = vim.api.nvim_buf_get_name(bufnr), limit = math.huge })
+    log.log(string.format("find_solutions found: %s", vim.inspect(results)))
+    return results
 end
 
 -- Dirs we are not looking for solutions inside
@@ -89,6 +92,7 @@ function M.find_solutions_broad(bufnr)
         end
     end
 
+    log.log(string.format("find_solutions_broad root: %s, found: %s", root, vim.inspect(slns)))
     return slns
 end
 
@@ -96,8 +100,11 @@ end
 ---@param solutions string[]
 ---@param preselected_sln string?
 function M.root_dir(bufnr, solutions, preselected_sln)
+    log.log(string.format("root_dir solutions: %s, preselected_sln: %s", vim.inspect(solutions), preselected_sln))
     if #solutions == 1 then
-        return vim.fs.dirname(solutions[1])
+        local result = vim.fs.dirname(solutions[1])
+        log.log(string.format("root_dir single solution result: %s", result))
+        return result
     end
 
     local csproj = vim.fs.find(function(name)
@@ -109,12 +116,17 @@ function M.root_dir(bufnr, solutions, preselected_sln)
         local config = require("roslyn.config").get()
         local chosen = config.choose_target and config.choose_target(filtered_targets)
         if chosen then
-            return vim.fs.dirname(chosen)
+            local result = vim.fs.dirname(chosen)
+            log.log(string.format("root_dir chosen result: %s", result))
+            return result
         else
             if preselected_sln and vim.list_contains(filtered_targets, preselected_sln) then
-                return vim.fs.dirname(preselected_sln)
+                local result = vim.fs.dirname(preselected_sln)
+                log.log(string.format("root_dir preselected result: %s", result))
+                return result
             end
 
+            log.log("root_dir: Multiple potential target files found. Use :Roslyn target to select a target.")
             return vim.notify(
                 "Multiple potential target files found. Use `:Roslyn target` to select a target.",
                 vim.log.levels.INFO,
@@ -123,9 +135,18 @@ function M.root_dir(bufnr, solutions, preselected_sln)
         end
     else
         local selected_solution = vim.g.roslyn_nvim_selected_solution
-        return vim.fs.dirname(filtered_targets[1])
+        local result = vim.fs.dirname(filtered_targets[1])
             or selected_solution and vim.fs.dirname(selected_solution)
             or csproj and vim.fs.dirname(csproj)
+        log.log(
+            string.format(
+                "root_dir fallback result: %s, selected solution: %s, csproj: %s",
+                result,
+                selected_solution,
+                csproj
+            )
+        )
+        return result
     end
 end
 
@@ -140,11 +161,14 @@ function M.predict_target(bufnr, targets)
     end, { upward = true, path = vim.api.nvim_buf_get_name(bufnr) })[1]
 
     local filtered_targets = filter_targets(targets, csproj)
+    local result
     if #filtered_targets > 1 then
-        return config.choose_target and config.choose_target(filtered_targets) or nil
+        result = config.choose_target and config.choose_target(filtered_targets) or nil
     else
-        return filtered_targets[1]
+        result = filtered_targets[1]
     end
+    log.log(string.format("predict_target targets: %s, result: %s", vim.inspect(targets), result))
+    return result
 end
 
 return M
