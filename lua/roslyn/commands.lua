@@ -28,6 +28,21 @@ local start_lsp = function(bufnr, config)
     end
 end
 
+---@param fun function
+local on_stopped = function(fun)
+    ---@type function | nil
+    local remove_listener = nil
+
+    local function _fun()
+        fun()
+        if remove_listener then
+            remove_listener()
+        end
+    end
+
+    remove_listener = roslyn_emitter:on("stopped", _fun)
+end
+
 ---@class RoslynSubcommandTable
 ---@field impl fun(args: string[], opts: vim.api.keyset.user_command) The command implementation
 ---@field complete? fun(subcmd_arg_lead: string): string[] Command completions callback, taking the lead of the subcommand's arguments
@@ -43,20 +58,12 @@ local subcommand_tbl = {
 
             local attached_buffers = vim.tbl_keys(client.attached_buffers)
 
-            ---@type function | nil
-            local remove_listener = nil
-
-            local function restart_lsp()
+            on_stopped(function()
                 local config = vim.lsp.config["roslyn"]
                 for _, buffer in ipairs(attached_buffers) do
                     start_lsp(buffer, config)
                 end
-                if remove_listener then
-                    remove_listener()
-                end
-            end
-
-            remove_listener = roslyn_emitter:on("stopped", restart_lsp)
+            end)
 
             local force_stop = vim.loop.os_uname().sysname == "Windows_NT"
             client:stop(force_stop)
@@ -83,15 +90,25 @@ local subcommand_tbl = {
                     return
                 end
 
-                vim.lsp.stop_client(vim.lsp.get_clients({ name = "roslyn" }), true)
-                vim.lsp.start({
+                local config = vim.tbl_deep_extend("force", vim.lsp.config["roslyn"], {
                     root_dir = vim.fs.dirname(file),
                     on_init = function(client)
                         require("roslyn.lsp.on_init").sln(client, file)
                     end,
-                    cmd = vim.lsp.config.roslyn.cmd,
-                    unpack(vim.lsp.config.roslyn),
                 })
+
+                local client = vim.lsp.get_clients({ name = "roslyn" })[1]
+                if not client then
+                    vim.lsp.start(config)
+                    return
+                end
+
+                on_stopped(function()
+                    vim.lsp.start(config)
+                end)
+
+                local force_stop = vim.loop.os_uname().sysname == "Windows_NT"
+                client:stop(force_stop)
             end)
         end,
     },
@@ -109,14 +126,13 @@ local subcommand_tbl = {
                         return
                     end
 
-                    vim.lsp.start({
+                    local config = vim.tbl_deep_extend("force", vim.lsp.config["roslyn"], {
                         root_dir = vim.fs.dirname(file),
                         on_init = function(client)
                             require("roslyn.lsp.on_init").sln(client, file)
                         end,
-                        cmd = vim.lsp.config.roslyn.cmd,
-                        unpack(vim.lsp.config.roslyn),
                     })
+                    vim.lsp.start(config)
                 end)
                 return
             end
