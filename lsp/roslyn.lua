@@ -40,6 +40,7 @@ return {
         local config = require("roslyn.config")
         local solutions = config.get().broad_search and utils.find_solutions_broad(bufnr) or utils.find_solutions(bufnr)
         local root_dir = utils.root_dir(bufnr, solutions, vim.g.roslyn_nvim_selected_solution)
+        require("roslyn.log").log(string.format("lsp root_dir is: %s", root_dir))
         on_dir(root_dir)
     end,
     on_init = {
@@ -47,6 +48,7 @@ return {
             if not client.config.root_dir then
                 return
             end
+            require("roslyn.log").log(string.format("lsp on_init root_dir: %s", client.config.root_dir))
 
             local on_init = require("roslyn.lsp.on_init")
 
@@ -56,9 +58,9 @@ return {
                 return on_init.sln(client, selected_solution)
             end
 
-            local bufnr = vim.api.nvim_get_current_buf()
             local files = utils.find_files_with_extensions(client.config.root_dir, { ".sln", ".slnx", ".slnf" })
 
+            local bufnr = vim.api.nvim_get_current_buf()
             local solution = utils.predict_target(bufnr, files)
             if solution then
                 return on_init.sln(client, solution)

@@ -13,6 +13,8 @@ local M = {}
 function M.find_files_with_extensions(dir, extensions)
     local matches = {}
 
+    log.log(string.format("find_files_with_extensions dir: %s, extensions: %s", dir, vim.inspect(extensions)))
+
     for entry, type in vim.fs.dir(dir) do
         if type == "file" then
             for _, ext in ipairs(extensions) do
