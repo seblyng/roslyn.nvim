@@ -8,10 +8,9 @@ local cmd_name = "Roslyn"
 ---@param bufnr integer
 ---@param config vim.lsp.Config
 local start_lsp = function(bufnr, config)
-    config = vim.deepcopy(config)
     if type(config.root_dir) == "function" then
         config.root_dir(bufnr, function(root_dir)
-            config.root_dir = root_dir
+            config = vim.tbl_deep_extend("force", config, { root_dir = root_dir })
             vim.schedule(function()
                 vim.lsp.start(config, {
                     bufnr = bufnr,
