@@ -10,9 +10,9 @@ local cmd_name = "Roslyn"
 local start_lsp = function(bufnr, config)
     if type(config.root_dir) == "function" then
         config.root_dir(bufnr, function(root_dir)
-            config.root_dir = root_dir
+            local final_config = vim.tbl_deep_extend("force", config, { root_dir = root_dir })
             vim.schedule(function()
-                vim.lsp.start(config, {
+                vim.lsp.start(final_config, {
                     bufnr = bufnr,
                     reuse_client = config.reuse_client,
                     _root_markers = config.root_markers,
