@@ -5,29 +5,6 @@ local M = {}
 
 local cmd_name = "Roslyn"
 
----@param bufnr integer
----@param config vim.lsp.Config
-local start_lsp = function(bufnr, config)
-    if type(config.root_dir) == "function" then
-        config.root_dir(bufnr, function(root_dir)
-            local final_config = vim.tbl_deep_extend("force", config, { root_dir = root_dir })
-            vim.schedule(function()
-                vim.lsp.start(final_config, {
-                    bufnr = bufnr,
-                    reuse_client = config.reuse_client,
-                    _root_markers = config.root_markers,
-                })
-            end)
-        end)
-    else
-        vim.lsp.start(config, {
-            bufnr = bufnr,
-            reuse_client = config.reuse_client,
-            _root_markers = config.root_markers,
-        })
-    end
-end
-
 ---@param fun function
 local on_stopped = function(fun)
     ---@type function | nil
@@ -56,13 +33,8 @@ local subcommand_tbl = {
                 return
             end
 
-            local attached_buffers = vim.tbl_keys(client.attached_buffers)
-
             on_stopped(function()
-                local config = vim.lsp.config["roslyn"]
-                for _, buffer in ipairs(attached_buffers) do
-                    start_lsp(buffer, config)
-                end
+                vim.lsp.enable("roslyn")
             end)
 
             local force_stop = vim.loop.os_uname().sysname == "Windows_NT"
@@ -76,7 +48,8 @@ local subcommand_tbl = {
                 return
             end
 
-            client:stop(true)
+            local force_stop = vim.loop.os_uname().sysname == "Windows_NT"
+            client:stop(force_stop)
         end,
     },
     target = {
@@ -137,8 +110,7 @@ local subcommand_tbl = {
                 return
             end
 
-            -- Fallback to try to start the server normally
-            start_lsp(bufnr, vim.lsp.config["roslyn"])
+            vim.lsp.enable("roslyn")
         end,
     },
 }
