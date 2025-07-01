@@ -24,8 +24,6 @@ A couple of additional things this plugin implements
 - Broad root_dir detection support. Meaning it will search for solutions upward in parent directories if `broad_search` option is set
 - Support for source generated files
 - Support for `Fix all`, `Nested code actions` and `Complex edit`.
-- Treesitter support for docs
-  - Can easily be enabled with `vim.treesitter.language.register("c_sharp", "csharp")` though
 - `Roslyn target` command to switch between multiple solutions
 
 ## Demo
