@@ -43,35 +43,17 @@ local function handle_fix_all_code_action(client, data)
     end)
 end
 
-local function best_cursor_pos(lines, start_row, start_col)
-    local target_i, col
-
-    for i = #lines, 1, -1 do
-        local line = lines[i]
-        for j = #line, 1, -1 do
-            if not line:sub(j, j):match("[%s(){}]") then
-                target_i = i + 1
-                col = j
-                break
-            end
-        end
-        if target_i then
-            break
-        end
+--- @return [integer, integer] # (row, col) tuple
+local function offset_to_position(bufnr, offset)
+    local text = table.concat(vim.api.nvim_buf_get_lines(bufnr, 0, -1, true), "\n")
+    local sub = text:sub(1, offset)
+    local line = 0
+    for _ in sub:gmatch("([^\n]*)\n?") do
+        line = line + 1
     end
-
-    -- Fallback position if somehow not found
-    if not target_i then
-        target_i = #lines
-        col = #lines[target_i] or 0
-    end
-
-    local row = start_row + target_i - 1
-    if target_i == 1 then
-        col = start_col + col
-    end
-
-    return { row, col }
+    local last_newline = sub:match(".*()\n")
+    local col = offset - (last_newline or 0)
+    return { line - 1, col }
 end
 
 return {
@@ -113,10 +95,8 @@ return {
         end)
     end,
     ["roslyn.client.completionComplexEdit"] = function(data)
-        local arguments = data.arguments
-        local uri = arguments[1].uri
-        local edit = arguments[2]
-        local bufnr = vim.uri_to_bufnr(uri)
+        local doc, edit, _, new_offset = unpack(data.arguments)
+        local bufnr = vim.uri_to_bufnr(doc.uri)
 
         if not vim.api.nvim_buf_is_loaded(bufnr) then
             vim.fn.bufload(bufnr)
@@ -146,6 +126,8 @@ return {
             vim.api.nvim_buf_set_lines(bufnr, final_line, final_line + 1, false, { new_final_line_text })
         end
 
-        vim.api.nvim_win_set_cursor(0, best_cursor_pos(lines, start_row, start_col))
+        if new_offset >= 0 then
+            vim.api.nvim_win_set_cursor(0, offset_to_position(0, new_offset))
+        end
     end,
 }
