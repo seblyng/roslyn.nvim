@@ -19,8 +19,8 @@ return {
         local client = assert(vim.lsp.get_client_by_id(ctx.client_id))
         local buffers = vim.lsp.get_buffers_by_client_id(ctx.client_id)
         for _, buf in ipairs(buffers) do
-            local params = { textDocument = vim.lsp.util.make_text_document_params(buf) }
-            client:request("textDocument/diagnostic", params, nil, buf)
+            vim.lsp.buf_detach_client(buf, ctx.client_id)
+            vim.lsp.buf_attach_client(buf, ctx.client_id)
         end
     end,
     ["workspace/_roslyn_projectHasUnresolvedDependencies"] = function()
