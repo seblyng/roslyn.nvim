@@ -1,30 +1,15 @@
 local utils = require("roslyn.sln.utils")
 
----@return string[]?
-local function default_cmd()
-    local sysname = vim.uv.os_uname().sysname:lower()
-    local iswin = not not (sysname:find("windows") or sysname:find("mingw"))
-
-    local mason_path = vim.fs.joinpath(vim.fn.stdpath("data"), "mason", "bin", "roslyn")
-    local mason_cmd = iswin and string.format("%s.cmd", mason_path) or mason_path
-
-    if vim.uv.fs_stat(mason_cmd) == nil then
-        return nil
-    end
-
-    return {
-        mason_cmd,
-        "--logLevel=Information",
-        "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()),
-        "--stdio",
-    }
-end
-
 ---@type vim.lsp.Config
 return {
     name = "roslyn",
     filetypes = { "cs" },
-    cmd = default_cmd(),
+    cmd = {
+        "roslyn",
+        "--logLevel=Information",
+        "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()),
+        "--stdio",
+    },
     cmd_env = {
         Configuration = vim.env.Configuration or "Debug",
     },
