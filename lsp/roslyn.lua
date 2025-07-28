@@ -1,11 +1,13 @@
 local utils = require("roslyn.sln.utils")
+local sysname = vim.uv.os_uname().sysname:lower()
+local iswin = not not (sysname:find("windows") or sysname:find("mingw"))
 
 ---@type vim.lsp.Config
 return {
     name = "roslyn",
     filetypes = { "cs" },
     cmd = {
-        "roslyn",
+        iswin and "roslyn.cmd" or "roslyn",
         "--logLevel=Information",
         "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()),
         "--stdio",
