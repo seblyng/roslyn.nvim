@@ -1,4 +1,3 @@
-local utils = require("roslyn.sln.utils")
 local sysname = vim.uv.os_uname().sysname:lower()
 local iswin = not not (sysname:find("windows") or sysname:find("mingw"))
 
@@ -24,6 +23,7 @@ return {
         },
     },
     root_dir = function(bufnr, on_dir)
+        local utils = require("roslyn.sln.utils")
         local config = require("roslyn.config")
         local solutions = config.get().broad_search and utils.find_solutions_broad(bufnr) or utils.find_solutions(bufnr)
         local root_dir = utils.root_dir(bufnr, solutions, vim.g.roslyn_nvim_selected_solution)
@@ -37,6 +37,7 @@ return {
             end
             require("roslyn.log").log(string.format("lsp on_init root_dir: %s", client.config.root_dir))
 
+            local utils = require("roslyn.sln.utils")
             local on_init = require("roslyn.lsp.on_init")
 
             local config = require("roslyn.config").get()
