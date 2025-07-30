@@ -96,7 +96,6 @@ vim.lsp.config("roslyn", {
 ```lua
 return {
     "seblyng/roslyn.nvim",
-    ft = "cs",
     ---@module 'roslyn.config'
     ---@type RoslynNvimConfig
     opts = {
