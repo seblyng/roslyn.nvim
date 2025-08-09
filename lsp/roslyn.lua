@@ -1,16 +1,33 @@
 local sysname = vim.uv.os_uname().sysname:lower()
 local iswin = not not (sysname:find("windows") or sysname:find("mingw"))
 
+-- Default to roslyn presumably installed by mason if found.
+-- Fallback to the same default as `nvim-lspconfig`
+local function get_default_cmd()
+    local roslyn = iswin and "roslyn.cmd" or "roslyn"
+
+    if vim.fn.executable(roslyn) == 1 then
+        return {
+            roslyn,
+            "--logLevel=Information",
+            "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()),
+            "--stdio",
+        }
+    else
+        return {
+            "Microsoft.CodeAnalysis.LanguageServer",
+            "--logLevel=Information",
+            "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()),
+            "--stdio",
+        }
+    end
+end
+
 ---@type vim.lsp.Config
 return {
     name = "roslyn",
     filetypes = { "cs" },
-    cmd = {
-        iswin and "roslyn.cmd" or "roslyn",
-        "--logLevel=Information",
-        "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()),
-        "--stdio",
-    },
+    cmd = get_default_cmd(),
     cmd_env = {
         Configuration = vim.env.Configuration or "Debug",
     },

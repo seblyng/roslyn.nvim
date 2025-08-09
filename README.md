@@ -65,24 +65,33 @@ There's currently an open [pull request](https://github.com/mason-org/mason-regi
 
 <details>
   <summary>Manually</summary>
-  
-  1. Navigate to [this feed](https://dev.azure.com/azure-public/vside/_artifacts/feed/vs-impl), search for `Microsoft.CodeAnalysis.LanguageServer` and download the version matching your OS and architecture.
-     > For nix users, install [roslyn-ls](https://search.nixos.org/packages?channel=unstable&show=roslyn-ls) and then you can config this plugin right away.
-  2. Unzip the downloaded `.nupkg` and copy the contents of `<zip root>/content/LanguageServer/<yourArch>` to `<target>`
-  3. Check if it's working by running `dotnet Microsoft.CodeAnalysis.LanguageServer.dll --version` in the `<target>` directory.
-  4. Configure it like this:
+
+NOTE: The manual installation instructions are the same for this plugin and for nvim-lspconfig.
+The following instructions are copied from [nvim-lspconfig](https://github.com/neovim/nvim-lspconfig/blob/master/doc/configs.md#roslyn_ls).
+If the installation instructions are not up-to-date or not clear, please first send a PR to `nvim-lspconfig` with improvements so that we can align the installation instructions.
+
+To install the server, compile from source or download as nuget package.
+Go to `https://dev.azure.com/azure-public/vside/_artifacts/feed/vs-impl/NuGet/Microsoft.CodeAnalysis.LanguageServer.<platform>/overview`
+replace `<platform>` with one of the following `linux-x64`, `osx-x64`, `win-x64`, `neutral` (for more info on the download location see https://github.com/dotnet/roslyn/issues/71474#issuecomment-2177303207).
+Download and extract it (nuget's are zip files).
+
+- if you chose `neutral` nuget version, then you have to change the `cmd` like so:
+
 ```lua
-vim.lsp.config("roslyn", {
-    cmd = {
-        "dotnet",
-        "<target>/Microsoft.CodeAnalysis.LanguageServer.dll",
-        "--logLevel=Information",
-        "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()),
-        "--stdio",
-    },
-    -- Add other options here
-})
+cmd = {
+    "dotnet",
+    "<my_folder>/Microsoft.CodeAnalysis.LanguageServer.dll",
+    "--logLevel", -- this property is required by the server
+    "Information",
+    "--extensionLogDirectory", -- this property is required by the server
+    fs.joinpath(uv.os_tmpdir(), "roslyn_ls/logs"),
+    "--stdio",
+}
 ```
+
+where `<my_folder>` has to be the folder you extracted the nuget package to.
+
+- for all other platforms put the extracted folder to neovim's PATH (`vim.env.PATH`)
 
 </details>
 
