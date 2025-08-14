@@ -62,4 +62,21 @@ return {
             end
         end
     end,
+    ['workspace/_roslyn_projectNeedsRestore'] = function(_, result, ctx)
+	local client = assert(vim.lsp.get_client_by_id(ctx.client_id))
+
+	---@diagnostic disable-next-line: param-type-mismatch
+	client:request('workspace/_roslyn_restore', result, function(err, response)
+	  if err then
+	    vim.notify(err.message, vim.log.levels.ERROR, { title = 'roslyn.nvim' })
+	  end
+	  if response then
+	    for _, v in ipairs(response) do
+	      vim.notify(v.message, vim.log.levels.INFO, { title = 'roslyn.nvim' })
+	    end
+	  end
+	end)
+
+	return vim.NIL
+    end,
 }
