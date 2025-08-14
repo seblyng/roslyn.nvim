@@ -41,17 +41,19 @@ return {
     },
     root_dir = function(bufnr, on_dir)
         local buf_name = vim.api.nvim_buf_get_name(bufnr)
-        
+
         -- For source-generated files, use the root_dir from the existing client
         if buf_name:match("^roslyn%-source%-generated://") then
             local existing_client = vim.lsp.get_clients({ name = "roslyn" })[1]
             if existing_client and existing_client.config.root_dir then
-                require("roslyn.log").log(string.format("lsp root_dir for source-generated file: %s", existing_client.config.root_dir))
+                require("roslyn.log").log(
+                    string.format("lsp root_dir for source-generated file: %s", existing_client.config.root_dir)
+                )
                 on_dir(existing_client.config.root_dir)
                 return
             end
         end
-        
+
         local utils = require("roslyn.sln.utils")
         local config = require("roslyn.config")
         local solutions = config.get().broad_search and utils.find_solutions_broad(bufnr) or utils.find_solutions(bufnr)
