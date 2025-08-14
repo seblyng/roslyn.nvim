@@ -10,14 +10,14 @@ local function get_default_cmd()
         return {
             roslyn,
             "--logLevel=Information",
-            "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()),
+            "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.log.get_filename()),
             "--stdio",
         }
     else
         return {
             "Microsoft.CodeAnalysis.LanguageServer",
             "--logLevel=Information",
-            "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()),
+            "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.log.get_filename()),
             "--stdio",
         }
     end
