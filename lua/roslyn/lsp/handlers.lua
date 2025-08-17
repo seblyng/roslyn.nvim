@@ -58,8 +58,53 @@ return {
                     resultId = vim.b[buf].resultId,
                 }
 
+                ---@diagnostic disable-next-line: param-type-mismatch
                 client:request("sourceGeneratedDocument/_roslyn_getText", params, handler, buf)
             end
         end
+    end,
+    ["workspace/_roslyn_projectNeedsRestore"] = function(_, result, ctx)
+        local client = assert(vim.lsp.get_client_by_id(ctx.client_id))
+
+        local function uuid()
+            local template = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx"
+            return string.gsub(template, "[xy]", function(c)
+                local v = (c == "x") and math.random(0, 15) or math.random(8, 11)
+                return string.format("%x", v)
+            end)
+        end
+
+        local token = uuid()
+        result.partialResultToken = token
+
+        local id = vim.api.nvim_create_autocmd("LspProgress", {
+            callback = function(ev)
+                local params = ev.data.params
+                if params[1] ~= token then
+                    return
+                end
+
+                vim.api.nvim_exec_autocmds("User", {
+                    pattern = "RoslynRestoreProgress",
+                    data = ev.data,
+                })
+            end,
+        })
+
+        ---@diagnostic disable-next-line: param-type-mismatch
+        client:request("workspace/_roslyn_restore", result, function(err, res)
+            vim.api.nvim_exec_autocmds("User", {
+                pattern = "RoslynRestoreResult",
+                data = {
+                    token = token,
+                    err = err,
+                    res = res,
+                },
+            })
+
+            vim.api.nvim_del_autocmd(id)
+        end)
+
+        return vim.NIL
     end,
 }
