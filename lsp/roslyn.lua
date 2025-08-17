@@ -5,22 +5,13 @@ local iswin = not not (sysname:find("windows") or sysname:find("mingw"))
 -- Fallback to the same default as `nvim-lspconfig`
 local function get_default_cmd()
     local roslyn = iswin and "roslyn.cmd" or "roslyn"
-
-    if vim.fn.executable(roslyn) == 1 then
-        return {
-            roslyn,
-            "--logLevel=Information",
-            "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.log.get_filename()),
-            "--stdio",
-        }
-    else
-        return {
-            "Microsoft.CodeAnalysis.LanguageServer",
-            "--logLevel=Information",
-            "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.log.get_filename()),
-            "--stdio",
-        }
-    end
+    local exe = vim.fn.executable(roslyn) == 1 and roslyn or "Microsoft.CodeAnalysis.LanguageServer"
+    return {
+        exe,
+        "--logLevel=Information",
+        "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.log.get_filename()),
+        "--stdio",
+    }
 end
 
 ---@type vim.lsp.Config
