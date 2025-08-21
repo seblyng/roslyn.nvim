@@ -15,6 +15,7 @@ function M.sln(client, solution)
         data = {
             type = "solution",
             target = solution,
+            client_id = client.id,
         },
     })
 end
@@ -34,6 +35,7 @@ function M.project(client, projects)
         data = {
             type = "project",
             target = projects,
+            client_id = client.id,
         },
     })
 end

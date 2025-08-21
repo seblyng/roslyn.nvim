@@ -15,7 +15,11 @@ return {
         end
 
         ---NOTE: This is used by rzls.nvim for init
-        vim.api.nvim_exec_autocmds("User", { pattern = "RoslynInitialized", modeline = false })
+        vim.api.nvim_exec_autocmds("User", {
+            pattern = "RoslynInitialized",
+            modeline = false,
+            data = { client_id = ctx.client_id },
+        })
         _G.roslyn_initialized = true
 
         local client = assert(vim.lsp.get_client_by_id(ctx.client_id))
