@@ -23,12 +23,6 @@ return {
             client:request("textDocument/diagnostic", params, nil, buf)
         end
     end,
-    ["workspace/_roslyn_projectHasUnresolvedDependencies"] = function()
-        vim.notify("Detected missing dependencies. Run dotnet restore command.", vim.log.levels.ERROR, {
-            title = "roslyn.nvim",
-        })
-        return vim.NIL
-    end,
     ["workspace/refreshSourceGeneratedDocument"] = function(_, _, ctx)
         local client = assert(vim.lsp.get_client_by_id(ctx.client_id))
         for _, buf in ipairs(vim.api.nvim_list_bufs()) do
