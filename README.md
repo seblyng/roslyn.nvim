@@ -159,6 +159,9 @@ opts = {
     -- This will always attach to the target in `vim.g.roslyn_nvim_selected_solution`.
     -- NOTE: You can use `:Roslyn target` to change the target
     lock_target = false,
+
+    -- If the plugin should silence notifications about initialization
+    silent = false,
 }
 ```
 

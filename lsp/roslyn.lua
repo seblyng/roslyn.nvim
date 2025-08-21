@@ -83,7 +83,7 @@ return {
 
             local csproj = utils.find_files_with_extensions(client.config.root_dir, { ".csproj" })
             if #csproj > 0 then
-                return on_init.projects(client, csproj)
+                return on_init.project(client, csproj)
             end
 
             if selected_solution then

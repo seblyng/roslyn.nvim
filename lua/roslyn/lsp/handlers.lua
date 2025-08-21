@@ -10,10 +10,16 @@ return {
         return vim.lsp.handlers["client/registerCapability"](err, res, ctx)
     end,
     ["workspace/projectInitializationComplete"] = function(_, _, ctx)
-        vim.notify("Roslyn project initialization complete", vim.log.levels.INFO, { title = "roslyn.nvim" })
+        if not require("roslyn.config").get().silent then
+            vim.notify("Roslyn project initialization complete", vim.log.levels.INFO, { title = "roslyn.nvim" })
+        end
 
         ---NOTE: This is used by rzls.nvim for init
-        vim.api.nvim_exec_autocmds("User", { pattern = "RoslynInitialized", modeline = false })
+        vim.api.nvim_exec_autocmds("User", {
+            pattern = "RoslynInitialized",
+            modeline = false,
+            data = { client_id = ctx.client_id },
+        })
         _G.roslyn_initialized = true
 
         local client = assert(vim.lsp.get_client_by_id(ctx.client_id))
