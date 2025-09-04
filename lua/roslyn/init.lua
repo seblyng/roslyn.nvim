@@ -20,6 +20,18 @@ function M.setup(config)
         end,
     })
 
+    local diagnostic = require("roslyn.lsp.diagnostics")
+    vim.api.nvim_create_autocmd({ "BufWritePost", "InsertLeave" }, {
+        group = group,
+        pattern = "*.cs",
+        callback = function()
+            local client = vim.lsp.get_clients({ name = "roslyn" })[1]
+            if client then
+                diagnostic.refresh(client)
+            end
+        end,
+    })
+
     vim.treesitter.language.register("c_sharp", "csharp")
 
     vim.api.nvim_create_autocmd({ "BufReadCmd" }, {
