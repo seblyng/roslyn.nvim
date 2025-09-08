@@ -1,3 +1,8 @@
+if vim.g.loaded_roslyn_plugin ~= nil then
+    return
+end
+vim.g.loaded_roslyn_plugin = true
+
 if vim.fn.has("nvim-0.11") == 0 then
     return vim.notify("roslyn.nvim requires at least nvim 0.11", vim.log.levels.WARN, { title = "roslyn.nvim" })
 end
