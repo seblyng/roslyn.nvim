@@ -108,7 +108,7 @@ function M.abspath(path)
     return vim.fs.joinpath(cwd, path)
 end
 
-M.scratch = M.abspath("FooRoslynTest")
+M.scratch = M.abspath("/private/tmp/FooRoslynTest")
 
 ---@param path string
 ---@param text? string
