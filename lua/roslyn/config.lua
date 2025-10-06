@@ -33,27 +33,10 @@ function M.get()
     return roslyn_config
 end
 
--- TODO(seb): Remove this in a couple of months after release
-local function handle_deprecated_options()
-    ---@diagnostic disable-next-line: undefined-field
-    local legacy_config = roslyn_config.config
-
-    if legacy_config then
-        vim.notify(
-            "The `config` option is deprecated. Use `vim.lsp.config` instead",
-            vim.log.levels.WARN,
-            { title = "roslyn.nvim" }
-        )
-        vim.lsp.config("roslyn", legacy_config)
-    end
-end
-
 ---@param user_config? RoslynNvimConfig
 ---@return InternalRoslynNvimConfig
 function M.setup(user_config)
     roslyn_config = vim.tbl_deep_extend("force", roslyn_config, user_config or {})
-
-    handle_deprecated_options()
 
     -- HACK: Enable or disable filewatching based on config options
     -- `off` enables filewatching but just ignores all files to watch at a later stage
