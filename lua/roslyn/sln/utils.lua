@@ -114,9 +114,12 @@ function M.find_solutions_broad(bufnr)
 end
 
 ---@param bufnr number
----@param solutions string[]
----@param preselected_sln string?
-function M.root_dir(bufnr, solutions, preselected_sln)
+function M.root_dir(bufnr)
+    local config = require("roslyn.config")
+    local solutions = config.get().broad_search and M.find_solutions_broad(bufnr) or M.find_solutions(bufnr)
+
+    local preselected_sln = vim.g.roslyn_nvim_selected_solution
+
     log.log(string.format("root_dir solutions: %s, preselected_sln: %s", vim.inspect(solutions), preselected_sln))
     if #solutions == 1 then
         local result = vim.fs.dirname(solutions[1])
@@ -130,7 +133,6 @@ function M.root_dir(bufnr, solutions, preselected_sln)
 
     local filtered_targets = filter_targets(solutions, csproj)
     if #filtered_targets > 1 then
-        local config = require("roslyn.config").get()
         local chosen = config.choose_target and config.choose_target(filtered_targets)
         if chosen then
             local result = vim.fs.dirname(chosen)
