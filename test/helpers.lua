@@ -108,7 +108,8 @@ function M.abspath(path)
     return vim.fs.joinpath(cwd, path)
 end
 
-M.scratch = M.abspath("FooRoslynTest")
+local scratch_path = vim.uv.os_uname().sysname == "Darwin" and "/private/tmp/FooRoslynTest" or "/tmp/FooRoslynTest"
+M.scratch = M.abspath(scratch_path)
 
 ---@param path string
 ---@param text? string

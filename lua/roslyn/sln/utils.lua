@@ -44,11 +44,24 @@ local function filter_targets(targets, csproj)
         :totable()
 end
 
+---@param paths string[]
+---@return string?
+local function get_shortest_path(paths)
+    local shortest = nil
+    for _, path in ipairs(paths) do
+        local dir = vim.fs.dirname(path)
+        if not shortest or #dir < #shortest then
+            shortest = dir
+        end
+    end
+    return shortest
+end
+
 ---@param buffer number
+---@return string?
 local function resolve_broad_search_root(buffer)
-    local sln_root = vim.fs.root(buffer, function(fname, _)
-        return fname:match("%.sln$") ~= nil or fname:match("%.slnx$") ~= nil
-    end)
+    local solutions = M.find_solutions(buffer)
+    local sln_root = get_shortest_path(solutions)
 
     local git_root = vim.fs.root(buffer, ".git")
     if sln_root and git_root then
@@ -58,6 +71,8 @@ local function resolve_broad_search_root(buffer)
     end
 end
 
+---@param bufnr number
+---@return string[]
 function M.find_solutions(bufnr)
     local results = vim.fs.find(function(name)
         return name:match("%.sln$") or name:match("%.slnx$") or name:match("%.slnf$")

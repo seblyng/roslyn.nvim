@@ -107,4 +107,33 @@ describe("root_dir tests", function()
         root_dir = get_root_dir("Program.cs", solutions, "NotExisting.sln")
         assert.is_nil(root_dir)
     end)
+
+    it("finds root https://github.com/seblyng/roslyn.nvim/issues/241#issuecomment-3369301395", function()
+        system({ "rmdir", vim.fs.joinpath(scratch, ".git") })
+
+        create_file("src/Foo/Program.cs")
+        create_file("src/Foo/Foo.csproj")
+        create_file("src/Bar/Program.cs")
+        create_file("src/Bar/Bar.csproj")
+
+        create_sln_file("src/Bar/Bar.sln", {
+            { name = "Bar", path = [[Bar.csproj]] },
+        })
+
+        create_sln_file("src/solution.sln", {
+            { name = "Bar", path = [[Bar\Bar.csproj]] },
+            { name = "Foo", path = [[Foo\Foo.csproj]] },
+        })
+
+        local solutions = find_solutions_broad("src/Bar/Program.cs")
+        local root_dir = get_root_dir("src/Bar/Program.cs", solutions)
+
+        assert.are_same({
+            vim.fs.joinpath(scratch, "src", "solution.sln"),
+            vim.fs.joinpath(scratch, "src", "Bar", "Bar.sln"),
+        }, solutions)
+
+        -- The root dir is nil because we cannot determine what the root directory should be
+        assert.is_nil(root_dir)
+    end)
 end)
