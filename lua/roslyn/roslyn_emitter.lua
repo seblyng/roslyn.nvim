@@ -22,6 +22,8 @@ function M:emit(event, ...)
     end
 end
 
+---@param event "stopped"
+---@param callback fun(...)
 function M:off(event, callback)
     if not M.events[event] then
         return

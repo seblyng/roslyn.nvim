@@ -104,7 +104,7 @@ describe("root_dir tests", function()
         assert.is_nil(root_dir)
 
         -- Already called `get_root_dir` once and "attached" to a solution.
-        -- Simulate that we have already attached to `solutions[1]`, and
+        -- Simulate that we have already attached to the solution, and
         -- assert that we select that if it is a part of the available solutions
         -- and provided
         root_dir = get_root_dir("Program.cs", vim.fs.joinpath(scratch, "Foo.sln"))

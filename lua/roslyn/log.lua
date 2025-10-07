@@ -1,5 +1,6 @@
 local M = {}
 
+---@param msg string
 function M.log(msg)
     if not require("roslyn.config").get().debug then
         return

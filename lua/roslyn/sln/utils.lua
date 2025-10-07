@@ -29,7 +29,7 @@ function M.find_files_with_extensions(dir, extensions)
 end
 
 ---@param targets string[]
----@param csproj string
+---@param csproj? string
 ---@return string[]
 local function filter_targets(targets, csproj)
     local config = require("roslyn.config").get()
@@ -88,6 +88,8 @@ local ignored_dirs = {
     ".git",
 }
 
+---@param bufnr number
+---@return string[]
 function M.find_solutions_broad(bufnr)
     local root = resolve_broad_search_root(bufnr)
     local dirs = { root }
@@ -114,60 +116,48 @@ function M.find_solutions_broad(bufnr)
 end
 
 ---@param bufnr number
+---@return string?
+local function find_csproj_file(bufnr)
+    return vim.fs.find(function(name)
+        return name:match("%.csproj$") ~= nil
+    end, { upward = true, path = vim.api.nvim_buf_get_name(bufnr) })[1]
+end
+
+---@param bufnr number
+---@return string?
 function M.root_dir(bufnr)
     local config = require("roslyn.config")
     local solutions = config.get().broad_search and M.find_solutions_broad(bufnr) or M.find_solutions(bufnr)
 
-    local preselected_sln = vim.g.roslyn_nvim_selected_solution
-
-    log.log(string.format("root_dir solutions: %s, preselected_sln: %s", vim.inspect(solutions), preselected_sln))
     if #solutions == 1 then
-        local result = vim.fs.dirname(solutions[1])
-        log.log(string.format("root_dir single solution result: %s", result))
-        return result
+        return vim.fs.dirname(solutions[1])
     end
 
-    local csproj = vim.fs.find(function(name)
-        return name:match("%.csproj$") ~= nil
-    end, { upward = true, path = vim.api.nvim_buf_get_name(bufnr) })[1]
+    local csproj = find_csproj_file(bufnr)
+    local selected_solution = vim.g.roslyn_nvim_selected_solution
 
     local filtered_targets = filter_targets(solutions, csproj)
     if #filtered_targets > 1 then
         local chosen = config.choose_target and config.choose_target(filtered_targets)
         if chosen then
-            local result = vim.fs.dirname(chosen)
-            log.log(string.format("root_dir chosen result: %s", result))
-            return result
-        else
-            if preselected_sln and vim.list_contains(filtered_targets, preselected_sln) then
-                local result = vim.fs.dirname(preselected_sln)
-                log.log(string.format("root_dir preselected result: %s", result))
-                return result
-            end
-
-            log.log("root_dir: Multiple potential target files found. Use :Roslyn target to select a target.")
-            vim.notify(
-                "Multiple potential target files found. Use `:Roslyn target` to select a target.",
-                vim.log.levels.INFO,
-                { title = "roslyn.nvim" }
-            )
-            return nil
+            return vim.fs.dirname(chosen)
         end
-    else
-        local selected_solution = vim.g.roslyn_nvim_selected_solution
-        local result = vim.fs.dirname(filtered_targets[1])
-            or selected_solution and vim.fs.dirname(selected_solution)
-            or csproj and vim.fs.dirname(csproj)
-        log.log(
-            string.format(
-                "root_dir fallback result: %s, selected solution: %s, csproj: %s",
-                result,
-                selected_solution,
-                csproj
-            )
+
+        if selected_solution and vim.list_contains(filtered_targets, selected_solution) then
+            return vim.fs.dirname(selected_solution)
+        end
+
+        vim.notify(
+            "Multiple potential target files found. Use `:Roslyn target` to select a target.",
+            vim.log.levels.INFO,
+            { title = "roslyn.nvim" }
         )
-        return result
+        return nil
     end
+
+    return vim.fs.dirname(filtered_targets[1])
+        or selected_solution and vim.fs.dirname(selected_solution)
+        or csproj and vim.fs.dirname(csproj)
 end
 
 ---@param bufnr number
@@ -176,10 +166,7 @@ end
 function M.predict_target(bufnr, targets)
     local config = require("roslyn.config").get()
 
-    local csproj = vim.fs.find(function(name)
-        return name:match("%.csproj$") ~= nil
-    end, { upward = true, path = vim.api.nvim_buf_get_name(bufnr) })[1]
-
+    local csproj = find_csproj_file(bufnr)
     local filtered_targets = filter_targets(targets, csproj)
     local result
     if #filtered_targets > 1 then

@@ -47,16 +47,12 @@ return {
         if buf_name:match("^roslyn%-source%-generated://") then
             local existing_client = vim.lsp.get_clients({ name = "roslyn" })[1]
             if existing_client and existing_client.config.root_dir then
-                require("roslyn.log").log(
-                    string.format("lsp root_dir for source-generated file: %s", existing_client.config.root_dir)
-                )
                 on_dir(existing_client.config.root_dir)
                 return
             end
         end
 
-        local root_dir = require("roslyn.sln_utils").root_dir(bufnr)
-        require("roslyn.log").log(string.format("lsp root_dir is: %s", root_dir))
+        local root_dir = require("roslyn.sln.utils").root_dir(bufnr)
         on_dir(root_dir)
     end,
     on_init = {
