@@ -126,8 +126,8 @@ end
 ---@param bufnr number
 ---@return string?
 function M.root_dir(bufnr)
-    local config = require("roslyn.config")
-    local solutions = config.get().broad_search and M.find_solutions_broad(bufnr) or M.find_solutions(bufnr)
+    local config = require("roslyn.config").get()
+    local solutions = config.broad_search and M.find_solutions_broad(bufnr) or M.find_solutions(bufnr)
 
     if #solutions == 1 then
         return vim.fs.dirname(solutions[1])
