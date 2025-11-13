@@ -53,23 +53,26 @@ function M.check()
 
     local config = require("roslyn.config").get()
 
-    local lsp_config = vim.lsp.config["roslyn"] or {}
-    local capabilities = lsp_config.capabilities or {}
-    local did_change_watched = capabilities.workspace and capabilities.workspace.didChangeWatchedFiles
-    local dynamic_registration = did_change_watched and did_change_watched.dynamicRegistration
-
-    if config.filewatching == "auto" then
-        if dynamic_registration == false then
-            vim.health.ok("File watching: auto (using Roslyn's built-in file watcher)")
-        else
-            vim.health.info("File watching: auto (using Neovim's file watcher)")
-        end
-    elseif config.filewatching == "roslyn" then
-        vim.health.ok("File watching: roslyn (using Roslyn's built-in file watcher)")
-    elseif config.filewatching == "off" then
-        vim.health.warn("File watching: off (disabled as a hack - all file changes ignored)")
+    local client = vim.lsp.get_clients({ name = "roslyn" })[1]
+    if not client then
+        vim.health.warn("Roslyn is not running. Cannot determine file watching configuration.")
     else
-        vim.health.error(string.format("File watching: unknown value '%s'", config.filewatching))
+        local did_change_watched = client.capabilities.workspace and client.capabilities.workspace.didChangeWatchedFiles
+        local dynamic_registration = did_change_watched and did_change_watched.dynamicRegistration
+
+        if config.filewatching == "auto" then
+            if dynamic_registration == true then
+                vim.health.info("File watching: auto (using Neovim's file watcher)")
+            else
+                vim.health.ok("File watching: auto (using Roslyn's built-in file watcher)")
+            end
+        elseif config.filewatching == "roslyn" then
+            vim.health.ok("File watching: roslyn (using Roslyn's built-in file watcher)")
+        elseif config.filewatching == "off" then
+            vim.health.warn("File watching: off (disabled as a hack - all file changes ignored)")
+        else
+            vim.health.error(string.format("File watching: unknown value '%s'", config.filewatching))
+        end
     end
 
     vim.health.start("roslyn.nvim: Solution Detection")
