@@ -141,12 +141,16 @@ return {
         return {}
     end,
     ---@param _err lsp.ResponseError
-    ---@param _res HtmlForwardedRequest<lsp.HoverParams>
+    ---@param res HtmlForwardedRequest<lsp.HoverParams>
     ---@param _ctx lsp.HandlerContext
     ---@return table
-    ["textDocument/hover"] = function(_err, _res, _ctx)
-        -- Here we check the documentstore, and then return the hover information
-        return vim.NIL
+    ["textDocument/hover"] = function(_err, res, _ctx)
+        local htmlDocument = razorDocumentManager.findDocument(res.textDocument.uri)
+        local result = htmlDocument:lspRequest("textDocument/hover", res.request)
+        if not result.result then
+            return vim.NIL
+        end
+        return result.result
     end,
     ---@param _err lsp.ResponseError
     ---@param _res HtmlForwardedRequest<lsp.DocumentHighlightParams>

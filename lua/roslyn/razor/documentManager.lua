@@ -21,7 +21,7 @@ function M.updateDocumentText(uri, checksum, content)
 end
 
 --- @param uri string
---- @return HtmlDocument?
+--- @return HtmlDocument
 function M.findDocument(uri)
     if not uri:match(virtualHtmlSuffix .. "$") then
         uri = uri .. virtualHtmlSuffix
@@ -40,6 +40,7 @@ end
 function M.closeDocument(uri)
     local doc = M.findDocument(uri)
     assert(doc, "Document not found: " .. uri)
+    doc:close()
     M.htmlDocuments[uri] = nil
 end
 
