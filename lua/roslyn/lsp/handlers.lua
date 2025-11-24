@@ -1,5 +1,6 @@
 local diagnostics = require("roslyn.lsp.diagnostics")
 local razor = require("roslyn.razor.types")
+local razorDocumentManager = require("roslyn.razor.documentManager")
 
 return {
     ["client/registerCapability"] = function(err, res, ctx)
@@ -106,11 +107,11 @@ return {
     -- roslyn wants us to query the local Html lsp and return the addtional options
 
     ---@param _err lsp.ResponseError
-    ---@param _res HtmlUpdateParams
+    ---@param res HtmlUpdateParams
     ---@param _ctx lsp.HandlerContext
     ---@return false
-    ["razor/updateHtml"] = function(_err, _res, _ctx)
-        -- TODO: update our internal document store representation
+    ["razor/updateHtml"] = function(_err, res, _ctx)
+        razorDocumentManager.updateDocumentText(res.textDocument.uri, res.checksum, res.text)
         return false
     end,
     --TODO: Type these returns properly
