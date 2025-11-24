@@ -146,11 +146,11 @@ return {
     ---@return table
     ["textDocument/hover"] = function(_err, res, _ctx)
         local htmlDocument = razorDocumentManager.findDocument(res.textDocument.uri)
-        local result = htmlDocument:lspRequest("textDocument/hover", res.request)
-        if not result.result then
+        local result = htmlDocument:lspRequest("textDocument/hover", res.request, res.checksum)
+        if not result then
             return vim.NIL
         end
-        return result.result
+        return result
     end,
     ---@param _err lsp.ResponseError
     ---@param _res HtmlForwardedRequest<lsp.DocumentHighlightParams>
@@ -201,12 +201,16 @@ return {
         return nil
     end,
     ---@param _err lsp.ResponseError
-    ---@param _res HtmlForwardedRequest<lsp.DocumentFormattingParams>
+    ---@param res HtmlForwardedRequest<lsp.DocumentFormattingParams>
     ---@param _ctx lsp.HandlerContext
     ---@return table
-    ["textDocument/formatting"] = function(_err, _res, _ctx)
-        -- Here we check the documentstore, and then return the htmlEdits
-        return {}
+    ["textDocument/formatting"] = function(_err, res, _ctx)
+        local htmlDocument = razorDocumentManager.findDocument(res.textDocument.uri)
+        local result = htmlDocument:lspRequest("textDocument/formatting", res.request, res.checksum)
+        if not result then
+            return {}
+        end
+        return result
     end,
     ---@param _err lsp.ResponseError
     ---@param _res HtmlForwardedRequest<lsp.DocumentOnTypeFormattingParams>

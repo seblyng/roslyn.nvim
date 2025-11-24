@@ -18,7 +18,7 @@ document.__index = document
 --- @field getContent fun(self: HtmlDocument): string
 --- @field setContent fun(self: HtmlDocument, checksum: string, content: string)
 --- @field close fun(self: HtmlDocument)
---- @field lspRequest fun(self: HtmlDocument, method: string, params: table): any
+--- @field lspRequest fun(self: HtmlDocument, method: string, params: table, checksum: string): any
 
 ---@param uri string
 ---@param checksum string
@@ -54,16 +54,23 @@ function document:close()
     vim.api.nvim_buf_delete(self.buf, { force = true })
 end
 
-function document:lspRequest(method, params)
+function document:lspRequest(method, params, checksum)
+    if self.checksum ~= checksum then
+        -- TODO: we should wait here for checksum to resolve to match
+        vim.print("HTML document checksum mismatch")
+        return { result = nil }
+    end
     local clients = vim.lsp.get_clients({ bufnr = self.buf, name = "html" })
-    assert(#clients == 1, "Expected exactly one HTML LSP client")
+    if #clients ~= 1 then
+        return { result = nil }
+    end
     if not params.textDocument.uri:match(virtualHtmlSuffix .. "$") then
         params.textDocument.uri = params.textDocument.uri .. virtualHtmlSuffix
     end
     -- TODO: Make this async
     local result, err = clients[1]:request_sync(method, params, nil, self.buf)
     assert(not err, vim.inspect(err))
-    return result
+    return result and result.result or nil
 end
 
 return document
