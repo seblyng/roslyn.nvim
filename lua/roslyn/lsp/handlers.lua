@@ -1,4 +1,5 @@
 local diagnostics = require("roslyn.lsp.diagnostics")
+local razor = require("roslyn.razor.types")
 
 return {
     ["client/registerCapability"] = function(err, res, ctx)
@@ -15,14 +16,6 @@ return {
         if not require("roslyn.config").get().silent then
             vim.notify("Roslyn project initialization complete", vim.log.levels.INFO, { title = "roslyn.nvim" })
         end
-
-        ---NOTE: This is used by rzls.nvim for init
-        vim.api.nvim_exec_autocmds("User", {
-            pattern = "RoslynInitialized",
-            modeline = false,
-            data = { client_id = ctx.client_id },
-        })
-        _G.roslyn_initialized = true
 
         local client = assert(vim.lsp.get_client_by_id(ctx.client_id))
 
@@ -106,5 +99,128 @@ return {
         end)
 
         return vim.NIL
+    end,
+    -- Razor Endpoints
+    -- NOTE:
+    -- Where these comms that are usually client -> server come server -> client
+    -- roslyn wants us to query the local Html lsp and return the addtional options
+
+    ---@param _err lsp.ResponseError
+    ---@param _res HtmlUpdateParams
+    ---@param _ctx lsp.HandlerContext
+    ---@return false
+    ["razor/updateHtml"] = function(_err, _res, _ctx)
+        -- TODO: update our internal document store representation
+        return false
+    end,
+    --TODO: Type these returns properly
+
+    ---@param _err lsp.ResponseError
+    ---@param _res HtmlForwardedRequestDocumentColor
+    ---@param _ctx lsp.HandlerContext
+    ---@return table
+    ["textDocument/documentColor"] = function(_err, _res, _ctx)
+        -- Here we check the documentstore, and then return the color information
+        return {}
+    end,
+    ---@param _err lsp.ResponseError
+    ---@param _res HtmlForwardedRequestColorPresentation
+    ---@param _ctx lsp.HandlerContext
+    ---@return table
+    ["textDocument/colorPresentation"] = function(_err, _res, _ctx)
+        -- Here we check the documentstore, and then return the color presentations
+        return {}
+    end,
+    ---@param _err lsp.ResponseError
+    ---@param _res HtmlForwardedRequestFoldingRange
+    ---@param _ctx lsp.HandlerContext
+    ---@return table
+    ["textDocument/foldingRange"] = function(_err, _res, _ctx)
+        -- Here we check the documentstore, and then return the folding ranges
+        return {}
+    end,
+    ---@param _err lsp.ResponseError
+    ---@param _res HtmlForwardedRequestHover
+    ---@param _ctx lsp.HandlerContext
+    ---@return table
+    ["textDocument/hover"] = function(_err, _res, _ctx)
+        -- Here we check the documentstore, and then return the hover information
+        return vim.NIL
+    end,
+    ---@param _err lsp.ResponseError
+    ---@param _res HtmlForwardedRequestDocumentHighlight
+    ---@param _ctx lsp.HandlerContext
+    ---@return table
+    ["textDocument/documentHighlight"] = function(_err, _res, _ctx)
+        -- here we check the documentstore, and then return the document highlights
+        return {}
+    end,
+    ---@param _err lsp.ResponseError
+    ---@param _res HtmlForwardedRequestCompletion
+    ---@param _ctx lsp.HandlerContext
+    ---@return table
+    ["textDocument/completion"] = function(_err, _res, _ctx)
+        -- Here we check the documentstore, and then return the completion items
+        return { isIncomplete = false, items = {} }
+    end,
+    ---@param _err lsp.ResponseError
+    ---@param _res HtmlForwardedRequestReference
+    ---@param _ctx lsp.HandlerContext
+    ---@return table
+    ["textDocument/reference"] = function(_err, _res, _ctx)
+        -- Here we check the documentstore, and then return the references
+        return {}
+    end,
+    ---@param _err lsp.ResponseError
+    ---@param _res HtmlForwardedRequestImplementation
+    ---@param _ctx lsp.HandlerContext
+    ---@return table
+    ["textDocument/Implementation"] = function(_err, _res, _ctx)
+        -- Here we check the documentstore, and then return the implementations
+        return {}
+    end,
+    ---@param _err lsp.ResponseError
+    ---@param _res HtmlForwardedRequestDefinition
+    ---@param _ctx lsp.HandlerContext
+    ---@return table
+    ["textDocument/definition"] = function(_err, _res, _ctx)
+        -- Here we check the documentstore, and then return the definitions
+        return {}
+    end,
+    ---@param _err lsp.ResponseError
+    ---@param _res HtmlForwardedRequestSignatureHelp
+    ---@param _ctx lsp.HandlerContext
+    ---@return table | nil
+    ["textDocument/signatureHelp"] = function(_err, _res, _ctx)
+        -- Here we check the documentstore, and then return the signature help
+        return nil
+    end,
+    ---@param _err lsp.ResponseError
+    ---@param _res HtmlForwardedRequestFormatting
+    ---@param _ctx lsp.HandlerContext
+    ---@return table
+    ["textDocument/formatting"] = function(_err, _res, _ctx)
+        -- Here we check the documentstore, and then return the htmlEdits
+        return {}
+    end,
+    ---@param _err lsp.ResponseError
+    ---@param _res HtmlForwardedRequestOnTypeFormatting
+    ---@param _ctx lsp.HandlerContext
+    ---@return table
+    ["textDocument/onTypeFormatting"] = function(_err, _res, _ctx)
+        -- Here we check the documentstore, and then return the htmlEdits
+        return {}
+    end,
+    ---@param _err lsp.ResponseError
+    ---@param res LogMessageParams
+    ---@param _ctx lsp.HandlerContext
+    ---@return true
+    ["razor/log"] = function(_err, res, _ctx)
+        -- TODO: once we are more stable we can use the existing log methods
+        local level = razor.MessageType[res.type]
+        if level == "Error" or level == "Warning" then
+            vim.print(res.message)
+        end
+        return true
     end,
 }
