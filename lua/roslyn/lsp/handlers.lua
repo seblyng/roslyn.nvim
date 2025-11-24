@@ -116,7 +116,7 @@ return {
     --TODO: Type these returns properly
 
     ---@param _err lsp.ResponseError
-    ---@param _res HtmlForwardedRequestDocumentColor
+    ---@param _res HtmlForwardedRequest<lsp.DocumentColorParams>
     ---@param _ctx lsp.HandlerContext
     ---@return table
     ["textDocument/documentColor"] = function(_err, _res, _ctx)
@@ -124,7 +124,7 @@ return {
         return {}
     end,
     ---@param _err lsp.ResponseError
-    ---@param _res HtmlForwardedRequestColorPresentation
+    ---@param _res HtmlForwardedRequest<lsp.ColorPresentationParams>
     ---@param _ctx lsp.HandlerContext
     ---@return table
     ["textDocument/colorPresentation"] = function(_err, _res, _ctx)
@@ -132,7 +132,7 @@ return {
         return {}
     end,
     ---@param _err lsp.ResponseError
-    ---@param _res HtmlForwardedRequestFoldingRange
+    ---@param _res HtmlForwardedRequest<lsp.FoldingRangeParams>
     ---@param _ctx lsp.HandlerContext
     ---@return table
     ["textDocument/foldingRange"] = function(_err, _res, _ctx)
@@ -140,7 +140,7 @@ return {
         return {}
     end,
     ---@param _err lsp.ResponseError
-    ---@param _res HtmlForwardedRequestHover
+    ---@param _res HtmlForwardedRequest<lsp.HoverParams>
     ---@param _ctx lsp.HandlerContext
     ---@return table
     ["textDocument/hover"] = function(_err, _res, _ctx)
@@ -148,7 +148,7 @@ return {
         return vim.NIL
     end,
     ---@param _err lsp.ResponseError
-    ---@param _res HtmlForwardedRequestDocumentHighlight
+    ---@param _res HtmlForwardedRequest<lsp.DocumentHighlightParams>
     ---@param _ctx lsp.HandlerContext
     ---@return table
     ["textDocument/documentHighlight"] = function(_err, _res, _ctx)
@@ -156,7 +156,7 @@ return {
         return {}
     end,
     ---@param _err lsp.ResponseError
-    ---@param _res HtmlForwardedRequestCompletion
+    ---@param _res HtmlForwardedRequest<lsp.CompletionParams>
     ---@param _ctx lsp.HandlerContext
     ---@return table
     ["textDocument/completion"] = function(_err, _res, _ctx)
@@ -164,7 +164,7 @@ return {
         return { isIncomplete = false, items = {} }
     end,
     ---@param _err lsp.ResponseError
-    ---@param _res HtmlForwardedRequestReference
+    ---@param _res HtmlForwardedRequest<lsp.ReferenceParams>
     ---@param _ctx lsp.HandlerContext
     ---@return table
     ["textDocument/reference"] = function(_err, _res, _ctx)
@@ -172,7 +172,7 @@ return {
         return {}
     end,
     ---@param _err lsp.ResponseError
-    ---@param _res HtmlForwardedRequestImplementation
+    ---@param _res HtmlForwardedRequest<lsp.ImplementationParams>
     ---@param _ctx lsp.HandlerContext
     ---@return table
     ["textDocument/Implementation"] = function(_err, _res, _ctx)
@@ -180,7 +180,7 @@ return {
         return {}
     end,
     ---@param _err lsp.ResponseError
-    ---@param _res HtmlForwardedRequestDefinition
+    ---@param _res HtmlForwardedRequest<lsp.DefinitionParams>
     ---@param _ctx lsp.HandlerContext
     ---@return table
     ["textDocument/definition"] = function(_err, _res, _ctx)
@@ -188,7 +188,7 @@ return {
         return {}
     end,
     ---@param _err lsp.ResponseError
-    ---@param _res HtmlForwardedRequestSignatureHelp
+    ---@param _res HtmlForwardedRequest<lsp.SignatureHelpParams>
     ---@param _ctx lsp.HandlerContext
     ---@return table | nil
     ["textDocument/signatureHelp"] = function(_err, _res, _ctx)
@@ -196,7 +196,7 @@ return {
         return nil
     end,
     ---@param _err lsp.ResponseError
-    ---@param _res HtmlForwardedRequestFormatting
+    ---@param _res HtmlForwardedRequest<lsp.DocumentFormattingParams>
     ---@param _ctx lsp.HandlerContext
     ---@return table
     ["textDocument/formatting"] = function(_err, _res, _ctx)
@@ -204,7 +204,7 @@ return {
         return {}
     end,
     ---@param _err lsp.ResponseError
-    ---@param _res HtmlForwardedRequestOnTypeFormatting
+    ---@param _res HtmlForwardedRequest<lsp.DocumentOnTypeFormattingParams>
     ---@param _ctx lsp.HandlerContext
     ---@return table
     ["textDocument/onTypeFormatting"] = function(_err, _res, _ctx)
