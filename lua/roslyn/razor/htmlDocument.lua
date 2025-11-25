@@ -30,7 +30,13 @@ function document.new(uri, checksum, content)
     self.content = content
     self.checksum = checksum
     self.buf = vim.uri_to_bufnr(self.path)
-    -- TODO: set nowrite etc
+    -- NOTE: We set this in an autocmd because otherwise the LSP does not attach to the buffer
+    vim.api.nvim_create_autocmd("LspAttach", {
+        buffer = self.buf,
+        callback = function(ev)
+            vim.api.nvim_set_option_value("buftype", "nowrite", { buf = ev.buf })
+        end,
+    })
     return self
 end
 
