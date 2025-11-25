@@ -111,7 +111,7 @@ return {
     ---@param _ctx lsp.HandlerContext
     ---@return false
     ["razor/updateHtml"] = function(_err, res, _ctx)
-        razorDocumentManager.updateDocumentText(res.textDocument.uri, res.checksum, res.text)
+        razorDocumentManager:updateDocumentText(res.textDocument.uri, res.checksum, res.text)
         return false
     end,
     --TODO: Type these returns properly
@@ -145,8 +145,11 @@ return {
     ---@param _ctx lsp.HandlerContext
     ---@return table
     ["textDocument/hover"] = function(_err, res, _ctx)
-        local htmlDocument = razorDocumentManager.findDocument(res.textDocument.uri)
-        local result = htmlDocument:lspRequest("textDocument/hover", res.request, res.checksum)
+        local htmlDocument = razorDocumentManager:getDocument(res.textDocument.uri, res.checksum)
+        if not htmlDocument then
+            return vim.NIL
+        end
+        local result = htmlDocument:lspRequest("textDocument/hover", res.request)
         if not result then
             return vim.NIL
         end
@@ -205,8 +208,11 @@ return {
     ---@param _ctx lsp.HandlerContext
     ---@return table
     ["textDocument/formatting"] = function(_err, res, _ctx)
-        local htmlDocument = razorDocumentManager.findDocument(res.textDocument.uri)
-        local result = htmlDocument:lspRequest("textDocument/formatting", res.request, res.checksum)
+        local htmlDocument = razorDocumentManager:getDocument(res.textDocument.uri, res.checksum)
+        if not htmlDocument then
+            return {}
+        end
+        local result = htmlDocument:lspRequest("textDocument/formatting", res.request)
         if not result then
             return {}
         end

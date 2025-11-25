@@ -12,13 +12,13 @@ document.__index = document
 --- @field buf number
 --- @field content string
 --- @field checksum string
---- @field new fun(uri: string, checksum: string, content: string): HtmlDocument
+--- @field new fun(uri: string): HtmlDocument
 --- @field update fun(self: HtmlDocument, path: string, buf: number, checksum: string)
 --- @field getChecksum fun(self: HtmlDocument): string
 --- @field getContent fun(self: HtmlDocument): string
 --- @field setContent fun(self: HtmlDocument, checksum: string, content: string)
 --- @field close fun(self: HtmlDocument)
---- @field lspRequest fun(self: HtmlDocument, method: string, params: table, checksum: string): any
+--- @field lspRequest fun(self: HtmlDocument, method: string, params: table): any
 
 ---@param uri string
 ---@return HtmlDocument
@@ -57,12 +57,7 @@ function document:close()
     vim.api.nvim_buf_delete(self.buf, { force = true })
 end
 
-function document:lspRequest(method, params, checksum)
-    if self.checksum ~= checksum then
-        -- TODO: we should wait here for checksum to resolve to match
-        vim.print("HTML document checksum mismatch")
-        return nil
-    end
+function document:lspRequest(method, params)
     local clients = vim.lsp.get_clients({ bufnr = self.buf, name = "html" })
     if #clients ~= 1 then
         return nil
@@ -70,9 +65,8 @@ function document:lspRequest(method, params, checksum)
     if not params.textDocument.uri:match(virtualHtmlSuffix .. "$") then
         params.textDocument.uri = params.textDocument.uri .. virtualHtmlSuffix
     end
-    -- TODO: Make this async
-    local result, err = clients[1]:request_sync(method, params, nil, self.buf)
-    assert(not err, vim.inspect(err))
+    local result = clients[1]:request_sync(method, params, nil, self.buf)
+    assert(result and not result.err, vim.inspect(result and result.err or "No Result from forwarded LSP Request"))
     return result and result.result or nil
 end
 
