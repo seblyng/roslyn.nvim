@@ -13,7 +13,7 @@ M.htmlDocuments = {}
 function M.updateDocumentText(uri, checksum, content)
     local doc = M.findDocument(uri)
     if not doc then
-        doc = HtmlDocument.new(uri, checksum, content)
+        doc = HtmlDocument.new(uri)
         M.htmlDocuments[doc.path] = doc
     end
     doc:setContent(checksum, content)

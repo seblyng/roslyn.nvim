@@ -21,14 +21,10 @@ document.__index = document
 --- @field lspRequest fun(self: HtmlDocument, method: string, params: table, checksum: string): any
 
 ---@param uri string
----@param checksum string
----@param content string
 ---@return HtmlDocument
-function document.new(uri, checksum, content)
+function document.new(uri)
     local self = setmetatable({}, document)
     self.path = uri .. virtualHtmlSuffix
-    self.content = content
-    self.checksum = checksum
     self.buf = vim.uri_to_bufnr(self.path)
     -- NOTE: We set this in an autocmd because otherwise the LSP does not attach to the buffer
     vim.api.nvim_create_autocmd("LspAttach", {
@@ -65,11 +61,11 @@ function document:lspRequest(method, params, checksum)
     if self.checksum ~= checksum then
         -- TODO: we should wait here for checksum to resolve to match
         vim.print("HTML document checksum mismatch")
-        return { result = nil }
+        return nil
     end
     local clients = vim.lsp.get_clients({ bufnr = self.buf, name = "html" })
     if #clients ~= 1 then
-        return { result = nil }
+        return nil
     end
     if not params.textDocument.uri:match(virtualHtmlSuffix .. "$") then
         params.textDocument.uri = params.textDocument.uri .. virtualHtmlSuffix
