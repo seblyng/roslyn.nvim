@@ -35,6 +35,7 @@ function document.new(uri, checksum, content)
         buffer = self.buf,
         callback = function(ev)
             vim.api.nvim_set_option_value("buftype", "nowrite", { buf = ev.buf })
+            vim.api.nvim_del_autocmd(ev.id)
         end,
     })
     return self
