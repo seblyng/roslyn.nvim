@@ -93,7 +93,7 @@ return {
         function()
             vim.g.roslyn_nvim_selected_solution = nil
             vim.schedule(function()
-                require("roslyn.roslyn_emitter"):emit("stopped")
+                require("roslyn.roslyn_emitter").emit("stopped")
                 vim.notify("Roslyn server stopped", vim.log.levels.INFO, { title = "roslyn.nvim" })
             end)
         end,
