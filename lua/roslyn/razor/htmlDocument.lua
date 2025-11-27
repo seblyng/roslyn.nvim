@@ -2,8 +2,6 @@
 ---@diagnostic disable-next-line: missing-fields
 local document = {}
 
-local virtualHtmlSuffix = "__virtual.html"
-
 ---@diagnostic disable-next-line: inject-field
 document.__index = document
 
@@ -24,7 +22,7 @@ document.__index = document
 ---@return HtmlDocument
 function document.new(uri)
     local self = setmetatable({}, document)
-    self.path = uri .. virtualHtmlSuffix
+    self.path = uri .. require("roslyn.razor.types").virtualHtmlSuffix
     self.buf = vim.uri_to_bufnr(self.path)
     -- NOTE: We set this in an autocmd because otherwise the LSP does not attach to the buffer
     vim.api.nvim_create_autocmd("LspAttach", {
@@ -62,8 +60,8 @@ function document:lspRequest(method, params)
     if #clients ~= 1 then
         return nil
     end
-    if not params.textDocument.uri:match(virtualHtmlSuffix .. "$") then
-        params.textDocument.uri = params.textDocument.uri .. virtualHtmlSuffix
+    if not params.textDocument.uri:match(require("roslyn.razor.types").virtualHtmlSuffix .. "$") then
+        params.textDocument.uri = params.textDocument.uri .. require("roslyn.razor.types").virtualHtmlSuffix
     end
 
     local co = coroutine.running()

@@ -21,4 +21,6 @@ M.MessageType = {
 ---@field type MessageType
 ---@field message string
 
+M.virtualHtmlSuffix = ".virtual.html"
+
 return M

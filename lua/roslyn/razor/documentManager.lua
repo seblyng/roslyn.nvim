@@ -2,8 +2,6 @@ local HtmlDocument = require("roslyn.razor.htmlDocument")
 
 local M = {}
 
-local virtualHtmlSuffix = "__virtual.html"
-
 ---@type table<string, HtmlDocument>
 M.htmlDocuments = {}
 
@@ -14,8 +12,8 @@ M.pendingUpdates = {}
 --- @param uri string
 --- @return HtmlDocument?
 local function findDocument(uri)
-    if not uri:match(virtualHtmlSuffix .. "$") then
-        uri = uri .. virtualHtmlSuffix
+    if not uri:match(require("roslyn.razor.types").virtualHtmlSuffix .. "$") then
+        uri = uri .. require("roslyn.razor.types").virtualHtmlSuffix
     end
     return M.htmlDocuments[uri]
 end
