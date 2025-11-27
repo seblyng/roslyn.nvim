@@ -39,7 +39,6 @@ end
 function M:getDocument(uri, checksum)
     local doc = findDocument(uri)
     if not doc then
-        vim.notify("Document not found: " .. uri, vim.log.levels.WARN)
         return nil
     end
 
@@ -66,7 +65,7 @@ function M:getDocument(uri, checksum)
     end
 
     vim.wait(5000, function()
-        return vim.lsp.get_clients({ bufnr = doc.buf, name = "html" })[1] ~= nil
+        return vim.lsp.get_clients({ bufnr = doc.buf, name = require("roslyn.razor.types").html_lsp_name })[1] ~= nil
     end)
 
     return doc
@@ -75,14 +74,14 @@ end
 --- @param uri string
 function M.getContent(uri)
     local doc = findDocument(uri)
-    assert(doc, "Document not found: " .. uri)
+    assert(doc, "GetContent: Document not found: " .. uri)
     return doc:getContent()
 end
 
 --- @param uri string
 function M.closeDocument(uri)
     local doc = findDocument(uri)
-    assert(doc, "Document not found: " .. uri)
+    assert(doc, "Close: Document not found: " .. uri)
     doc:close()
     M.htmlDocuments[uri] = nil
 end

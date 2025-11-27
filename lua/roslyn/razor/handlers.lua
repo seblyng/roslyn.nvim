@@ -9,11 +9,14 @@ local nil_responses = {
 ---@param ctx lsp.HandlerContext
 local function forward(_err, res, ctx)
     local razorDocumentManager = require("roslyn.razor.documentManager")
-    local htmlDocument = razorDocumentManager:getDocument(res.textDocument.uri, res.checksum)
+    local uri = res.textDocument and res.textDocument.uri
+        or ctx.params and ctx.params.textDocument and ctx.params.textDocument.uri
+    assert(uri, string.format("No uri found in forwarded request for method %s", ctx.method))
+    local htmlDocument = razorDocumentManager:getDocument(uri, res.checksum)
     if not htmlDocument then
         return nil_responses[ctx.method] and vim.NIL or {}
     end
-    local result = htmlDocument:lspRequest(ctx.method, res.request)
+    local result = htmlDocument:lspRequest(ctx.method, res.request or ctx.params)
     if not result then
         return nil_responses[ctx.method] and vim.NIL or {}
     end

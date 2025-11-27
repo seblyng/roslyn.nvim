@@ -28,8 +28,15 @@ function document.new(uri)
     vim.api.nvim_create_autocmd("LspAttach", {
         buffer = self.buf,
         callback = function(ev)
-            vim.api.nvim_set_option_value("buftype", "nowrite", { buf = ev.buf })
-            vim.api.nvim_del_autocmd(ev.id)
+            local client = vim.lsp.get_client_by_id(ev.data.client_id)
+            if not client then
+                --Client exited
+                return
+            end
+            if client.name == "html" then
+                vim.api.nvim_set_option_value("buftype", "nowrite", { buf = ev.buf })
+                vim.api.nvim_del_autocmd(ev.id)
+            end
         end,
     })
     return self
@@ -56,7 +63,7 @@ function document:close()
 end
 
 function document:lspRequest(method, params)
-    local clients = vim.lsp.get_clients({ bufnr = self.buf, name = "html" })
+    local clients = vim.lsp.get_clients({ bufnr = self.buf, name = require("roslyn.razor.types").html_lsp_name })
     if #clients ~= 1 then
         return nil
     end
