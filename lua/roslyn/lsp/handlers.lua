@@ -113,7 +113,7 @@ return {
     ["textDocument/documentHighlight"] = require("roslyn.razor.handlers").forward,
     ["textDocument/completion"] = require("roslyn.razor.handlers").forward,
     ["textDocument/reference"] = require("roslyn.razor.handlers").forward,
-    ["textDocument/Implementation"] = require("roslyn.razor.handlers").forward,
+    ["textDocument/implementation"] = require("roslyn.razor.handlers").forward,
     ["textDocument/definition"] = require("roslyn.razor.handlers").forward,
     ["textDocument/signatureHelp"] = require("roslyn.razor.handlers").forward,
     ["textDocument/formatting"] = require("roslyn.razor.handlers").forward,

@@ -4,15 +4,19 @@ local nil_responses = {
 }
 
 ---@generic T
----@param _err any
+---@param err lsp.ResponseError?
 ---@param res HtmlForwardedRequest<T>
 ---@param ctx lsp.HandlerContext
-local function forward(_err, res, ctx)
+---@param config table?
+local function forward(err, res, ctx, config)
+    if not res or not res.textDocument or not res.textDocument.uri or not res.checksum then
+        -- Does not seem to be a request from roslyn. Run the default handler instead
+        vim.lsp.handlers[ctx.method](err, res, ctx, config)
+        return
+    end
+
     local razorDocumentManager = require("roslyn.razor.documentManager")
-    local uri = res.textDocument and res.textDocument.uri
-        or ctx.params and ctx.params.textDocument and ctx.params.textDocument.uri
-    assert(uri, string.format("No uri found in forwarded request for method %s", ctx.method))
-    local htmlDocument = razorDocumentManager:getDocument(uri, res.checksum)
+    local htmlDocument = razorDocumentManager:getDocument(res.textDocument.uri, res.checksum)
     if not htmlDocument then
         return nil_responses[ctx.method] and vim.NIL or {}
     end
