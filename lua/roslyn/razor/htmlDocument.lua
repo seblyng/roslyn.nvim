@@ -54,6 +54,7 @@ function document:setContent(checksum, content)
     self.checksum = checksum
     self.content = content
     if self.buf then
+        assert(vim.api.nvim_buf_is_valid(self.buf), "Virtual HTML Document buffer is not valid")
         vim.api.nvim_buf_set_lines(self.buf, 0, -1, false, vim.split(content, "\n"))
     end
 end
