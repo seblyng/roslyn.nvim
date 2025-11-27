@@ -18,7 +18,7 @@ document.__index = document
 --- @field getContent fun(self: HtmlDocument): string
 --- @field setContent fun(self: HtmlDocument, checksum: string, content: string)
 --- @field close fun(self: HtmlDocument)
---- @field lspRequest fun(self: HtmlDocument, method: string, params: table): any
+--- @field lspRequest async fun(self: HtmlDocument, method: string, params: table): any
 
 ---@param uri string
 ---@return HtmlDocument
@@ -65,9 +65,26 @@ function document:lspRequest(method, params)
     if not params.textDocument.uri:match(virtualHtmlSuffix .. "$") then
         params.textDocument.uri = params.textDocument.uri .. virtualHtmlSuffix
     end
-    local result = clients[1]:request_sync(method, params, nil, self.buf)
-    assert(result and not result.err, vim.inspect(result and result.err or "No Result from forwarded LSP Request"))
-    return result and result.result or nil
+
+    local co = coroutine.running()
+
+    if co == nil then
+        error("document.lspRequest must be called inside a coroutine")
+    end
+
+    local status = clients[1]:request(method, params, function(err, result, _ctx, _config)
+        coroutine.resume(co, result, err)
+    end, self.buf)
+
+    if not status then
+        error("LSP client was shutdown")
+    end
+
+    ---@type any, lsp.ResponseError
+    local result, err = coroutine.yield(co)
+
+    assert(not err, vim.inspect(err or "No Result from forwarded LSP Request"))
+    return result
 end
 
 return document
