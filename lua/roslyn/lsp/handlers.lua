@@ -1,6 +1,4 @@
 local diagnostics = require("roslyn.lsp.diagnostics")
-local razor = require("roslyn.razor.types")
-local razorDocumentManager = require("roslyn.razor.documentManager")
 
 return {
     ["client/registerCapability"] = function(err, res, ctx)
@@ -101,141 +99,23 @@ return {
 
         return vim.NIL
     end,
-    -- Razor Endpoints
-    -- NOTE:
+
+    -- NOTE: Razor End Points
     -- Where these comms that are usually client -> server come server -> client
-    -- roslyn wants us to query the local Html lsp and return the addtional options
+    -- roslyn wants us to query the local Html LS and return the additional options
+    ["razor/updateHtml"] = require("roslyn.razor.handlers").html_update,
+    ["razor/log"] = require("roslyn.razor.handlers").log,
 
-    ---@param _err lsp.ResponseError
-    ---@param res HtmlUpdateParams
-    ---@param _ctx lsp.HandlerContext
-    ---@return false
-    ["razor/updateHtml"] = function(_err, res, _ctx)
-        razorDocumentManager:updateDocumentText(res.textDocument.uri, res.checksum, res.text)
-        return false
-    end,
-    --TODO: Type these returns properly
-
-    ---@param _err lsp.ResponseError
-    ---@param _res HtmlForwardedRequest<lsp.DocumentColorParams>
-    ---@param _ctx lsp.HandlerContext
-    ---@return table
-    ["textDocument/documentColor"] = function(_err, _res, _ctx)
-        -- Here we check the documentstore, and then return the color information
-        return {}
-    end,
-    ---@param _err lsp.ResponseError
-    ---@param _res HtmlForwardedRequest<lsp.ColorPresentationParams>
-    ---@param _ctx lsp.HandlerContext
-    ---@return table
-    ["textDocument/colorPresentation"] = function(_err, _res, _ctx)
-        -- Here we check the documentstore, and then return the color presentations
-        return {}
-    end,
-    ---@param _err lsp.ResponseError
-    ---@param _res HtmlForwardedRequest<lsp.FoldingRangeParams>
-    ---@param _ctx lsp.HandlerContext
-    ---@return table
-    ["textDocument/foldingRange"] = function(_err, _res, _ctx)
-        -- Here we check the documentstore, and then return the folding ranges
-        return {}
-    end,
-    ---@param _err lsp.ResponseError
-    ---@param res HtmlForwardedRequest<lsp.HoverParams>
-    ---@param _ctx lsp.HandlerContext
-    ---@return table
-    ["textDocument/hover"] = function(_err, res, _ctx)
-        local htmlDocument = razorDocumentManager:getDocument(res.textDocument.uri, res.checksum)
-        if not htmlDocument then
-            return vim.NIL
-        end
-        local result = htmlDocument:lspRequest("textDocument/hover", res.request)
-        if not result then
-            return vim.NIL
-        end
-        return result
-    end,
-    ---@param _err lsp.ResponseError
-    ---@param _res HtmlForwardedRequest<lsp.DocumentHighlightParams>
-    ---@param _ctx lsp.HandlerContext
-    ---@return table
-    ["textDocument/documentHighlight"] = function(_err, _res, _ctx)
-        -- here we check the documentstore, and then return the document highlights
-        return {}
-    end,
-    ---@param _err lsp.ResponseError
-    ---@param _res HtmlForwardedRequest<lsp.CompletionParams>
-    ---@param _ctx lsp.HandlerContext
-    ---@return table
-    ["textDocument/completion"] = function(_err, _res, _ctx)
-        -- Here we check the documentstore, and then return the completion items
-        return { isIncomplete = false, items = {} }
-    end,
-    ---@param _err lsp.ResponseError
-    ---@param _res HtmlForwardedRequest<lsp.ReferenceParams>
-    ---@param _ctx lsp.HandlerContext
-    ---@return table
-    ["textDocument/reference"] = function(_err, _res, _ctx)
-        -- Here we check the documentstore, and then return the references
-        return {}
-    end,
-    ---@param _err lsp.ResponseError
-    ---@param _res HtmlForwardedRequest<lsp.ImplementationParams>
-    ---@param _ctx lsp.HandlerContext
-    ---@return table
-    ["textDocument/Implementation"] = function(_err, _res, _ctx)
-        -- Here we check the documentstore, and then return the implementations
-        return {}
-    end,
-    ---@param _err lsp.ResponseError
-    ---@param _res HtmlForwardedRequest<lsp.DefinitionParams>
-    ---@param _ctx lsp.HandlerContext
-    ---@return table
-    ["textDocument/definition"] = function(_err, _res, _ctx)
-        -- Here we check the documentstore, and then return the definitions
-        return {}
-    end,
-    ---@param _err lsp.ResponseError
-    ---@param _res HtmlForwardedRequest<lsp.SignatureHelpParams>
-    ---@param _ctx lsp.HandlerContext
-    ---@return table | nil
-    ["textDocument/signatureHelp"] = function(_err, _res, _ctx)
-        -- Here we check the documentstore, and then return the signature help
-        return nil
-    end,
-    ---@param _err lsp.ResponseError
-    ---@param res HtmlForwardedRequest<lsp.DocumentFormattingParams>
-    ---@param _ctx lsp.HandlerContext
-    ---@return table
-    ["textDocument/formatting"] = function(_err, res, _ctx)
-        local htmlDocument = razorDocumentManager:getDocument(res.textDocument.uri, res.checksum)
-        if not htmlDocument then
-            return {}
-        end
-        local result = htmlDocument:lspRequest("textDocument/formatting", res.request)
-        if not result then
-            return {}
-        end
-        return result
-    end,
-    ---@param _err lsp.ResponseError
-    ---@param _res HtmlForwardedRequest<lsp.DocumentOnTypeFormattingParams>
-    ---@param _ctx lsp.HandlerContext
-    ---@return table
-    ["textDocument/onTypeFormatting"] = function(_err, _res, _ctx)
-        -- Here we check the documentstore, and then return the htmlEdits
-        return {}
-    end,
-    ---@param _err lsp.ResponseError
-    ---@param res LogMessageParams
-    ---@param _ctx lsp.HandlerContext
-    ---@return true
-    ["razor/log"] = function(_err, res, _ctx)
-        -- TODO: once we are more stable we can use the existing log methods
-        local level = razor.MessageType[res.type]
-        if level == "Error" or level == "Warning" then
-            vim.print(res.message)
-        end
-        return true
-    end,
+    ["textDocument/documentColor"] = require("roslyn.razor.handlers").forward,
+    ["textDocument/colorPresentation"] = require("roslyn.razor.handlers").forward,
+    ["textDocument/foldingRange"] = require("roslyn.razor.handlers").forward,
+    ["textDocument/hover"] = require("roslyn.razor.handlers").forward,
+    ["textDocument/documentHighlight"] = require("roslyn.razor.handlers").forward,
+    ["textDocument/completion"] = require("roslyn.razor.handlers").forward,
+    ["textDocument/reference"] = require("roslyn.razor.handlers").forward,
+    ["textDocument/Implementation"] = require("roslyn.razor.handlers").forward,
+    ["textDocument/definition"] = require("roslyn.razor.handlers").forward,
+    ["textDocument/signatureHelp"] = require("roslyn.razor.handlers").forward,
+    ["textDocument/formatting"] = require("roslyn.razor.handlers").forward,
+    ["textDocument/onTypeFormatting"] = require("roslyn.razor.handlers").forward,
 }
