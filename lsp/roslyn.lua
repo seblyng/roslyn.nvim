@@ -57,6 +57,9 @@ return {
     end,
     on_init = {
         function(client)
+            -- Although roslyn supports prepareRename, cohosted razor doesnt. So we need to disable it
+            client.server_capabilities.renameProvider = true
+
             if not client.config.root_dir then
                 return
             end
@@ -93,7 +96,7 @@ return {
         function()
             vim.g.roslyn_nvim_selected_solution = nil
             vim.schedule(function()
-                require("roslyn.roslyn_emitter"):emit("stopped")
+                require("roslyn.roslyn_emitter").emit("stopped")
                 vim.notify("Roslyn server stopped", vim.log.levels.INFO, { title = "roslyn.nvim" })
             end)
         end,

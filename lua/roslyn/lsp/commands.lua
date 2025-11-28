@@ -2,7 +2,7 @@
 ---@field title string
 ---@field code_action table
 
----@return RoslynCodeAction
+---@return RoslynCodeAction[]
 local function get_code_actions(nested_code_actions)
     return vim.iter(nested_code_actions)
         :map(function(it)

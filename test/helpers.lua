@@ -146,11 +146,9 @@ function M.create_sln_file(path, projects)
     for _, proj in ipairs(projects) do
         -- Cycle through dummy GUIDs; for more projects they will repeat.
         append(
-            string.format(
-                'Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "%s", "%s", "{8B8A22ED-4262-4409-B9B1-36F334016FDB}"',
-                proj.name,
-                proj.path
-            )
+            'Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = '
+                .. string.format('"%s", "%s"', proj.name, proj.path)
+                .. ', "{8B8A22ED-4262-4409-B9B1-36F334016FDB}"'
         )
         append("EndProject")
     end

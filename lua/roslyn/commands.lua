@@ -17,7 +17,7 @@ local on_stopped = function(fun)
         end
     end
 
-    remove_listener = roslyn_emitter:on("stopped", _fun)
+    remove_listener = roslyn_emitter.on("stopped", _fun)
 end
 
 ---@class RoslynSubcommandTable
