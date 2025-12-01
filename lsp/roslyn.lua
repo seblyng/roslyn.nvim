@@ -11,18 +11,34 @@ local function get_default_cmd()
         or vim.fn.executable(roslyn_bin) == 1 and roslyn_bin
         or "Microsoft.CodeAnalysis.LanguageServer"
 
-    return {
+    local cmd = {
         exe,
         "--logLevel=Information",
         "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.log.get_filename()),
         "--stdio",
     }
+
+    local razor_extension_path =
+        vim.fs.joinpath(vim.fn.stdpath("data"), "mason", "packages", "roslyn-unstable", "libexec", ".razorExtension")
+
+    if vim.fn.isdirectory(razor_extension_path) == 1 then
+        cmd = vim.list_extend(cmd, {
+            "--razorSourceGenerator="
+                .. vim.fs.joinpath(razor_extension_path, "Microsoft.CodeAnalysis.Razor.Compiler.dll"),
+            "--razorDesignTimePath="
+                .. vim.fs.joinpath(razor_extension_path, "Targets", "Microsoft.NET.Sdk.Razor.DesignTime.targets"),
+            "--extension",
+            vim.fs.joinpath(razor_extension_path, "Microsoft.VisualStudioCode.RazorExtension.dll"),
+        })
+    end
+
+    return cmd
 end
 
 ---@type vim.lsp.Config
 return {
     name = "roslyn",
-    filetypes = { "cs" },
+    filetypes = { "cs", "razor" },
     cmd = get_default_cmd(),
     cmd_env = {
         Configuration = vim.env.Configuration or "Debug",
@@ -32,6 +48,13 @@ return {
             -- HACK: Doesn't show any diagnostics if we do not set this to true
             diagnostic = {
                 dynamicRegistration = true,
+            },
+        },
+    },
+    settings = {
+        razor = {
+            language_server = {
+                cohosting_enabled = true,
             },
         },
     },
