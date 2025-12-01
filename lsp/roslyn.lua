@@ -18,10 +18,25 @@ local function get_default_cmd()
         "--stdio",
     }
 
-    local razor_extension_path =
-        vim.fs.joinpath(vim.fn.stdpath("data"), "mason", "packages", "roslyn-unstable", "libexec", ".razorExtension")
+    local function find_razor_extension_path()
+        local mason_packages = vim.fs.joinpath(vim.fn.stdpath("data"), "mason", "packages")
 
-    if vim.fn.isdirectory(razor_extension_path) == 1 then
+        local stable_path = vim.fs.joinpath(mason_packages, "roslyn", "libexec", ".razorExtension")
+        if vim.fn.isdirectory(stable_path) == 1 then
+            return stable_path
+        end
+
+        -- TODO: Once the .razorExtension moves to the stable roslyn package, remove this
+        local unstable_path = vim.fs.joinpath(mason_packages, "roslyn-unstable", "libexec", ".razorExtension")
+        if vim.fn.isdirectory(unstable_path) == 1 then
+            return unstable_path
+        end
+
+        return nil
+    end
+
+    local razor_extension_path = find_razor_extension_path()
+    if razor_extension_path ~= nil then
         cmd = vim.list_extend(cmd, {
             "--razorSourceGenerator="
                 .. vim.fs.joinpath(razor_extension_path, "Microsoft.CodeAnalysis.Razor.Compiler.dll"),
@@ -31,7 +46,6 @@ local function get_default_cmd()
             vim.fs.joinpath(razor_extension_path, "Microsoft.VisualStudioCode.RazorExtension.dll"),
         })
     end
-
     return cmd
 end
 
