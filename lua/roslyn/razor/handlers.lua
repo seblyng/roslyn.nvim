@@ -32,12 +32,11 @@ end
 ---@param _ctx lsp.HandlerContext
 ---@return true
 local function log(_err, res, _ctx)
+    local _log = require("roslyn.log")
     local razor = require("roslyn.razor.types")
     -- TODO: once we are more stable we can use the existing log methods
-    local level = razor.MessageType[res.type]
-    if level == "Error" or level == "Warning" then
-        vim.print(res.message)
-    end
+    local level = razor.MessageType[res.type] or "Unknown"
+    _log.log(string.format("[%s] %s", level, res.message))
     return true
 end
 
