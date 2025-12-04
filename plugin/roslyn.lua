@@ -11,11 +11,18 @@ vim.lsp.enable("roslyn")
 
 vim.treesitter.language.register("c_sharp", "csharp")
 
+vim.filetype.add({
+    extension = {
+        razor = "razor",
+        cshtml = "razor",
+    },
+})
+
 local group = vim.api.nvim_create_augroup("roslyn.nvim", { clear = true })
 
 vim.api.nvim_create_autocmd("FileType", {
     group = group,
-    pattern = "cs",
+    pattern = { "cs", "razor" },
     callback = function()
         require("roslyn.commands").create_roslyn_commands()
     end,
@@ -23,7 +30,7 @@ vim.api.nvim_create_autocmd("FileType", {
 
 vim.api.nvim_create_autocmd({ "BufWritePost", "InsertLeave" }, {
     group = group,
-    pattern = "*.cs",
+    pattern = { "*.cs", "*.razor", "*.cshtml" },
     callback = function()
         local client = vim.lsp.get_clients({ name = "roslyn" })[1]
         if client then

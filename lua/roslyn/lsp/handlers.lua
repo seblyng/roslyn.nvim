@@ -16,14 +16,6 @@ return {
             vim.notify("Roslyn project initialization complete", vim.log.levels.INFO, { title = "roslyn.nvim" })
         end
 
-        ---NOTE: This is used by rzls.nvim for init
-        vim.api.nvim_exec_autocmds("User", {
-            pattern = "RoslynInitialized",
-            modeline = false,
-            data = { client_id = ctx.client_id },
-        })
-        _G.roslyn_initialized = true
-
         local client = assert(vim.lsp.get_client_by_id(ctx.client_id))
 
         -- Add diagnostics when project init
@@ -107,4 +99,23 @@ return {
 
         return vim.NIL
     end,
+
+    -- NOTE: Razor End Points
+    -- Where these comms that are usually client -> server come server -> client
+    -- roslyn wants us to query the local Html LS and return the additional options
+    ["razor/updateHtml"] = require("roslyn.razor.handlers").html_update,
+    ["razor/log"] = require("roslyn.razor.handlers").log,
+
+    ["textDocument/documentColor"] = require("roslyn.razor.handlers").forward,
+    ["textDocument/colorPresentation"] = require("roslyn.razor.handlers").forward,
+    ["textDocument/foldingRange"] = require("roslyn.razor.handlers").forward,
+    ["textDocument/hover"] = require("roslyn.razor.handlers").forward,
+    ["textDocument/documentHighlight"] = require("roslyn.razor.handlers").forward,
+    ["textDocument/completion"] = require("roslyn.razor.handlers").forward,
+    ["textDocument/reference"] = require("roslyn.razor.handlers").forward,
+    ["textDocument/implementation"] = require("roslyn.razor.handlers").forward,
+    ["textDocument/definition"] = require("roslyn.razor.handlers").forward,
+    ["textDocument/signatureHelp"] = require("roslyn.razor.handlers").forward,
+    ["textDocument/formatting"] = require("roslyn.razor.handlers").forward,
+    ["textDocument/onTypeFormatting"] = require("roslyn.razor.handlers").forward,
 }

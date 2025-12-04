@@ -2,11 +2,14 @@
 
 This is an actively maintained & upgraded [fork](https://github.com/jmederosalvarado/roslyn.nvim) that interacts with the improved & open-source C# [Roslyn](https://github.com/dotnet/roslyn) language server, meant to replace the old and discontinued OmniSharp. This language server is currently used in the [Visual Studio Code C# Extension](https://github.com/dotnet/vscode-csharp), which is shipped with the standard C# Dev Kit.
 
-## IMPORTANT
+## Razor/CSHTML Support
 
-This plugin does not provide Razor support.
+This plugin has recently added support for Razor/CSHTML files. This enabled
+razor support using co-hosting and superceeds the old
+[rzls.nvim](https://github.com/tris203/rzls.nvim).
 
-Check out https://github.com/tris203/rzls.nvim if you are using Razor.
+If you previoulsy used `rzls.nvim`, please uninstall it and the `rzls` language
+server.
 
 ## ⚡️ Requirements
 
@@ -38,7 +41,7 @@ https://github.com/user-attachments/assets/a749f6c7-fc87-440c-912d-666d86453bc5
   `roslyn` is not in the mason core registry, so a custom registry is used.
   This registry provides two binaries
   - `roslyn` (To be used with this repo)
-  - `rzls` (To be used with [rzls.nvim](https://github.com/tris203/rzls.nvim))
+    - This has the `.razorExtensions` folder included for Razor/CSHTML support
 
 You need to set up the custom registry like this
 
