@@ -34,7 +34,7 @@ function M:updateDocumentText(uri, checksum, content)
 end
 
 --- @param uri string
---- @param checksum string
+--- @param checksum? string
 --- @return HtmlDocument?
 function M:getDocument(uri, checksum)
     local doc = findDocument(uri)

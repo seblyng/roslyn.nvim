@@ -34,7 +34,7 @@ function document.new(uri)
                 return
             end
             if client.name == "html" then
-                vim.api.nvim_set_option_value("buftype", "nowrite", { buf = ev.buf })
+                vim.bo[ev.buf].buftype = "nowrite"
                 vim.api.nvim_del_autocmd(ev.id)
             end
         end,
