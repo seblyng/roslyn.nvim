@@ -47,32 +47,45 @@ body:
       label: "Minimal config"
       description: >
         Minimal(!) configuration necessary to reproduce the issue. Save this as
-        `init.lua`.
+        `repro.lua`.
 
-        Please **DO NOT** include a package manager (such as `lazy.nvim`) in this.
+        This can be ran with `nvim -u repro.lua`
 
-        If this is not provided, the issue may be closed without notice.
-
-        You may use `NVIM_APPNAME=roslyn_issue nvim` to test with a minimal config.
-        Check out `:h $NVIM_APPNAME` for more info.
+        You will need to reinstall the `roslyn` language server within the repro using `:Mason`
       render: Lua
       value: |
-        for name, url in pairs{
-          roslyn = "https://github.com/seblyng/roslyn.nvim",
-          -- Add other plugins to reproduce the issue
-        } do
-          local install_path = vim.fn.fnamemodify("roslyn_issue/"..name, ":p")
-          if vim.fn.isdirectory(install_path) == 0 then
-            vim.fn.system({ "git", "clone", "--depth=1", url, install_path })
-          end
-          vim.opt.runtimepath:append(install_path)
-        end
+        vim.env.LAZY_STDPATH = ".repro"
+        load(vim.fn.system("curl -s https://raw.githubusercontent.com/folke/lazy.nvim/main/bootstrap.lua"))()
 
-        require("roslyn").setup{
-          -- Add config options necessary to reproduce the issue
-        }
+        require("lazy.minit").repro({
+            spec = {
+                {
 
-        -- Add additional config necessary to reproduce the issue
+                    "mason-org/mason.nvim",
+                    opts = {
+                        registries = {
+                            "github:mason-org/mason-registry",
+                            "github:crashdummyy/mason-registry",
+                        },
+                    },
+                },
+                {
+                    "seblyng/roslyn.nvim",
+                    ft = { "cs", "razor" },
+                    config = function()
+                        vim.lsp.enable("roslyn")
+                    end,
+                    init = function()
+                        vim.filetype.add({
+                            extension = {
+                                razor = "razor",
+                                cshtml = "razor",
+                            },
+                        })
+                    end,
+                },
+            },
+        })
     validations:
       required: true
 
