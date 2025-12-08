@@ -14,6 +14,23 @@ local function get_roslyn_executables()
     }
 end
 
+local function find_razor_extension_path()
+    local mason_packages = vim.fs.joinpath(vim.fn.expand("$MASON"), "packages")
+
+    local stable_path = vim.fs.joinpath(mason_packages, "roslyn", "libexec", ".razorExtension")
+    if vim.fn.isdirectory(stable_path) == 1 then
+        return stable_path
+    end
+
+    -- TODO: Once the .razorExtension moves to the stable roslyn package, remove this
+    local unstable_path = vim.fs.joinpath(mason_packages, "roslyn-unstable", "libexec", ".razorExtension")
+    if vim.fn.isdirectory(unstable_path) == 1 then
+        return unstable_path
+    end
+
+    return nil
+end
+
 function M.check()
     vim.health.start("roslyn.nvim: Requirements")
 
@@ -46,6 +63,16 @@ function M.check()
         vim.health.error("Roslyn language server not found", {
             "Install via Mason: :MasonInstall roslyn",
             "Or follow manual installation instructions at https://github.com/seblj/roslyn.nvim#-installation",
+        })
+    end
+
+    local found_extension = find_razor_extension_path()
+    if found_extension then
+        vim.health.ok(string.format("Razor extension: found at %s", found_extension))
+    else
+        vim.health.warn("Razor extension not found", {
+            "Razor support will be limited.",
+            "Install the roslyn package via Mason to get the Razor extension.",
         })
     end
 
