@@ -71,10 +71,6 @@ body:
                 },
                 {
                     "seblyng/roslyn.nvim",
-                    ft = { "cs", "razor" },
-                    config = function()
-                        vim.lsp.enable("roslyn")
-                    end,
                     init = function()
                         vim.filetype.add({
                             extension = {
