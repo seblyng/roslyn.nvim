@@ -76,6 +76,24 @@ function M.check()
         })
     end
 
+    if vim.fn.executable("vscode-html-language-server") == 1 then
+        vim.health.ok("vscode-html-language-server: found")
+    else
+        vim.health.warn("vscode-html-language-server not found", {
+            "Razor HTML support will be limited.",
+            "Install the html_lsp package via Mason to get the Razor extension.",
+        })
+    end
+
+    if vim.lsp.config.html then
+        vim.health.ok("html-lsp client: configured")
+    else
+        vim.health.warn("html-lsp client not configured", {
+            "Razor HTML support will be limited.",
+            "Consider configuring the html-lsp client for better Razor support.",
+        })
+    end
+
     vim.health.start("roslyn.nvim: File Watching Configuration")
 
     local config = require("roslyn.config").get()
