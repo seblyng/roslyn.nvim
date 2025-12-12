@@ -15,7 +15,10 @@ local function get_roslyn_executables()
 end
 
 local function find_razor_extension_path()
-    local mason_packages = vim.fs.joinpath(vim.fn.expand("$MASON"), "packages")
+    -- Fallback in case mason is lazy loaded or MASON env var is just not set
+    local expanded_mason = vim.fn.expand("$MASON")
+    local mason = expanded_mason == "$MASON" and vim.fs.joinpath(vim.fn.stdpath("data"), "mason") or expanded_mason
+    local mason_packages = vim.fs.joinpath(mason, "packages")
 
     local stable_path = vim.fs.joinpath(mason_packages, "roslyn", "libexec", ".razorExtension")
     if vim.fn.isdirectory(stable_path) == 1 then

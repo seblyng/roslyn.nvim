@@ -5,7 +5,12 @@ local iswin = not not (sysname:find("windows") or sysname:find("mingw"))
 -- Fallback to the same default as `nvim-lspconfig`
 local function get_default_cmd()
     local roslyn_bin = iswin and "roslyn.cmd" or "roslyn"
-    local mason_bin = vim.fs.joinpath(vim.fn.expand("$MASON"), "bin", roslyn_bin)
+
+    -- Fallback in case mason is lazy loaded or MASON env var is just not set
+    local expanded_mason = vim.fn.expand("$MASON")
+    local mason = expanded_mason == "$MASON" and vim.fs.joinpath(vim.fn.stdpath("data"), "mason") or expanded_mason
+
+    local mason_bin = vim.fs.joinpath(mason, "bin", roslyn_bin)
 
     local exe = vim.fn.executable(mason_bin) == 1 and mason_bin
         or vim.fn.executable(roslyn_bin) == 1 and roslyn_bin
@@ -19,7 +24,7 @@ local function get_default_cmd()
     }
 
     local function find_razor_extension_path()
-        local mason_packages = vim.fs.joinpath(vim.fn.expand("$MASON"), "packages")
+        local mason_packages = vim.fs.joinpath(mason, "packages")
 
         local stable_path = vim.fs.joinpath(mason_packages, "roslyn", "libexec", ".razorExtension")
         if vim.fn.isdirectory(stable_path) == 1 then
