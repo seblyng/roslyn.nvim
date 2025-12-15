@@ -18,6 +18,12 @@ return {
 
         local client = assert(vim.lsp.get_client_by_id(ctx.client_id))
 
+        vim.api.nvim_exec_autocmds("User", {
+            pattern = "RoslynInitialized",
+            modeline = false,
+            data = { client_id = ctx.client_id },
+        })
+
         -- Add diagnostics when project init
         diagnostics.refresh(client)
     end,
