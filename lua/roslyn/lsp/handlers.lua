@@ -61,6 +61,7 @@ return {
             end
         end
     end,
+    -- TODO: This is no longer needed with latest roslyn: https://github.com/dotnet/roslyn/pull/81233
     ["workspace/_roslyn_projectNeedsRestore"] = function(_, result, ctx)
         local client = assert(vim.lsp.get_client_by_id(ctx.client_id))
 
