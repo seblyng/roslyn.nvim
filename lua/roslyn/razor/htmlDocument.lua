@@ -35,10 +35,7 @@ function document.new(uri)
         buffer = self.buf,
         callback = function(ev)
             local client = vim.lsp.get_client_by_id(ev.data.client_id)
-            if not client then
-                --Client exited
-                return
-            end
+            assert(client, "LSP client id is not valid")
             if client.name == "html" then
                 vim.bo[ev.buf].buftype = "nowrite"
                 vim.bo[ev.buf].syntax = "off"
