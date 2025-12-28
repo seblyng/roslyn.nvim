@@ -81,10 +81,9 @@ end
 --- @param uri string
 function M.closeDocument(uri)
     local doc = findDocument(uri)
-    if doc then
-        doc:close()
-        M.htmlDocuments[uri] = nil
-    end
+    assert(doc, "Close: Document not found: " .. uri)
+    doc:close()
+    M.htmlDocuments[uri] = nil
 end
 
 function M.dump()
