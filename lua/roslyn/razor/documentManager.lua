@@ -58,13 +58,13 @@ function M:getDocument(uri, checksum)
     if checksum then
         local pendingUpdate = self.pendingUpdates[doc.path]
         if pendingUpdate then
-            vim.wait(5000, function()
+            vim.wait(200, function()
                 return doc:getChecksum() == checksum
             end)
         end
     end
 
-    vim.wait(5000, function()
+    vim.wait(200, function()
         return vim.lsp.get_clients({ bufnr = doc.buf, name = require("roslyn.razor.types").html_lsp_name })[1] ~= nil
     end)
 
@@ -81,9 +81,10 @@ end
 --- @param uri string
 function M.closeDocument(uri)
     local doc = findDocument(uri)
-    assert(doc, "Close: Document not found: " .. uri)
-    doc:close()
-    M.htmlDocuments[uri] = nil
+    if doc then
+        doc:close()
+        M.htmlDocuments[uri] = nil
+    end
 end
 
 function M.dump()

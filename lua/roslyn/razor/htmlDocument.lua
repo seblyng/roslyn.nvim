@@ -25,16 +25,21 @@ function document.new(uri)
     self.path = uri .. require("roslyn.razor.types").virtualHtmlSuffix
     self.buf = vim.uri_to_bufnr(self.path)
     -- NOTE: We set this in an autocmd because otherwise the LSP does not attach to the buffer
+
+    vim.bo[self.buf].filetype = "html"
+    vim.bo[self.buf].buftype = "nofile"
+    vim.bo[self.buf].swapfile = false
+    vim.bo[self.buf].bufhidden = "hide"
+    vim.bo[self.buf].undolevels = -1
+    vim.bo[self.buf].syntax = "off"
+
     vim.api.nvim_create_autocmd("LspAttach", {
         buffer = self.buf,
         callback = function(ev)
             local client = vim.lsp.get_client_by_id(ev.data.client_id)
-            if not client then
-                --Client exited
-                return
-            end
-            if client.name == "html" then
-                vim.bo[ev.buf].buftype = "nowrite"
+            if client and client.name == "html" then
+                vim.bo[ev.buf].buftype = "nofile"
+                vim.bo[ev.buf].syntax = "off"
                 vim.api.nvim_del_autocmd(ev.id)
             end
         end,
@@ -53,14 +58,15 @@ end
 function document:setContent(checksum, content)
     self.checksum = checksum
     self.content = content
-    if self.buf then
-        assert(vim.api.nvim_buf_is_valid(self.buf), "Virtual HTML Document buffer is not valid")
+    if self.buf and vim.api.nvim_buf_is_valid(self.buf) then
         vim.api.nvim_buf_set_lines(self.buf, 0, -1, false, vim.split(content, "\n"))
     end
 end
 
 function document:close()
-    vim.api.nvim_buf_delete(self.buf, { force = true })
+    if self.buf and vim.api.nvim_buf_is_valid(self.buf) then
+        vim.api.nvim_buf_delete(self.buf, { force = true })
+    end
 end
 
 function document:lspRequest(method, params)
