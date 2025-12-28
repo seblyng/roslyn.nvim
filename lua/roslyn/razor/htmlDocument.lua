@@ -26,6 +26,7 @@ function document.new(uri)
     self.buf = vim.uri_to_bufnr(self.path)
     -- NOTE: We set this in an autocmd because otherwise the LSP does not attach to the buffer
 
+    vim.bo[self.buf].filetype = "html"
     vim.bo[self.buf].buftype = "nowrite"
     vim.bo[self.buf].swapfile = false
     vim.bo[self.buf].bufhidden = "hide"
