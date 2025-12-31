@@ -48,7 +48,24 @@ function M.check()
     end
 
     if vim.fn.executable("dotnet") == 1 then
-        vim.health.ok("dotnet: found")
+        local res = vim.system({ "dotnet", "--version" }):wait().stdout:gsub("%s+", "")
+        local version = vim.version.parse(res)
+        if not version then
+            vim.health.warn(
+                string.format("Failed to parse dotnet SDK version: %s", res),
+                "Ensure that the .NET SDK is correctly installed from https://dotnet.microsoft.com/download"
+            )
+            return
+        end
+
+        if version.major >= 10 then
+            vim.health.ok(string.format("dotnet SDK >= 10 (found %s)", res))
+        else
+            vim.health.warn(
+                string.format("dotnet SDK >= 10 is recommended (found %s)", res),
+                "Please upgrade the .NET SDK from https://dotnet.microsoft.com/download"
+            )
+        end
     else
         vim.health.error("dotnet command not found", "Install the .NET SDK from https://dotnet.microsoft.com/download")
     end
