@@ -165,6 +165,9 @@ opts = {
 
     -- If the plugin should silence notifications about initialization
     silent = false,
+
+    -- DLL paths for additional roslyn analyzers (for example Roslynator)
+    analyzer_assemblies = {}
 }
 ```
 

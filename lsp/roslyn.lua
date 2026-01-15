@@ -1,6 +1,19 @@
 local sysname = vim.uv.os_uname().sysname:lower()
 local iswin = not not (sysname:find("windows") or sysname:find("mingw"))
 
+local function is_valid_dll_path(path)
+    if type(path) ~= "string" then
+        return false
+    end
+
+    if path:sub(-4):lower() ~= ".dll" then
+        return false
+    end
+
+    local stat = vim.uv.fs_stat(path)
+    return stat and stat.type == "file"
+end
+
 -- Default to roslyn presumably installed by mason if found.
 -- Fallback to the same default as `nvim-lspconfig`
 local function get_default_cmd()
@@ -51,6 +64,21 @@ local function get_default_cmd()
             vim.fs.joinpath(razor_extension_path, "Microsoft.VisualStudioCode.RazorExtension.dll"),
         })
     end
+
+    local analyzer_assemblies = require("roslyn.config").get().analyzer_assemblies
+    if analyzer_assemblies then
+        for _, analyzer in pairs(analyzer_assemblies) do
+            if is_valid_dll_path(analyzer) then
+                vim.list_extend(cmd, { "--extension", analyzer })
+            else
+                vim.notify(
+                    ("Invalid roslyn analyzer path (must be existing .dll): %s"):format(analyzer),
+                    vim.log.levels.WARN
+                )
+            end
+        end
+    end
+
     return cmd
 end
 
