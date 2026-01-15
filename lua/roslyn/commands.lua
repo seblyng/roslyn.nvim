@@ -28,7 +28,8 @@ end
 local subcommand_tbl = {
     restart = {
         impl = function()
-            local client = vim.lsp.get_clients({ name = "roslyn" })[1]
+            local bufnr = vim.api.nvim_get_current_buf()
+            local client = vim.lsp.get_clients({ name = "roslyn", bufnr = bufnr })[1]
             if not client then
                 return
             end
@@ -43,7 +44,8 @@ local subcommand_tbl = {
     },
     stop = {
         impl = function()
-            local client = vim.lsp.get_clients({ name = "roslyn" })[1]
+            local bufnr = vim.api.nvim_get_current_buf()
+            local client = vim.lsp.get_clients({ name = "roslyn", bufnr = bufnr })[1]
             if not client then
                 return
             end
@@ -75,7 +77,7 @@ local subcommand_tbl = {
                     end,
                 })
 
-                local client = vim.lsp.get_clients({ name = "roslyn" })[1]
+                local client = vim.lsp.get_clients({ name = "roslyn", bufnr = bufnr })[1]
                 if not client then
                     vim.lsp.start(config)
                     return

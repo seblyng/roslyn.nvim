@@ -32,8 +32,8 @@ vim.api.nvim_create_autocmd({ "BufWritePost", "InsertLeave" }, {
     group = group,
     pattern = { "*.cs", "*.razor", "*.cshtml" },
     callback = function()
-        local client = vim.lsp.get_clients({ name = "roslyn" })[1]
-        if client then
+        local clients = vim.lsp.get_clients({ name = "roslyn" })
+        for _, client in ipairs(clients) do
             require("roslyn.lsp.diagnostics").refresh(client)
         end
     end,
@@ -48,7 +48,7 @@ vim.api.nvim_create_autocmd({ "BufReadCmd" }, {
 
         -- This triggers FileType event which should fire up the lsp client if not already running
         vim.bo[args.buf].filetype = "cs"
-        local client = vim.lsp.get_clients({ name = "roslyn" })[1]
+        local client = vim.lsp.get_clients({ name = "roslyn", bufnr = args.buf })[1]
         assert(client, "Must have a `roslyn` client to load roslyn source generated file")
 
         local content
