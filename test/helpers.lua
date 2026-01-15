@@ -236,8 +236,8 @@ function M.get_root_dir(file_path, preselected)
 
     return helpers.exec_lua(function(path, preselected0)
         package.path = path
-        vim.g.roslyn_nvim_selected_solution = preselected0
         local bufnr = vim.api.nvim_get_current_buf()
+        require("roslyn.store").set(bufnr, preselected0)
         return require("roslyn.sln.utils").root_dir(bufnr)
     end, package.path, preselected)
 end
