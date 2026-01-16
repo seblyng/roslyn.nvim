@@ -8,7 +8,7 @@ local M = {}
 ---@field lock_target boolean
 ---@field silent boolean
 ---@field debug boolean
----@field analyzer_assemblies string[]
+---@field extensions (string | fun(): string)[]
 
 ---@class RoslynNvimConfig
 ---@field filewatching? boolean | "auto" | "off" | "roslyn"
@@ -18,7 +18,7 @@ local M = {}
 ---@field lock_target? boolean
 ---@field silent? boolean
 ---@field debug? boolean
----@field analyzer_assemblies? string[]
+---@field extensions? (string | fun(): string)[]
 
 ---@type InternalRoslynNvimConfig
 local roslyn_config = {
@@ -29,7 +29,7 @@ local roslyn_config = {
     lock_target = false,
     silent = false,
     debug = false,
-    analyzer_assemblies = {},
+    extensions = {},
 }
 
 function M.get()

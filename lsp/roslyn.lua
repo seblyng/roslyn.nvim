@@ -65,17 +65,22 @@ local function get_default_cmd()
         })
     end
 
-    local analyzer_assemblies = require("roslyn.config").get().analyzer_assemblies
-    if analyzer_assemblies then
-        for _, analyzer in pairs(analyzer_assemblies) do
-            if is_valid_dll_path(analyzer) then
-                vim.list_extend(cmd, { "--extension", analyzer })
-            else
-                vim.notify(
-                    ("Invalid roslyn analyzer path (must be existing .dll): %s"):format(analyzer),
-                    vim.log.levels.WARN
-                )
-            end
+    local roslyn_extensions = require("roslyn.config").get().extensions or {}
+    for _, ext_path in ipairs(roslyn_extensions) do
+        local resolved_path
+        if type(ext_path) == "function" then
+            resolved_path = ext_path()
+        else
+            resolved_path = ext_path
+        end
+
+        if is_valid_dll_path(resolved_path) then
+            vim.list_extend(cmd, { "--extension", resolved_path })
+        else
+            vim.notify(
+                ("Invalid roslyn extension path (must be existing .dll): %s"):format(resolved_path),
+                vim.log.levels.WARN
+            )
         end
     end
 
