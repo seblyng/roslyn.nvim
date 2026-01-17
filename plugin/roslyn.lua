@@ -21,14 +21,15 @@ vim.filetype.add({
 local group = vim.api.nvim_create_augroup("roslyn.nvim", { clear = true })
 
 -- Updates `vim.g.roslyn_nvim_selected_solution` when entering a C# or Razor buffer
--- so that `root_dir` can pick it up
+-- so that it always reflects the current buffers' solution.
 vim.api.nvim_create_autocmd("BufEnter", {
     group = group,
     pattern = { "*.cs", ".*razor", "*.cshtml" },
     callback = function(args)
-        local solution = require("roslyn.store").get(args.buf)
-        if solution then
-            require("roslyn.store").set(args.buf, solution)
+        local client = vim.lsp.get_clients({ name = "roslyn", bufnr = args.buf })[1]
+        local solution = require("roslyn.store").get_by_bufnr(args.buf)
+        if client and solution then
+            require("roslyn.store").set(args.buf, client.id, solution)
         end
     end,
 })

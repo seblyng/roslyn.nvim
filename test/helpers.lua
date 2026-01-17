@@ -288,6 +288,30 @@ function M.setup(config)
     end, package.path, config)
 end
 
+---Sets up a one-shot choose_target that picks a solution once, then clears itself.
+---@param pattern string Pattern to match against solution paths
+function M.choose_solution_once(pattern)
+    helpers.exec_lua(function(path, pattern0)
+        package.path = path
+
+        local cwd = vim.fn.getcwd()
+        local lua_path = vim.fs.joinpath(cwd, "lua", "?.lua") .. ";" .. vim.fs.joinpath(cwd, "lua", "?", "init.lua")
+        package.path = lua_path .. ";" .. package.path
+
+        local config = require("roslyn.config")
+        local current = config.get()
+
+        current.choose_target = function(targets)
+            -- Clear ourselves after being called once
+            current.choose_target = nil
+
+            return vim.iter(targets):find(function(item)
+                return string.match(item, pattern0)
+            end)
+        end
+    end, package.path, pattern)
+end
+
 -- =============================================================================
 -- Mock Server Helpers (for real LSP integration tests)
 -- =============================================================================
@@ -339,7 +363,7 @@ function M.get_mock_server_notifications()
     return result
 end
 
----Opens a file and waits for LSP to attach.
+---Opens a file and waits for LSP to attach to the current buffer.
 ---@param file_path string Path relative to scratch directory
 ---@param timeout? number Timeout in ms (default 5000)
 ---@return number bufnr
@@ -348,8 +372,10 @@ function M.open_file_and_wait_for_lsp(file_path, timeout)
     command("edit " .. vim.fs.joinpath(M.scratch, file_path))
 
     local attached = helpers.exec_lua(function(timeout0)
+        local bufnr = vim.api.nvim_get_current_buf()
         return vim.wait(timeout0, function()
-            local clients = vim.lsp.get_clients({ name = "roslyn" })
+            -- Wait for a client to be attached to THIS buffer specifically
+            local clients = vim.lsp.get_clients({ name = "roslyn", bufnr = bufnr })
             if #clients == 0 then
                 return false
             end
