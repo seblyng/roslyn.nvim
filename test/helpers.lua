@@ -330,9 +330,10 @@ function M.use_mock_server()
 
         local lsp_config = dofile(vim.fs.joinpath(cwd, "lsp", "roslyn.lua"))
 
-        -- Override the cmd to use our mock server with plain lua
+        -- Override the cmd to use our mock server with nvim -l (for vim.json access)
         lsp_config.cmd = {
-            "lua",
+            "nvim",
+            "-l",
             vim.fs.joinpath(vim.fn.getcwd(), "test", "mock_server.lua"),
         }
         lsp_config.cmd_env = {

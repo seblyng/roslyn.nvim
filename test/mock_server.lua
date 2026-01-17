@@ -1,139 +1,9 @@
-#!/usr/bin/env lua
+#!/usr/bin/env -S nvim -l
 -- Minimal mock LSP server for testing
--- Run with: lua test/mock_server.lua
+-- Run with: nvim -l test/mock_server.lua
 --
 -- Records solution/open and project/open notifications to a log file.
 -- The log file path is specified via ROSLYN_MOCK_SERVER_LOG env var.
-
--- Minimal JSON encoder/decoder for our specific use case
-local json = {}
-
-function json.encode(value)
-    local t = type(value)
-    if t == "nil" then
-        return "null"
-    elseif t == "boolean" then
-        return value and "true" or "false"
-    elseif t == "number" then
-        return tostring(value)
-    elseif t == "string" then
-        return '"' .. value:gsub('\\', '\\\\'):gsub('"', '\\"'):gsub('\n', '\\n'):gsub('\r', '\\r'):gsub('\t', '\\t') .. '"'
-    elseif t == "table" then
-        -- Check if array or object
-        local is_array = #value > 0 or next(value) == nil
-        if is_array then
-            local parts = {}
-            for _, v in ipairs(value) do
-                table.insert(parts, json.encode(v))
-            end
-            return "[" .. table.concat(parts, ",") .. "]"
-        else
-            local parts = {}
-            for k, v in pairs(value) do
-                table.insert(parts, json.encode(tostring(k)) .. ":" .. json.encode(v))
-            end
-            return "{" .. table.concat(parts, ",") .. "}"
-        end
-    end
-    return "null"
-end
-
-function json.decode(str)
-    -- Very basic JSON decoder - handles our specific LSP messages
-    local pos = 1
-
-    local function skip_whitespace()
-        while pos <= #str and str:sub(pos, pos):match("%s") do
-            pos = pos + 1
-        end
-    end
-
-    local function parse_value()
-        skip_whitespace()
-        local c = str:sub(pos, pos)
-
-        if c == '"' then
-            -- String
-            pos = pos + 1
-            local start = pos
-            while pos <= #str do
-                local ch = str:sub(pos, pos)
-                if ch == '"' then
-                    local result = str:sub(start, pos - 1)
-                    pos = pos + 1
-                    -- Handle basic escape sequences
-                    result = result:gsub("\\n", "\n"):gsub("\\r", "\r"):gsub("\\t", "\t"):gsub('\\"', '"'):gsub("\\\\", "\\")
-                    return result
-                elseif ch == "\\" then
-                    pos = pos + 2 -- Skip escaped char
-                else
-                    pos = pos + 1
-                end
-            end
-        elseif c == "{" then
-            -- Object
-            pos = pos + 1
-            local obj = {}
-            skip_whitespace()
-            if str:sub(pos, pos) == "}" then
-                pos = pos + 1
-                return obj
-            end
-            while true do
-                skip_whitespace()
-                local key = parse_value()
-                skip_whitespace()
-                pos = pos + 1 -- skip ':'
-                local value = parse_value()
-                obj[key] = value
-                skip_whitespace()
-                if str:sub(pos, pos) == "}" then
-                    pos = pos + 1
-                    return obj
-                end
-                pos = pos + 1 -- skip ','
-            end
-        elseif c == "[" then
-            -- Array
-            pos = pos + 1
-            local arr = {}
-            skip_whitespace()
-            if str:sub(pos, pos) == "]" then
-                pos = pos + 1
-                return arr
-            end
-            while true do
-                table.insert(arr, parse_value())
-                skip_whitespace()
-                if str:sub(pos, pos) == "]" then
-                    pos = pos + 1
-                    return arr
-                end
-                pos = pos + 1 -- skip ','
-            end
-        elseif str:sub(pos, pos + 3) == "true" then
-            pos = pos + 4
-            return true
-        elseif str:sub(pos, pos + 4) == "false" then
-            pos = pos + 5
-            return false
-        elseif str:sub(pos, pos + 3) == "null" then
-            pos = pos + 4
-            return nil
-        elseif c:match("[%d%-]") then
-            -- Number
-            local start = pos
-            while pos <= #str and str:sub(pos, pos):match("[%d%.eE%+%-]") do
-                pos = pos + 1
-            end
-            return tonumber(str:sub(start, pos - 1))
-        end
-
-        return nil
-    end
-
-    return parse_value()
-end
 
 -- Server state
 local log_file = os.getenv("ROSLYN_MOCK_SERVER_LOG") or "/tmp/roslyn_mock_server.log"
@@ -146,8 +16,8 @@ local function read_existing_notifications()
         local content = f:read("*a")
         f:close()
         if content and content ~= "" then
-            local existing = json.decode(content)
-            if existing and type(existing) == "table" then
+            local ok, existing = pcall(vim.json.decode, content)
+            if ok and existing and type(existing) == "table" then
                 return existing
             end
         end
@@ -158,7 +28,7 @@ end
 local function write_log()
     local f = io.open(log_file, "w")
     if f then
-        f:write(json.encode(notifications))
+        f:write(vim.json.encode(notifications))
         f:close()
     end
 end
@@ -209,12 +79,16 @@ local function read_message()
         return nil
     end
     log_debug("Raw body: " .. body)
-    local msg = json.decode(body)
+    local ok, msg = pcall(vim.json.decode, body)
+    if not ok then
+        log_debug("Failed to decode JSON: " .. tostring(msg))
+        return nil
+    end
     return msg
 end
 
 local function send_response(id, result)
-    local response = json.encode({
+    local response = vim.json.encode({
         jsonrpc = "2.0",
         id = id,
         result = result,
@@ -254,7 +128,7 @@ while true do
         -- Notification, no response needed
     elseif msg.method == "shutdown" then
         log_debug("Handling shutdown")
-        send_response(msg.id, json.encode(nil))
+        send_response(msg.id, vim.NIL)
     elseif msg.method == "exit" then
         log_debug("Handling exit")
         break
