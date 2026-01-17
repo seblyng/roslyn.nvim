@@ -86,9 +86,10 @@ function M.check()
         })
     end
 
-    local found_extension = find_razor_extension_path()
-    if found_extension then
-        vim.health.ok(string.format("Razor extension: found at %s", found_extension))
+    vim.health.start("roslyn.nvim: Razor extension")
+    local found_razor_extension = find_razor_extension_path()
+    if found_razor_extension then
+        vim.health.ok(string.format("Razor extension: found at %s", found_razor_extension))
     else
         vim.health.warn("Razor extension not found", {
             "Razor support will be limited.",
@@ -114,10 +115,28 @@ function M.check()
         })
     end
 
-    vim.health.start("roslyn.nvim: File Watching Configuration")
-
+    vim.health.start("roslyn.nvim: Custom Roslyn extensions")
     local config = require("roslyn.config").get()
+    local utils = require("roslyn.utils")
 
+    local roslyn_extensions = require("roslyn.config").get().extensions or {}
+    if #roslyn_extensions > 0 then
+        for _, ext_path in ipairs(roslyn_extensions) do
+            local resolved_path = type(ext_path) == "function" and ext_path() or ext_path
+
+            if utils.is_valid_dll_path(resolved_path) then
+                vim.health.ok(string.format("Roslyn extension: valid path provided '%s'", resolved_path))
+            else
+                vim.health.warn(string.format("Roslyn extension: invalid path '%s'", resolved_path), {
+                    "Provided value or function must point to an existing .dll file.",
+                })
+            end
+        end
+    else
+        vim.health.info("Roslyn extensions: No custom extensions provided")
+    end
+
+    vim.health.start("roslyn.nvim: File Watching Configuration")
     local client = vim.lsp.get_clients({ name = "roslyn" })[1]
     if not client then
         vim.health.warn("Roslyn is not running. Cannot determine file watching configuration.")
