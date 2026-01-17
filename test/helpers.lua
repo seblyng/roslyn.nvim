@@ -320,7 +320,10 @@ M.mock_server_log = vim.fs.joinpath(M.scratch, "mock_server.log")
 
 ---Configures the LSP to use the mock server instead of the real roslyn server.
 function M.use_mock_server()
-    helpers.exec_lua(function(path, log_path)
+    -- Get the nvim path from NVIM_PRG env (set by nvim-test) or fall back to vim.v.progpath
+    local nvim_prog = os.getenv("NVIM_PRG") or "nvim"
+
+    helpers.exec_lua(function(path, log_path, nvim_prog0)
         package.path = path
 
         -- Add the plugin's lua directory to package.path so require works for roslyn modules
@@ -331,8 +334,9 @@ function M.use_mock_server()
         local lsp_config = dofile(vim.fs.joinpath(cwd, "lsp", "roslyn.lua"))
 
         -- Override the cmd to use our mock server with nvim -l (for vim.json access)
+        -- Use the nvim from NVIM_PRG (set by nvim-test in CI) to ensure we use the correct binary
         lsp_config.cmd = {
-            "nvim",
+            nvim_prog0,
             "-l",
             vim.fs.joinpath(vim.fn.getcwd(), "test", "mock_server.lua"),
         }
@@ -342,7 +346,7 @@ function M.use_mock_server()
 
         vim.lsp.config["roslyn"] = lsp_config
         vim.lsp.enable("roslyn")
-    end, package.path, M.mock_server_log)
+    end, package.path, M.mock_server_log, nvim_prog)
 end
 
 ---Reads the notifications recorded by the mock server.
