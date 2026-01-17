@@ -140,6 +140,21 @@ local log_file = os.getenv("ROSLYN_MOCK_SERVER_LOG") or "/tmp/roslyn_mock_server
 local debug_file = os.getenv("ROSLYN_MOCK_SERVER_DEBUG")
 local notifications = {}
 
+local function read_existing_notifications()
+    local f = io.open(log_file, "r")
+    if f then
+        local content = f:read("*a")
+        f:close()
+        if content and content ~= "" then
+            local existing = json.decode(content)
+            if existing and type(existing) == "table" then
+                return existing
+            end
+        end
+    end
+    return {}
+end
+
 local function write_log()
     local f = io.open(log_file, "w")
     if f then
@@ -209,9 +224,9 @@ local function send_response(id, result)
     log_debug("Sent response: " .. response)
 end
 
--- Clear log file on startup
-write_log()
-log_debug("Mock server started, log file: " .. log_file)
+-- Read existing notifications on startup (to support multiple server instances)
+notifications = read_existing_notifications()
+log_debug("Mock server started, log file: " .. log_file .. ", existing notifications: " .. #notifications)
 
 -- Main message loop
 while true do

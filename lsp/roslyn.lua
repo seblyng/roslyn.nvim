@@ -155,7 +155,7 @@ return {
             local client = vim.lsp.get_client_by_id(client_id)
             local buffers = client and client.attached_buffers or {}
             for bufnr in pairs(buffers) do
-                require("roslyn.store").set(bufnr, nil)
+                require("roslyn.store").set(bufnr, client.id, nil)
             end
             vim.schedule(function()
                 require("roslyn.roslyn_emitter").emit("stopped")

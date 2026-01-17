@@ -134,7 +134,6 @@ function M.root_dir(bufnr)
     end
 
     local csproj = find_csproj_file(bufnr)
-    local selected_solution = vim.g.roslyn_nvim_selected_solution
 
     local filtered_targets = filter_targets(solutions, csproj)
     if #filtered_targets > 1 then
@@ -143,8 +142,18 @@ function M.root_dir(bufnr)
             return vim.fs.dirname(chosen)
         end
 
-        if selected_solution and vim.list_contains(filtered_targets, selected_solution) then
-            return vim.fs.dirname(selected_solution)
+        -- Try to find an existing client attached to one of the filtered solutions
+        -- If we find one, then assume that they want to reuse that one
+        -- If we find multiple or none, then we cannot decide which one to use
+        local possible_solutions = vim.tbl_map(function(client)
+            local client_solution = require("roslyn.store").get_by_client_id(client.id)
+            if client_solution and vim.list_contains(filtered_targets, client_solution) then
+                return vim.fs.dirname(client_solution)
+            end
+        end, vim.lsp.get_clients({ name = "roslyn" }))
+
+        if #possible_solutions == 1 and possible_solutions[1] then
+            return possible_solutions[1]
         end
 
         vim.notify(
@@ -155,6 +164,7 @@ function M.root_dir(bufnr)
         return nil
     end
 
+    local selected_solution = vim.g.roslyn_nvim_selected_solution
     return vim.fs.dirname(filtered_targets[1])
         or selected_solution and vim.fs.dirname(selected_solution)
         or csproj and vim.fs.dirname(csproj)

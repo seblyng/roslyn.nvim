@@ -12,6 +12,7 @@ local open_file_and_wait_for_lsp = helpers.open_file_and_wait_for_lsp
 local get_lsp_clients = helpers.get_lsp_clients
 local stop_all_lsp_clients = helpers.stop_all_lsp_clients
 local get_selected_solution = helpers.get_selected_solution
+local choose_solution_once = helpers.choose_solution_once
 local wait = helpers.wait
 
 ---Converts a file path to a file:// URI
@@ -305,5 +306,146 @@ describe("LSP integration with mock server", function()
         local notifications = get_mock_server_notifications()
         assert.are_equal(1, #notifications)
         assert.are_equal("project/open", notifications[1].method)
+    end)
+
+    it("reuses correct instance when working with multiple projects", function()
+        setup({ broad_search = true })
+
+        create_file("src/Foo/Program.cs")
+        create_file("src/Foo/Test.cs")
+        create_file("src/Foo/Foo.csproj")
+
+        create_file("src/Bar/Program.cs")
+        create_file("src/Bar/Test.cs")
+        create_file("src/Bar/Bar.csproj")
+
+        create_sln_file("src/Bar/Bar.sln", { { name = "Bar", path = [[Bar.csproj]] } })
+        create_sln_file("src/Foo/Foo.sln", { { name = "Foo", path = [[Foo.csproj]] } })
+
+        local bufnr1 = open_file_and_wait_for_lsp("src/Foo/Program.cs")
+        local bufnr2 = open_file_and_wait_for_lsp("src/Bar/Program.cs")
+
+        local bufnr3 = open_file_and_wait_for_lsp("src/Foo/Test.cs")
+        local bufnr4 = open_file_and_wait_for_lsp("src/Bar/Test.cs")
+
+        local clients = get_lsp_clients()
+        assert.are_equal(2, #clients)
+
+        local foo_clients = get_lsp_clients(bufnr1)
+        assert.are_equal(1, #foo_clients)
+
+        assert.is_true(vim.list_contains(foo_clients[1].attached_buffers, bufnr1))
+        assert.is_true(vim.list_contains(foo_clients[1].attached_buffers, bufnr3))
+
+        local bar_clients = get_lsp_clients(bufnr2)
+        assert.are_equal(1, #bar_clients)
+
+        assert.is_true(vim.list_contains(bar_clients[1].attached_buffers, bufnr2))
+        assert.is_true(vim.list_contains(bar_clients[1].attached_buffers, bufnr4))
+
+        wait(100)
+        local notifications = get_mock_server_notifications()
+        assert.are_equal(2, #notifications)
+        assert.are_equal("solution/open", notifications[1].method)
+        assert.are_equal("solution/open", notifications[2].method)
+
+        local solutions = {
+            notifications[1].params.solution,
+            notifications[2].params.solution,
+        }
+        assert.is_true(vim.tbl_contains(solutions, to_uri(vim.fs.joinpath(scratch, "src", "Foo", "Foo.sln"))))
+        assert.is_true(vim.tbl_contains(solutions, to_uri(vim.fs.joinpath(scratch, "src", "Bar", "Bar.sln"))))
+    end)
+
+    it("reuses instance if possible", function()
+        setup({ broad_search = true })
+
+        create_sln_file("src/Root.sln", {
+            { name = "Bar", path = [[Bar\Bar.csproj]] },
+            { name = "Foo", path = [[Foo\Foo.csproj]] },
+        })
+
+        create_file("src/Foo/Program.cs")
+        create_file("src/Foo/Test.cs")
+        create_file("src/Foo/Foo.csproj")
+
+        create_file("src/Bar/Program.cs")
+        create_file("src/Bar/Test.cs")
+        create_file("src/Bar/Bar.csproj")
+
+        create_sln_file("src/Bar/Bar.sln", { { name = "Bar", path = [[Bar.csproj]] } })
+        create_sln_file("src/Foo/Foo.sln", { { name = "Foo", path = [[Foo.csproj]] } })
+
+        choose_solution_once("Foo.sln")
+        local bufnr1 = open_file_and_wait_for_lsp("src/Foo/Program.cs")
+
+        choose_solution_once("Bar.sln")
+        open_file_and_wait_for_lsp("src/Bar/Program.cs")
+
+        local bufnr3 = open_file_and_wait_for_lsp("src/Foo/Test.cs")
+
+        local clients = get_lsp_clients(bufnr1)
+        local attached_buffers = clients[1].attached_buffers
+
+        assert.are_equal(2, #attached_buffers)
+        assert.is_true(vim.list_contains(attached_buffers, bufnr1))
+        assert.is_true(vim.list_contains(attached_buffers, bufnr3))
+    end)
+
+    it("cannot determine which instance to reuse", function()
+        setup({ broad_search = true })
+
+        create_sln_file("src/Root.sln", {
+            { name = "Bar", path = [[Bar\Bar.csproj]] },
+            { name = "Foo", path = [[Foo\Foo.csproj]] },
+        })
+
+        create_file("src/Foo/Program.cs")
+        create_file("src/Foo/Test.cs")
+        create_file("src/Foo/Hello.cs")
+        create_file("src/Foo/Foo.csproj")
+
+        create_file("src/Bar/Program.cs")
+        create_file("src/Bar/Test.cs")
+        create_file("src/Bar/Hello.cs")
+        create_file("src/Bar/Bar.csproj")
+
+        create_sln_file("src/Bar/Bar.sln", { { name = "Bar", path = [[Bar.csproj]] } })
+        create_sln_file("src/Foo/Foo.sln", { { name = "Foo", path = [[Foo.csproj]] } })
+
+        choose_solution_once("Root.sln")
+        open_file_and_wait_for_lsp("src/Bar/Program.cs")
+
+        choose_solution_once("Foo.sln")
+        open_file_and_wait_for_lsp("src/Foo/Program.cs")
+
+        choose_solution_once("Bar.sln")
+        open_file_and_wait_for_lsp("src/Bar/Hello.cs")
+
+        local clients = get_lsp_clients()
+        assert.are_equal(3, #clients)
+
+        -- Last attached solution is Bar, and we have two instances that we can possibly reuse
+        -- So we cannot know for sure
+        local bufnr4 = open_file_and_wait_for_lsp("src/Foo/Test.cs")
+
+        local client = get_lsp_clients(bufnr4)
+        assert.is_nil(client[1].root_dir)
+
+        wait(100)
+        local notifications = get_mock_server_notifications()
+        assert.are_equal(3, #notifications)
+        assert.are_equal("solution/open", notifications[1].method)
+        assert.are_equal("solution/open", notifications[2].method)
+        assert.are_equal("solution/open", notifications[3].method)
+
+        local solutions = {
+            notifications[1].params.solution,
+            notifications[2].params.solution,
+            notifications[3].params.solution,
+        }
+        assert.is_true(vim.tbl_contains(solutions, to_uri(vim.fs.joinpath(scratch, "src", "Foo", "Foo.sln"))))
+        assert.is_true(vim.tbl_contains(solutions, to_uri(vim.fs.joinpath(scratch, "src", "Bar", "Bar.sln"))))
+        assert.is_true(vim.tbl_contains(solutions, to_uri(vim.fs.joinpath(scratch, "src", "Root.sln"))))
     end)
 end)
