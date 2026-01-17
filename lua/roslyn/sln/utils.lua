@@ -145,12 +145,14 @@ function M.root_dir(bufnr)
         -- Try to find an existing client attached to one of the filtered solutions
         -- If we find one, then assume that they want to reuse that one
         -- If we find multiple or none, then we cannot decide which one to use
-        local possible_solutions = vim.tbl_map(function(client)
-            local client_solution = require("roslyn.store").get_by_client_id(client.id)
-            if client_solution and vim.list_contains(filtered_targets, client_solution) then
-                return vim.fs.dirname(client_solution)
-            end
-        end, vim.lsp.get_clients({ name = "roslyn" }))
+        local possible_solutions = vim.iter(vim.lsp.get_clients({ name = "roslyn" }))
+            :map(function(client)
+                local client_solution = require("roslyn.store").get_by_client_id(client.id)
+                if client_solution and vim.list_contains(filtered_targets, client_solution) then
+                    return vim.fs.dirname(client_solution)
+                end
+            end)
+            :totable()
 
         if #possible_solutions == 1 and possible_solutions[1] then
             return possible_solutions[1]
