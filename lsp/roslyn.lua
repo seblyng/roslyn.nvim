@@ -1,19 +1,6 @@
 local sysname = vim.uv.os_uname().sysname:lower()
 local iswin = not not (sysname:find("windows") or sysname:find("mingw"))
 
-local function is_valid_dll_path(path)
-    if type(path) ~= "string" then
-        return false
-    end
-
-    if path:sub(-4):lower() ~= ".dll" then
-        return false
-    end
-
-    local stat = vim.uv.fs_stat(path)
-    return stat and stat.type == "file"
-end
-
 -- Default to roslyn presumably installed by mason if found.
 -- Fallback to the same default as `nvim-lspconfig`
 local function get_default_cmd()
@@ -65,16 +52,12 @@ local function get_default_cmd()
         })
     end
 
+    local utils = require("roslyn.utils")
     local roslyn_extensions = require("roslyn.config").get().extensions or {}
     for _, ext_path in ipairs(roslyn_extensions) do
-        local resolved_path
-        if type(ext_path) == "function" then
-            resolved_path = ext_path()
-        else
-            resolved_path = ext_path
-        end
+        local resolved_path = type(ext_path) == "function" and ext_path() or ext_path
 
-        if is_valid_dll_path(resolved_path) then
+        if utils.is_valid_dll_path(resolved_path) then
             vim.list_extend(cmd, { "--extension", resolved_path })
         else
             vim.notify(
