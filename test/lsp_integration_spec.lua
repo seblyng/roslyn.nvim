@@ -380,16 +380,22 @@ describe("LSP integration with mock server", function()
         local bufnr1 = open_file_and_wait_for_lsp("src/Foo/Program.cs")
 
         choose_solution_once("Bar.sln")
-        open_file_and_wait_for_lsp("src/Bar/Program.cs")
+        local bufnr2 = open_file_and_wait_for_lsp("src/Bar/Program.cs")
 
-        local bufnr3 = open_file_and_wait_for_lsp("src/Foo/Test.cs")
+        local bufnr3 = open_file_and_wait_for_lsp("src/Bar/Test.cs")
 
-        local clients = get_lsp_clients(bufnr1)
-        local attached_buffers = clients[1].attached_buffers
+        local foo_clients = get_lsp_clients(bufnr1)
+        local foo_attached_buffers = foo_clients[1].attached_buffers
 
-        assert.are_equal(2, #attached_buffers)
-        assert.is_true(vim.list_contains(attached_buffers, bufnr1))
-        assert.is_true(vim.list_contains(attached_buffers, bufnr3))
+        assert.are_equal(1, #foo_attached_buffers)
+        assert.is_true(vim.list_contains(foo_attached_buffers, bufnr1))
+
+        local bar_clients = get_lsp_clients(bufnr2)
+        local bar_attached_buffers = bar_clients[1].attached_buffers
+
+        assert.are_equal(2, #bar_attached_buffers)
+        assert.is_true(vim.list_contains(bar_attached_buffers, bufnr2))
+        assert.is_true(vim.list_contains(bar_attached_buffers, bufnr3))
     end)
 
     it("cannot determine which instance to reuse", function()
