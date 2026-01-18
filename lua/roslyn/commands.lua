@@ -79,12 +79,16 @@ local subcommand_tbl = {
 
                 local client = vim.lsp.get_clients({ name = "roslyn", bufnr = bufnr })[1]
                 if not client then
-                    vim.lsp.start(config)
+                    vim.lsp.start(config, { bufnr = bufnr })
                     return
                 end
 
+                -- Start it in the buffer we got when running the command
+                -- For some reason, it is a bit problematic to stop it, and it
+                -- requires the user to do some action like triggering some LSP
+                -- functionality (e.g. hover) before things actually happen
                 on_stopped(function()
-                    vim.lsp.start(config)
+                    vim.lsp.start(config, { bufnr = bufnr })
                 end)
 
                 local force_stop = vim.loop.os_uname().sysname == "Windows_NT"
@@ -112,7 +116,7 @@ local subcommand_tbl = {
                             require("roslyn.lsp.on_init").sln(client, file)
                         end,
                     })
-                    vim.lsp.start(config)
+                    vim.lsp.start(config, { bufnr = bufnr })
                 end)
                 return
             end
