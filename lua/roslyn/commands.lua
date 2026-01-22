@@ -61,10 +61,10 @@ local subcommand_tbl = {
             local formatted_targets = {}
             for key, value in pairs(targets) do
                 vim.notify(value)
-                local formatted = vim.fs.dirname(value)
+                local formatted = vim.fn.fnamemodify(value, ":.")
+                formatted_targets[key] = formatted
                 vim.notify(formatted)
-                formatted_targets[key] = vim.fs.dirname(value)
-                -- formatted_targets[key] = vim.fn.fnamemodify(formatted_targets[key], ":~:.") .. "/" .. vim.fs.basename(value)
+                -- formatted_targets[key] = vim.fs.dirname(value)
             end
             vim.ui.select(formatted_targets or {}, { prompt = "Select target solution: " }, function(file)
                 if not file then
