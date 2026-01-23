@@ -58,15 +58,12 @@ local subcommand_tbl = {
             local utils = require("roslyn.sln.utils")
             local broad_search = require("roslyn.config").get().broad_search
             local targets = broad_search and utils.find_solutions_broad(bufnr) or utils.find_solutions(bufnr)
-            local formatted_targets = {}
+            local relative_targets = {}
             for key, value in pairs(targets) do
-                vim.notify(value)
-                local formatted = vim.fn.fnamemodify(value, ":.")
-                formatted_targets[key] = formatted
-                vim.notify(formatted)
-                -- formatted_targets[key] = vim.fs.dirname(value)
+                local target_relative_from_cwd = vim.fn.fnamemodify(value, ":.")
+                relative_targets[key] = target_relative_from_cwd
             end
-            vim.ui.select(formatted_targets or {}, { prompt = "Select target solution: " }, function(file)
+            vim.ui.select(relative_targets or {}, { prompt = "Select target solution: " }, function(file)
                 if not file then
                     return
                 end
