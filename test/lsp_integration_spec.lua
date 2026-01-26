@@ -1,16 +1,13 @@
 local helpers = require("test.helpers")
-local clear = helpers.clear
 local system = helpers.fn.system
 local create_file = helpers.create_file
 local create_sln_file = helpers.create_sln_file
 local create_slnf_file = helpers.create_slnf_file
 local scratch = helpers.scratch
 local setup = helpers.setup
-local use_mock_server = helpers.use_mock_server
 local get_mock_server_notifications = helpers.get_mock_server_notifications
 local open_file_and_wait_for_lsp = helpers.open_file_and_wait_for_lsp
 local get_lsp_clients = helpers.get_lsp_clients
-local stop_all_lsp_clients = helpers.stop_all_lsp_clients
 local get_selected_solution = helpers.get_selected_solution
 local choose_solution_once = helpers.choose_solution_once
 local wait = helpers.wait
@@ -26,14 +23,17 @@ helpers.env()
 
 describe("LSP integration with mock server", function()
     after_each(function()
-        stop_all_lsp_clients()
+        helpers.exec_lua(function()
+            require("test.mock_server").reset()
+        end)
         system({ "rm", "-rf", scratch })
     end)
 
     before_each(function()
-        clear()
+        helpers.clear()
+        helpers.exec_lua("package.path = ...", package.path)
         system({ "mkdir", "-p", vim.fs.joinpath(scratch, ".git") })
-        use_mock_server()
+        helpers.use_test_server()
     end)
 
     it("starts LSP client with correct root_dir for single solution", function()

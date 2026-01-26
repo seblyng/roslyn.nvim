@@ -130,24 +130,21 @@ end
 ---@return string?
 function M.predict_target(file_path, targets)
     command("edit " .. vim.fs.joinpath(M.scratch, file_path))
-    return helpers.exec_lua(function(path, targets0)
-        package.path = path
+    return helpers.exec_lua(function(targets0)
         local bufnr = vim.api.nvim_get_current_buf()
         return require("roslyn.sln.utils").predict_target(bufnr, targets0)
-    end, package.path, targets)
+    end, targets)
 end
 
 function M.api_projects(target)
     local sln = vim.fs.joinpath(M.scratch, target)
-    return helpers.exec_lua(function(path, target0)
-        package.path = path
+    return helpers.exec_lua(function(target0)
         return require("roslyn.sln.api").projects(target0)
-    end, package.path, sln)
+    end, sln)
 end
 
 function M.setup(config)
-    helpers.exec_lua(function(path, config0)
-        package.path = path
+    helpers.exec_lua(function(config0)
         if config0.ignore_target then
             local ignore = config0.ignore_target
             config0.ignore_target = function(sln)
@@ -167,15 +164,13 @@ function M.setup(config)
         end
 
         require("roslyn.config").setup(config0)
-    end, package.path, config)
+    end, config)
 end
 
 ---Sets up a one-shot choose_target that picks a solution once, then clears itself.
 ---@param pattern string Pattern to match against solution paths
 function M.choose_solution_once(pattern)
-    helpers.exec_lua(function(path, pattern0)
-        package.path = path
-
+    helpers.exec_lua(function(pattern0)
         local config = require("roslyn.config")
         local current = config.get()
 
@@ -187,60 +182,32 @@ function M.choose_solution_once(pattern)
                 return string.match(item, pattern0)
             end)
         end
-    end, package.path, pattern)
+    end, pattern)
 end
 
 -- =============================================================================
 -- Mock Server Helpers (for real LSP integration tests)
 -- =============================================================================
 
-M.mock_server_log = vim.fs.joinpath(M.scratch, "mock_server.log")
-
----Configures the LSP to use the mock server instead of the real roslyn server.
-function M.use_mock_server()
-    -- Get the nvim path from NVIM_PRG env (set by nvim-test) or fall back to vim.v.progpath
-    local nvim_prog = os.getenv("NVIM_PRG") or "nvim"
-
-    helpers.exec_lua(function(path, log_path, nvim_prog0)
-        package.path = path
-
-        -- Add the plugin's lua directory to package.path so require works for roslyn modules
-        local cwd = vim.fn.getcwd()
+---Configures the LSP to use the in-process test server.
+function M.use_test_server()
+    helpers.exec_lua(function()
+        local cwd = vim.uv.cwd()
         local lsp_config = dofile(vim.fs.joinpath(cwd, "lsp", "roslyn.lua"))
 
-        -- Override the cmd to use our mock server with nvim -l (for vim.json access)
-        -- Use the nvim from NVIM_PRG (set by nvim-test in CI) to ensure we use the correct binary
-        lsp_config.cmd = {
-            nvim_prog0,
-            "-l",
-            vim.fs.joinpath(vim.fn.getcwd(), "test", "mock_server.lua"),
-        }
-        lsp_config.cmd_env = {
-            ROSLYN_MOCK_SERVER_LOG = log_path,
-        }
+        lsp_config.cmd = require("test.mock_server").server
 
         vim.lsp.config["roslyn"] = lsp_config
         vim.lsp.enable("roslyn")
-    end, package.path, M.mock_server_log, nvim_prog)
+    end)
 end
 
----Reads the notifications recorded by the mock server.
+---Gets notifications from the in-process test server.
 ---@return { method: string, params: table }[]
 function M.get_mock_server_notifications()
-    local f = io.open(M.mock_server_log, "r")
-    if not f then
-        return {}
-    end
-    local content = f:read("*a")
-    f:close()
-    if content == "" then
-        return {}
-    end
-    local ok, result = pcall(vim.json.decode, content)
-    if not ok then
-        return {}
-    end
-    return result
+    return helpers.exec_lua(function()
+        return require("test.mock_server").notifications
+    end)
 end
 
 ---Opens a file and waits for LSP to attach to the current buffer.
@@ -296,21 +263,6 @@ function M.get_lsp_clients(bufnr)
         end
         return result
     end, bufnr)
-end
-
----Stops all roslyn LSP clients and waits for them to exit.
----@param timeout? number Timeout in ms (default 5000)
-function M.stop_all_lsp_clients(timeout)
-    timeout = timeout or 5000
-    helpers.exec_lua(function(timeout0)
-        local clients = vim.lsp.get_clients({ name = "roslyn" })
-        for _, client in ipairs(clients) do
-            client:stop()
-        end
-        vim.wait(timeout0, function()
-            return #vim.lsp.get_clients({ name = "roslyn" }) == 0
-        end, 50)
-    end, timeout)
 end
 
 ---Gets the selected solution from the global variable.

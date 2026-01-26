@@ -1,5 +1,4 @@
 local helpers = require("test.helpers")
-local clear = helpers.clear
 local system = helpers.fn.system
 local create_file = helpers.create_file
 local create_sln_file = helpers.create_sln_file
@@ -14,7 +13,8 @@ describe("predicts", function()
         system({ "rm", "-rf", scratch })
     end)
     before_each(function()
-        clear()
+        helpers.clear()
+        helpers.exec_lua("package.path = ...", package.path)
         system({ "mkdir", "-p", vim.fs.joinpath(scratch, ".git") })
     end)
 
