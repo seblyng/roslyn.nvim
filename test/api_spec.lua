@@ -1,9 +1,8 @@
-local helpers = require("test.helpers")
+local helpers = require("test.utils.helpers")
 local system = helpers.fn.system
 local create_sln_file = helpers.create_sln_file
 local create_slnf_file = helpers.create_slnf_file
 local create_slnx_file = helpers.create_slnx_file
-local api_projects = helpers.api_projects
 local scratch = helpers.scratch
 
 helpers.env()
@@ -25,7 +24,10 @@ describe("api", function()
             { name = "Bar", path = [[..\..\Bar.csproj]] },
         })
 
-        local projects = api_projects("Foo.sln")
+        local sln = vim.fs.joinpath(scratch, "Foo.sln")
+        local projects = helpers.exec_lua(function(target0)
+            return require("roslyn.sln.api").projects(target0)
+        end, sln)
         assert.are_same({
             vim.fs.joinpath(scratch, "Foo.csproj"),
             vim.fs.joinpath(scratch, [[Foo/Bar/Baz.csproj]]),
@@ -40,7 +42,10 @@ describe("api", function()
             { name = "Bar", path = [[..\..\Bar.csproj]] },
         })
 
-        local projects = api_projects("Foo.slnf")
+        local sln = vim.fs.joinpath(scratch, "Foo.slnf")
+        local projects = helpers.exec_lua(function(target0)
+            return require("roslyn.sln.api").projects(target0)
+        end, sln)
         assert.are_same({
             vim.fs.joinpath(scratch, "Foo.csproj"),
             vim.fs.joinpath(scratch, [[Foo/Bar/Baz.csproj]]),
@@ -55,7 +60,10 @@ describe("api", function()
             { name = "Bar", path = [[..\..\Bar.csproj]] },
         })
 
-        local projects = api_projects("Foo.slnx")
+        local sln = vim.fs.joinpath(scratch, "Foo.slnx")
+        local projects = helpers.exec_lua(function(target0)
+            return require("roslyn.sln.api").projects(target0)
+        end, sln)
         assert.are_same({
             vim.fs.joinpath(scratch, "Foo.csproj"),
             vim.fs.joinpath(scratch, [[Foo/Bar/Baz.csproj]]),
@@ -70,7 +78,12 @@ describe("api", function()
             { name = "Bar", path = [[..\..\Bar.csproj]] },
         })
 
-        local _, err = pcall(api_projects, "Foo.slna")
+        local sln = vim.fs.joinpath(scratch, "Foo.slna")
+        local _, err = pcall(function()
+            helpers.exec_lua(function(target0)
+                return require("roslyn.sln.api").projects(target0)
+            end, sln)
+        end)
         assert.is_not_nil(string.find(err, "Unknown extension `slna` for solution"))
     end)
 
@@ -81,12 +94,20 @@ describe("api", function()
             { name = "Bar", path = [[..\..\Bar.csproj]] },
         })
 
-        local _, err = pcall(api_projects, ".sln")
+        local sln = vim.fs.joinpath(scratch, ".sln")
+        local _, err = pcall(function()
+            helpers.exec_lua(function(target0)
+                return require("roslyn.sln.api").projects(target0)
+            end, sln)
+        end)
         assert.is_not_nil(string.find(err, "Unknown extension `` for solution"))
     end)
 
     it("returns empty if file does not exist", function()
-        local projects = api_projects("Foo.sln")
+        local sln = vim.fs.joinpath(scratch, "Foo.sln")
+        local projects = helpers.exec_lua(function(target0)
+            return require("roslyn.sln.api").projects(target0)
+        end, sln)
         assert.are_same({}, projects)
     end)
 end)

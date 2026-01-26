@@ -1,12 +1,10 @@
-local helpers = require("test.helpers")
+local helpers = require("test.utils.helpers")
 local system = helpers.fn.system
 local create_file = helpers.create_file
 local create_sln_file = helpers.create_sln_file
 local command = helpers.api.nvim_command
 local create_slnf_file = helpers.create_slnf_file
 local scratch = helpers.scratch
-local setup = helpers.setup
-local choose_solution_once = helpers.choose_solution_once
 
 ---Converts a file path to a file:// URI
 ---@param path string
@@ -14,6 +12,7 @@ local choose_solution_once = helpers.choose_solution_once
 local function to_uri(path)
     return "file://" .. path
 end
+
 
 local function get_lsp_clients(bufnr)
     return helpers.exec_lua(function(bufnr0)
@@ -32,7 +31,7 @@ helpers.env()
 describe("LSP integration with mock server", function()
     after_each(function()
         helpers.exec_lua(function()
-            require("test.mock_server").reset()
+            require("test.utils.mock_server").reset()
         end)
         system({ "rm", "-rf", scratch })
     end)
@@ -45,7 +44,7 @@ describe("LSP integration with mock server", function()
             local cwd = vim.uv.cwd()
             local lsp_config = dofile(vim.fs.joinpath(cwd, "lsp", "roslyn.lua"))
 
-            lsp_config.cmd = require("test.mock_server").server
+            lsp_config.cmd = require("test.utils.mock_server").server
 
             vim.lsp.config["roslyn"] = lsp_config
             vim.lsp.enable("roslyn")
@@ -68,7 +67,7 @@ describe("LSP integration with mock server", function()
         assert.are_equal(scratch, clients[1].root_dir)
 
         local notifications = helpers.exec_lua(function()
-            return require("test.mock_server").notifications
+            return require("test.utils.mock_server").notifications
         end)
         assert.are_equal(1, #notifications)
         assert.are_equal("solution/open", notifications[1].method)
@@ -82,7 +81,7 @@ describe("LSP integration with mock server", function()
         command("edit " .. vim.fs.joinpath(helpers.scratch, "Bar", "Program.cs"))
 
         local notifications = helpers.exec_lua(function()
-            return require("test.mock_server").notifications
+            return require("test.utils.mock_server").notifications
         end)
         assert.are_equal(1, #notifications)
         assert.are_equal("project/open", notifications[1].method)
@@ -122,7 +121,7 @@ describe("LSP integration with mock server", function()
 
         -- Should only have sent solution/open once
         local notifications = helpers.exec_lua(function()
-            return require("test.mock_server").notifications
+            return require("test.utils.mock_server").notifications
         end)
         assert.are_equal(1, #notifications)
     end)
@@ -141,7 +140,9 @@ describe("LSP integration with mock server", function()
     end)
 
     it("finds solution with broad_search enabled", function()
-        setup({ broad_search = true })
+        helpers.exec_lua(function()
+            require("roslyn.config").setup({ broad_search = true })
+        end)
 
         create_file("src/Foo/Program.cs")
         create_file("src/Foo/Foo.csproj")
@@ -156,14 +157,16 @@ describe("LSP integration with mock server", function()
         assert.are_equal(vim.fs.joinpath(scratch, "src", "Bar"), clients[1].root_dir)
 
         local notifications = helpers.exec_lua(function()
-            return require("test.mock_server").notifications
+            return require("test.utils.mock_server").notifications
         end)
         assert.are_equal(1, #notifications)
         assert.are_equal("solution/open", notifications[1].method)
     end)
 
     it("finds slnf file and sends solution/open", function()
-        setup({ broad_search = true })
+        helpers.exec_lua(function()
+            require("roslyn.config").setup({ broad_search = true })
+        end)
 
         create_file("src/Foo/Program.cs")
         create_file("src/Foo/Foo.csproj")
@@ -178,7 +181,7 @@ describe("LSP integration with mock server", function()
         assert.are_equal(vim.fs.joinpath(scratch, "src", "Bar"), clients[1].root_dir)
 
         local notifications = helpers.exec_lua(function()
-            return require("test.mock_server").notifications
+            return require("test.utils.mock_server").notifications
         end)
         assert.are_equal(1, #notifications)
         assert.are_equal("solution/open", notifications[1].method)
@@ -186,7 +189,15 @@ describe("LSP integration with mock server", function()
     end)
 
     it("uses choose_target to select solution when multiple exist", function()
-        setup({ choose_target = "Bar.sln" })
+        helpers.exec_lua(function()
+            require("roslyn.config").setup({
+                choose_target = function(targets)
+                    return vim.iter(targets):find(function(item)
+                        return string.match(item, "Bar.sln")
+                    end)
+                end,
+            })
+        end)
 
         create_file("src/Program.cs")
         create_file("src/Foo.csproj")
@@ -199,7 +210,7 @@ describe("LSP integration with mock server", function()
         assert.are_equal(1, #clients)
 
         local notifications = helpers.exec_lua(function()
-            return require("test.mock_server").notifications
+            return require("test.utils.mock_server").notifications
         end)
         assert.are_equal(1, #notifications)
         assert.are_equal("solution/open", notifications[1].method)
@@ -217,7 +228,7 @@ describe("LSP integration with mock server", function()
 
         -- Client starts but with nil root_dir, so no solution/open is sent
         local notifications = helpers.exec_lua(function()
-            return require("test.mock_server").notifications
+            return require("test.utils.mock_server").notifications
         end)
         assert.are_equal(0, #notifications)
 
@@ -260,7 +271,9 @@ describe("LSP integration with mock server", function()
     end)
 
     it("falls back to project/open when csproj not in any solution", function()
-        setup({ broad_search = true })
+        helpers.exec_lua(function()
+            require("roslyn.config").setup({ broad_search = true })
+        end)
 
         -- Create a CS file with csproj that is NOT included in any solution
         create_file("src/Foo/Program.cs")
@@ -281,7 +294,7 @@ describe("LSP integration with mock server", function()
         assert.are_equal(vim.fs.joinpath(scratch, "src", "Foo"), clients[1].root_dir)
 
         local notifications = helpers.exec_lua(function()
-            return require("test.mock_server").notifications
+            return require("test.utils.mock_server").notifications
         end)
         assert.are_equal(1, #notifications)
         assert.are_equal("project/open", notifications[1].method)
@@ -304,14 +317,16 @@ describe("LSP integration with mock server", function()
         assert.are_equal(vim.fs.joinpath(scratch, "src", "Foo"), clients[1].root_dir)
 
         local notifications = helpers.exec_lua(function()
-            return require("test.mock_server").notifications
+            return require("test.utils.mock_server").notifications
         end)
         assert.are_equal(1, #notifications)
         assert.are_equal("project/open", notifications[1].method)
     end)
 
     it("ignores solutions in bin, obj and .git directories with broad_search", function()
-        setup({ broad_search = true })
+        helpers.exec_lua(function()
+            require("roslyn.config").setup({ broad_search = true })
+        end)
 
         create_file("src/Foo/Program.cs")
         create_file("src/Foo/Foo.csproj")
@@ -334,14 +349,16 @@ describe("LSP integration with mock server", function()
         assert.are_equal(vim.fs.joinpath(scratch, "src", "Foo"), clients[1].root_dir)
 
         local notifications = helpers.exec_lua(function()
-            return require("test.mock_server").notifications
+            return require("test.utils.mock_server").notifications
         end)
         assert.are_equal(1, #notifications)
         assert.are_equal("project/open", notifications[1].method)
     end)
 
     it("reuses correct instance when working with multiple projects", function()
-        setup({ broad_search = true })
+        helpers.exec_lua(function()
+            require("roslyn.config").setup({ broad_search = true })
+        end)
 
         create_file("src/Foo/Program.cs")
         create_file("src/Foo/Test.cs")
@@ -390,7 +407,7 @@ describe("LSP integration with mock server", function()
         assert.is_true(vim.list_contains(bar_clients[1].attached_buffers, bufnr4))
 
         local notifications = helpers.exec_lua(function()
-            return require("test.mock_server").notifications
+            return require("test.utils.mock_server").notifications
         end)
         assert.are_equal(2, #notifications)
         assert.are_equal("solution/open", notifications[1].method)
@@ -405,7 +422,9 @@ describe("LSP integration with mock server", function()
     end)
 
     it("reuses instance if possible", function()
-        setup({ broad_search = true })
+        helpers.exec_lua(function()
+            require("roslyn.config").setup({ broad_search = true })
+        end)
 
         create_sln_file("src/Root.sln", {
             { name = "Bar", path = [[Bar\Bar.csproj]] },
@@ -423,13 +442,35 @@ describe("LSP integration with mock server", function()
         create_sln_file("src/Bar/Bar.sln", { { name = "Bar", path = [[Bar.csproj]] } })
         create_sln_file("src/Foo/Foo.sln", { { name = "Foo", path = [[Foo.csproj]] } })
 
-        choose_solution_once("Foo.sln")
+        helpers.exec_lua(function()
+            local config = require("roslyn.config")
+            local current = config.get()
+
+            current.choose_target = function(targets)
+                current.choose_target = nil
+
+                return vim.iter(targets):find(function(item)
+                    return string.match(item, "Foo.sln")
+                end)
+            end
+        end)
         command("edit " .. vim.fs.joinpath(helpers.scratch, "src", "Foo", "Program.cs"))
         local bufnr1 = helpers.exec_lua(function()
             return vim.api.nvim_get_current_buf()
         end)
 
-        choose_solution_once("Bar.sln")
+        helpers.exec_lua(function()
+            local config = require("roslyn.config")
+            local current = config.get()
+
+            current.choose_target = function(targets)
+                current.choose_target = nil
+
+                return vim.iter(targets):find(function(item)
+                    return string.match(item, "Bar.sln")
+                end)
+            end
+        end)
         command("edit " .. vim.fs.joinpath(helpers.scratch, "src", "Bar", "Program.cs"))
         local bufnr2 = helpers.exec_lua(function()
             return vim.api.nvim_get_current_buf()
@@ -455,7 +496,9 @@ describe("LSP integration with mock server", function()
     end)
 
     it("cannot determine which instance to reuse", function()
-        setup({ broad_search = true })
+        helpers.exec_lua(function()
+            require("roslyn.config").setup({ broad_search = true })
+        end)
 
         create_sln_file("src/Root.sln", {
             { name = "Bar", path = [[Bar\Bar.csproj]] },
@@ -475,13 +518,46 @@ describe("LSP integration with mock server", function()
         create_sln_file("src/Bar/Bar.sln", { { name = "Bar", path = [[Bar.csproj]] } })
         create_sln_file("src/Foo/Foo.sln", { { name = "Foo", path = [[Foo.csproj]] } })
 
-        choose_solution_once("Root.sln")
+        helpers.exec_lua(function()
+            local config = require("roslyn.config")
+            local current = config.get()
+
+            current.choose_target = function(targets)
+                current.choose_target = nil
+
+                return vim.iter(targets):find(function(item)
+                    return string.match(item, "Root.sln")
+                end)
+            end
+        end)
         command("edit " .. vim.fs.joinpath(helpers.scratch, "src", "Bar", "Program.cs"))
 
-        choose_solution_once("Foo.sln")
+        helpers.exec_lua(function()
+            local config = require("roslyn.config")
+            local current = config.get()
+
+            current.choose_target = function(targets)
+                current.choose_target = nil
+
+                return vim.iter(targets):find(function(item)
+                    return string.match(item, "Foo.sln")
+                end)
+            end
+        end)
         command("edit " .. vim.fs.joinpath(helpers.scratch, "src", "Foo", "Program.cs"))
 
-        choose_solution_once("Bar.sln")
+        helpers.exec_lua(function()
+            local config = require("roslyn.config")
+            local current = config.get()
+
+            current.choose_target = function(targets)
+                current.choose_target = nil
+
+                return vim.iter(targets):find(function(item)
+                    return string.match(item, "Bar.sln")
+                end)
+            end
+        end)
         command("edit " .. vim.fs.joinpath(helpers.scratch, "src", "Bar", "Hello.cs"))
 
         local clients = get_lsp_clients()
@@ -498,7 +574,7 @@ describe("LSP integration with mock server", function()
         assert.is_nil(client[1].root_dir)
 
         local notifications = helpers.exec_lua(function()
-            return require("test.mock_server").notifications
+            return require("test.utils.mock_server").notifications
         end)
         assert.are_equal(3, #notifications)
         assert.are_equal("solution/open", notifications[1].method)
