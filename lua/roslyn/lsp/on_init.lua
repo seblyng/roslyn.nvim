@@ -1,7 +1,8 @@
 local M = {}
 
 function M.sln(client, solution)
-    vim.g.roslyn_nvim_selected_solution = solution
+    require("roslyn.store").set(client.id, solution)
+
     if not require("roslyn.config").get().silent then
         vim.notify("Initializing Roslyn for: " .. solution, vim.log.levels.INFO, { title = "roslyn.nvim" })
     end

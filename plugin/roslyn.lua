@@ -20,6 +20,19 @@ vim.filetype.add({
 
 local group = vim.api.nvim_create_augroup("roslyn.nvim", { clear = true })
 
+-- Updates `vim.g.roslyn_nvim_selected_solution` when entering a C# or Razor buffer
+-- so that it always reflects the current buffers' solution.
+vim.api.nvim_create_autocmd("BufEnter", {
+    group = group,
+    pattern = { "*.cs", ".*razor", "*.cshtml" },
+    callback = function(args)
+        local client = vim.lsp.get_clients({ name = "roslyn", bufnr = args.buf })[1]
+        if client then
+            vim.g.roslyn_nvim_selected_solution = require("roslyn.store").get(client.id)
+        end
+    end,
+})
+
 vim.api.nvim_create_autocmd("FileType", {
     group = group,
     pattern = { "cs", "razor" },
@@ -32,8 +45,8 @@ vim.api.nvim_create_autocmd({ "BufWritePost", "InsertLeave" }, {
     group = group,
     pattern = { "*.cs", "*.razor", "*.cshtml" },
     callback = function()
-        local client = vim.lsp.get_clients({ name = "roslyn" })[1]
-        if client then
+        local clients = vim.lsp.get_clients({ name = "roslyn" })
+        for _, client in ipairs(clients) do
             require("roslyn.lsp.diagnostics").refresh(client)
         end
     end,
@@ -48,7 +61,7 @@ vim.api.nvim_create_autocmd({ "BufReadCmd" }, {
 
         -- This triggers FileType event which should fire up the lsp client if not already running
         vim.bo[args.buf].filetype = "cs"
-        local client = vim.lsp.get_clients({ name = "roslyn" })[1]
+        local client = vim.lsp.get_clients({ name = "roslyn", bufnr = args.buf })[1]
         assert(client, "Must have a `roslyn` client to load roslyn source generated file")
 
         local content

@@ -1,11 +1,8 @@
-local helpers = require("test.helpers")
-local clear = helpers.clear
+local helpers = require("test.utils.helpers")
 local system = helpers.fn.system
 local create_file = helpers.create_file
 local create_sln_file = helpers.create_sln_file
-local predict_target = helpers.predict_target
 local scratch = helpers.scratch
-local setup = helpers.setup
 
 helpers.env()
 
@@ -14,7 +11,8 @@ describe("predicts", function()
         system({ "rm", "-rf", scratch })
     end)
     before_each(function()
-        clear()
+        helpers.clear()
+        helpers.exec_lua("package.path = ...", package.path)
         system({ "mkdir", "-p", vim.fs.joinpath(scratch, ".git") })
     end)
 
@@ -30,7 +28,11 @@ describe("predicts", function()
             vim.fs.joinpath(scratch, "Foo.sln"),
         }
 
-        local target = predict_target("Program.cs", targets)
+        helpers.api.nvim_command("edit " .. vim.fs.joinpath(scratch, "Program.cs"))
+        local target = helpers.exec_lua(function(targets0)
+            local bufnr = vim.api.nvim_get_current_buf()
+            return require("roslyn.sln.utils").predict_target(bufnr, targets0)
+        end, targets)
         assert.are_same(vim.fs.joinpath(scratch, "Foo.sln"), target)
     end)
 
@@ -46,7 +48,11 @@ describe("predicts", function()
             vim.fs.joinpath(scratch, "Foo.sln"),
         }
 
-        local target = predict_target("Program.cs", targets)
+        helpers.api.nvim_command("edit " .. vim.fs.joinpath(scratch, "Program.cs"))
+        local target = helpers.exec_lua(function(targets0)
+            local bufnr = vim.api.nvim_get_current_buf()
+            return require("roslyn.sln.utils").predict_target(bufnr, targets0)
+        end, targets)
         assert.is_nil(target)
     end)
 
@@ -69,7 +75,11 @@ describe("predicts", function()
             vim.fs.joinpath(scratch, "FooBar.sln"),
         }
 
-        local target = predict_target("Program.cs", targets)
+        helpers.api.nvim_command("edit " .. vim.fs.joinpath(scratch, "Program.cs"))
+        local target = helpers.exec_lua(function(targets0)
+            local bufnr = vim.api.nvim_get_current_buf()
+            return require("roslyn.sln.utils").predict_target(bufnr, targets0)
+        end, targets)
         assert.are_same(vim.fs.joinpath(scratch, "FooBar.sln"), target)
     end)
 
@@ -92,12 +102,22 @@ describe("predicts", function()
             vim.fs.joinpath(scratch, "FooBar.sln"),
         }
 
-        local target = predict_target("Program.cs", targets)
+        helpers.api.nvim_command("edit " .. vim.fs.joinpath(scratch, "Program.cs"))
+        local target = helpers.exec_lua(function(targets0)
+            local bufnr = vim.api.nvim_get_current_buf()
+            return require("roslyn.sln.utils").predict_target(bufnr, targets0)
+        end, targets)
         assert.is_nil(target)
     end)
 
     it("can ignore target with config method", function()
-        setup({ ignore_target = "Foo.sln" })
+        helpers.exec_lua(function()
+            require("roslyn.config").setup({
+                ignore_target = function(sln)
+                    return string.match(sln, "Foo.sln") ~= nil
+                end,
+            })
+        end)
 
         create_file("Program.cs")
         create_file("Bar.csproj")
@@ -117,12 +137,24 @@ describe("predicts", function()
             vim.fs.joinpath(scratch, "FooBar.sln"),
         }
 
-        local target = predict_target("Program.cs", targets)
+        helpers.api.nvim_command("edit " .. vim.fs.joinpath(scratch, "Program.cs"))
+        local target = helpers.exec_lua(function(targets0)
+            local bufnr = vim.api.nvim_get_current_buf()
+            return require("roslyn.sln.utils").predict_target(bufnr, targets0)
+        end, targets)
         assert.are_same(vim.fs.joinpath(scratch, "FooBar.sln"), target)
     end)
 
     it("can choose target with config method", function()
-        setup({ choose_target = "Foo.sln" })
+        helpers.exec_lua(function()
+            require("roslyn.config").setup({
+                choose_target = function(targets)
+                    return vim.iter(targets):find(function(item)
+                        return string.match(item, "Foo.sln")
+                    end)
+                end,
+            })
+        end)
 
         create_file("Program.cs")
         create_file("Bar.csproj")
@@ -142,7 +174,11 @@ describe("predicts", function()
             vim.fs.joinpath(scratch, "FooBar.sln"),
         }
 
-        local target = predict_target("Program.cs", targets)
+        helpers.api.nvim_command("edit " .. vim.fs.joinpath(scratch, "Program.cs"))
+        local target = helpers.exec_lua(function(targets0)
+            local bufnr = vim.api.nvim_get_current_buf()
+            return require("roslyn.sln.utils").predict_target(bufnr, targets0)
+        end, targets)
         assert.are_same(vim.fs.joinpath(scratch, "Foo.sln"), target)
     end)
 end)
