@@ -62,7 +62,7 @@ return {
     cmd_env = {
         Configuration = vim.env.Configuration or "Debug",
         -- Fixes LSP navigation in decompiled files for systems with symlinked TMPDIR (macOS)
-        TMPDIR = vim.fn.resolve(vim.env.TMPDIR)
+        TMPDIR = vim.env.TMPDIR and vim.fn.resolve(vim.env.TMPDIR) or nil,
     },
     capabilities = {
         textDocument = {
