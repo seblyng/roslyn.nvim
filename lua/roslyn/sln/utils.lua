@@ -147,7 +147,7 @@ function M.root_dir(bufnr)
         -- If we find multiple or none, then we cannot decide which one to use
         local possible_solutions = vim.iter(vim.lsp.get_clients({ name = "roslyn" }))
             :map(function(client)
-                local client_solution = require("roslyn.store").get_by_client_id(client.id)
+                local client_solution = require("roslyn.store").get(client.id)
                 if client_solution and vim.list_contains(filtered_targets, client_solution) then
                     return vim.fs.dirname(client_solution)
                 end

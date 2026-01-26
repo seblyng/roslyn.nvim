@@ -27,9 +27,8 @@ vim.api.nvim_create_autocmd("BufEnter", {
     pattern = { "*.cs", ".*razor", "*.cshtml" },
     callback = function(args)
         local client = vim.lsp.get_clients({ name = "roslyn", bufnr = args.buf })[1]
-        local solution = require("roslyn.store").get_by_bufnr(args.buf)
-        if client and solution then
-            require("roslyn.store").set(args.buf, client.id, solution)
+        if client then
+            vim.g.roslyn_nvim_selected_solution = require("roslyn.store").get(client.id)
         end
     end,
 })

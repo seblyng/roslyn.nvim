@@ -152,11 +152,7 @@ return {
     },
     on_exit = {
         function(_, _, client_id)
-            local client = vim.lsp.get_client_by_id(client_id)
-            local buffers = client and client.attached_buffers or {}
-            for bufnr in pairs(buffers) do
-                require("roslyn.store").set(bufnr, client.id, nil)
-            end
+            require("roslyn.store").set(client_id, nil)
             vim.schedule(function()
                 require("roslyn.roslyn_emitter").emit("stopped")
                 vim.notify("Roslyn server stopped", vim.log.levels.INFO, { title = "roslyn.nvim" })
