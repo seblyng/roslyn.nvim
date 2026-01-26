@@ -10,7 +10,6 @@ local open_file_and_wait_for_lsp = helpers.open_file_and_wait_for_lsp
 local get_lsp_clients = helpers.get_lsp_clients
 local get_selected_solution = helpers.get_selected_solution
 local choose_solution_once = helpers.choose_solution_once
-local wait = helpers.wait
 
 ---Converts a file path to a file:// URI
 ---@param path string
@@ -43,9 +42,6 @@ describe("LSP integration with mock server", function()
 
         open_file_and_wait_for_lsp("Bar/Program.cs")
 
-        -- Give the server a moment to write the log
-        wait(100)
-
         local clients = get_lsp_clients()
         assert.are_equal(1, #clients)
         assert.are_equal(scratch, clients[1].root_dir)
@@ -61,8 +57,6 @@ describe("LSP integration with mock server", function()
         create_file("Bar/Program.cs")
 
         open_file_and_wait_for_lsp("Bar/Program.cs")
-
-        wait(100)
 
         local notifications = get_mock_server_notifications()
         assert.are_equal(1, #notifications)
@@ -94,7 +88,6 @@ describe("LSP integration with mock server", function()
         assert.are_equal(clients_after_first[1].id, clients_after_second[1].id)
 
         -- Should only have sent solution/open once
-        wait(100)
         local notifications = get_mock_server_notifications()
         assert.are_equal(1, #notifications)
     end)
@@ -125,7 +118,6 @@ describe("LSP integration with mock server", function()
         assert.are_equal(1, #clients)
         assert.are_equal(vim.fs.joinpath(scratch, "src", "Bar"), clients[1].root_dir)
 
-        wait(100)
         local notifications = get_mock_server_notifications()
         assert.are_equal(1, #notifications)
         assert.are_equal("solution/open", notifications[1].method)
@@ -146,7 +138,6 @@ describe("LSP integration with mock server", function()
         assert.are_equal(1, #clients)
         assert.are_equal(vim.fs.joinpath(scratch, "src", "Bar"), clients[1].root_dir)
 
-        wait(100)
         local notifications = get_mock_server_notifications()
         assert.are_equal(1, #notifications)
         assert.are_equal("solution/open", notifications[1].method)
@@ -166,7 +157,6 @@ describe("LSP integration with mock server", function()
         local clients = get_lsp_clients()
         assert.are_equal(1, #clients)
 
-        wait(100)
         local notifications = get_mock_server_notifications()
         assert.are_equal(1, #notifications)
         assert.are_equal("solution/open", notifications[1].method)
@@ -183,11 +173,9 @@ describe("LSP integration with mock server", function()
         open_file_and_wait_for_lsp("Bar/Program.cs", 1000)
 
         -- Client starts but with nil root_dir, so no solution/open is sent
-        wait(100)
         local notifications = get_mock_server_notifications()
         assert.are_equal(0, #notifications)
 
-        -- root_dir should be nil
         assert.is_nil(get_lsp_clients()[1].root_dir)
     end)
 
@@ -251,7 +239,6 @@ describe("LSP integration with mock server", function()
         local clients = get_lsp_clients()
         assert.are_equal(vim.fs.joinpath(scratch, "src", "Foo"), clients[1].root_dir)
 
-        wait(100)
         local notifications = get_mock_server_notifications()
         assert.are_equal(1, #notifications)
         assert.are_equal("project/open", notifications[1].method)
@@ -273,7 +260,6 @@ describe("LSP integration with mock server", function()
         local clients = get_lsp_clients()
         assert.are_equal(vim.fs.joinpath(scratch, "src", "Foo"), clients[1].root_dir)
 
-        wait(100)
         local notifications = get_mock_server_notifications()
         assert.are_equal(1, #notifications)
         assert.are_equal("project/open", notifications[1].method)
@@ -302,7 +288,6 @@ describe("LSP integration with mock server", function()
         local clients = get_lsp_clients()
         assert.are_equal(vim.fs.joinpath(scratch, "src", "Foo"), clients[1].root_dir)
 
-        wait(100)
         local notifications = get_mock_server_notifications()
         assert.are_equal(1, #notifications)
         assert.are_equal("project/open", notifications[1].method)
@@ -343,7 +328,6 @@ describe("LSP integration with mock server", function()
         assert.is_true(vim.list_contains(bar_clients[1].attached_buffers, bufnr2))
         assert.is_true(vim.list_contains(bar_clients[1].attached_buffers, bufnr4))
 
-        wait(100)
         local notifications = get_mock_server_notifications()
         assert.are_equal(2, #notifications)
         assert.are_equal("solution/open", notifications[1].method)
@@ -438,7 +422,6 @@ describe("LSP integration with mock server", function()
         local client = get_lsp_clients(bufnr4)
         assert.is_nil(client[1].root_dir)
 
-        wait(100)
         local notifications = get_mock_server_notifications()
         assert.are_equal(3, #notifications)
         assert.are_equal("solution/open", notifications[1].method)

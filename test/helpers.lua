@@ -273,16 +273,6 @@ function M.get_selected_solution()
     end)
 end
 
----Waits for the specified duration.
----@param ms number Duration in milliseconds
-function M.wait(ms)
-    helpers.exec_lua(function(ms0)
-        vim.wait(ms0, function()
-            return false
-        end)
-    end, ms)
-end
-
 ---Waits until the specified number of roslyn LSP clients are running and initialized.
 ---@param count number Expected number of clients
 ---@param timeout? number Timeout in ms (default 5000)
