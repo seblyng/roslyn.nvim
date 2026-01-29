@@ -24,6 +24,7 @@ function document.new(uri)
     local self = setmetatable({}, document)
     self.path = uri .. require("roslyn.razor.types").virtualHtmlSuffix
     self.buf = vim.uri_to_bufnr(self.path)
+    vim.bo[self.buf].swapfile = false
     -- NOTE: We set this in an autocmd because otherwise the LSP does not attach to the buffer
     vim.api.nvim_create_autocmd("LspAttach", {
         buffer = self.buf,
