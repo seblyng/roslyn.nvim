@@ -96,6 +96,13 @@ return {
             end
         end
 
+        -- Don't attach to virtual buffers with URI schemes (diffview://, fugitive://, etc.)
+        -- By not calling on_dir(), we prevent LSP attachment entirely for these buffers
+        -- See: https://github.com/neovim/neovim/issues/33061
+        if buf_name:match("^%w+://") then
+            return
+        end
+
         local root_dir = require("roslyn.sln.utils").root_dir(bufnr)
         on_dir(root_dir)
     end,
