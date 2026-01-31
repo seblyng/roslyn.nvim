@@ -165,6 +165,10 @@ opts = {
 
     -- If the plugin should silence notifications about initialization
     silent = false,
+
+    -- Additional roslyn extensions (for example Roslynator), either path for dll
+    -- or function that returns the path
+    extensions = {}
 }
 ```
 
