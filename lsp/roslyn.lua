@@ -51,6 +51,22 @@ local function get_default_cmd()
             vim.fs.joinpath(razor_extension_path, "Microsoft.VisualStudioCode.RazorExtension.dll"),
         })
     end
+
+    local utils = require("roslyn.utils")
+    local roslyn_extensions = require("roslyn.config").get().extensions or {}
+    for _, ext_path in ipairs(roslyn_extensions) do
+        local resolved_path = type(ext_path) == "function" and ext_path() or ext_path
+
+        if utils.is_valid_dll_path(resolved_path) then
+            vim.list_extend(cmd, { "--extension", resolved_path })
+        else
+            vim.notify(
+                ("Invalid roslyn extension path (must be existing .dll): %s"):format(resolved_path),
+                vim.log.levels.WARN
+            )
+        end
+    end
+
     return cmd
 end
 
