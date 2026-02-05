@@ -111,7 +111,7 @@ return {
                     callback = function(args)
                         if vim.api.nvim_get_option_value("filetype", { buf = args.buf }) == "razor" then
                             if args.data.client_id == client.id then
-                                client.server_capabilities.semanticTokensProvider = nil
+                                client.server_capabilities.semanticTokensProvider.full = nil
                             end
                         end
                     end,
