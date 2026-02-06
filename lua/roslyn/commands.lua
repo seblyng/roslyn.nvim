@@ -124,6 +124,79 @@ local subcommand_tbl = {
             vim.lsp.enable("roslyn")
         end,
     },
+    config = {
+        impl = function()
+            local bufnr = vim.api.nvim_get_current_buf()
+            local client = vim.lsp.get_clients({ name = "roslyn", bufnr = bufnr })[1]
+
+            -- Find Directory.Build.targets or Directory.Build.props
+            local root_dir = client and client.config.root_dir or vim.fn.getcwd()
+            local build_files = vim.fs.find(
+                { "Directory.Build.targets", "Directory.Build.props" },
+                { upward = true, path = root_dir, limit = math.huge }
+            )
+
+            local configurations = { "Debug", "Release" } -- Default configurations
+
+            -- Try to parse Configurations from build files
+            for _, file in ipairs(build_files) do
+                local content = vim.fn.readfile(file)
+                for _, line in ipairs(content) do
+                    local configs = line:match("<Configurations>([^<]+)</Configurations>")
+                    if configs then
+                        configurations = vim.split(configs, ";", { trimempty = true })
+                        break
+                    end
+                end
+                if #configurations > 2 then
+                    break
+                end
+            end
+
+            local current_config = vim.env.Configuration or "Debug"
+
+            vim.ui.select(configurations, {
+                prompt = string.format("Select Configuration (current: %s): ", current_config),
+                format_item = function(item)
+                    if item == current_config then
+                        return item .. " (current)"
+                    end
+                    return item
+                end,
+            }, function(choice)
+                    if not choice then
+                        return
+                    end
+
+                    if choice == current_config then
+                        vim.notify(
+                            "Configuration unchanged: " .. choice,
+                            vim.log.levels.INFO,
+                            { title = "roslyn.nvim" }
+                        )
+                        return
+                    end
+
+                    vim.env.Configuration = choice
+                    vim.notify(
+                        "Configuration changed to: " .. choice .. ". Restarting LSP...",
+                        vim.log.levels.INFO,
+                        { title = "roslyn.nvim" }
+                    )
+
+                    -- Restart LSP to apply new configuration
+                    if client then
+                        on_stopped(function()
+                            vim.lsp.enable("roslyn")
+                        end)
+                        local force_stop = vim.loop.os_uname().sysname == "Windows_NT"
+                        client:stop(force_stop)
+                    else
+                        vim.lsp.enable("roslyn")
+                    end
+                end)
+        end,
+    }
 }
 
 ---@param opts table
