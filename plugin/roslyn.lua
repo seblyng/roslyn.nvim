@@ -70,7 +70,7 @@ vim.api.nvim_create_autocmd({ "BufReadCmd" }, {
         vim.wait(1000, function()
             client = get_client()
             return client ~= nil
-        end, 20)
+        end, 50)
 
         if client == nil then
             vim.bo[args.buf].modifiable = false
@@ -121,7 +121,7 @@ vim.api.nvim_create_autocmd({ "BufReadCmd" }, {
         -- that's still missing.
         local done = vim.wait(1000, function()
             return loaded
-        end, 20)
+        end, 50)
 
         if not done then
             vim.bo[args.buf].modifiable = false
