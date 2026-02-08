@@ -56,11 +56,6 @@ vim.api.nvim_create_autocmd({ "BufReadCmd" }, {
     group = group,
     pattern = "roslyn-source-generated://*",
     callback = function(args)
-        local function get_client()
-            return vim.lsp.get_clients({ name = "roslyn", bufnr = args.buf })[1]
-                or vim.lsp.get_clients({ name = "roslyn" })[1]
-        end
-
         vim.bo[args.buf].modifiable = true
         vim.bo[args.buf].swapfile = false
 
@@ -68,7 +63,7 @@ vim.api.nvim_create_autocmd({ "BufReadCmd" }, {
         vim.bo[args.buf].filetype = "cs"
         local client
         vim.wait(1000, function()
-            client = get_client()
+            client = vim.lsp.get_clients({ name = "roslyn", bufnr = args.buf })[1]
             return client ~= nil
         end, 50)
 
@@ -95,11 +90,7 @@ vim.api.nvim_create_autocmd({ "BufReadCmd" }, {
                 return
             end
 
-            result = result or {}
-            local content = result.text
-            if content == nil then
-                content = ""
-            end
+            local content = result and result.text or ""
             local normalized = string.gsub(content, "\r\n", "\n")
             local source_lines = vim.split(normalized, "\n", { plain = true })
             vim.api.nvim_buf_set_lines(args.buf, 0, -1, false, source_lines)
