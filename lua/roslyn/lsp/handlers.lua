@@ -33,7 +33,17 @@ return {
             local uri = vim.api.nvim_buf_get_name(buf)
             if vim.api.nvim_buf_get_name(buf):match("^roslyn%-source%-generated://") then
                 local function handler(err, result)
-                    assert(not err, vim.inspect(err))
+                    if err then
+                        vim.notify(
+                            "Failed to refresh roslyn source generated file: " .. vim.inspect(err),
+                            vim.log.levels.WARN,
+                            { title = "roslyn.nvim" }
+                        )
+                        return
+                    end
+
+                    result = result or {}
+
                     if vim.b[buf].resultId == result.resultId then
                         return
                     end
@@ -46,6 +56,7 @@ return {
                     vim.bo[buf].modifiable = true
                     vim.api.nvim_buf_set_lines(buf, 0, -1, false, source_lines)
                     vim.b[buf].resultId = result.resultId
+                    vim.bo[buf].modified = false
                     vim.bo[buf].modifiable = false
                 end
 
