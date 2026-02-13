@@ -166,9 +166,37 @@ opts = {
     -- If the plugin should silence notifications about initialization
     silent = false,
 
-    -- Additional roslyn extensions (for example Roslynator), either path for dll
-    -- or function that returns the path
-    extensions = {}
+    -- Additional roslyn extensions (for example Roslynator/ Razor)
+    extensions = {
+        razor = {
+            enabled = true,
+            config = function()
+                local razor_extension_path = require("roslyn.utils").find_razor_extension_path()
+                if razor_extension_path == nil then
+                    vim.notify(
+                        "Could not find Razor extension for roslyn.nvim. Razor language features will be disabled.",
+                        vim.log.levels.WARN
+                    )
+                    return {
+                        path = nil,
+                    }
+                end
+
+                return {
+                    path = vim.fs.joinpath(razor_extension_path, "Microsoft.VisualStudioCode.RazorExtension.dll"),
+                    args = {
+                        "--razorSourceGenerator="
+                            .. vim.fs.joinpath(razor_extension_path, "Microsoft.CodeAnalysis.Razor.Compiler.dll"),
+                        "--razorDesignTimePath=" .. vim.fs.joinpath(
+                            razor_extension_path,
+                            "Targets",
+                            "Microsoft.NET.Sdk.Razor.DesignTime.targets"
+                        ),
+                    },
+                }
+            end,
+        },
+    },
 }
 ```
 

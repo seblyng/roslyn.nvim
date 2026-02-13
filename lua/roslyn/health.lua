@@ -115,25 +115,49 @@ function M.check()
         })
     end
 
-    vim.health.start("roslyn.nvim: Custom Roslyn extensions")
+    vim.health.start("roslyn.nvim: Roslyn extensions")
     local config = require("roslyn.config").get()
-    local utils = require("roslyn.utils")
 
     local roslyn_extensions = require("roslyn.config").get().extensions or {}
-    if #roslyn_extensions > 0 then
-        for _, ext_path in ipairs(roslyn_extensions) do
-            local resolved_path = type(ext_path) == "function" and ext_path() or ext_path
 
-            if utils.is_valid_dll_path(resolved_path) then
-                vim.health.ok(string.format("Roslyn extension: valid path provided '%s'", resolved_path))
+    local ext_count = 0
+    for ext_name, extension in pairs(roslyn_extensions) do
+        vim.health.start(string.format("roslyn.nvim: '%s'", ext_name))
+        ext_count = ext_count + 1
+
+        if extension.enabled then
+            vim.health.ok("Enabled: true")
+        else
+            vim.health.info("Enabled: false")
+        end
+
+        local resolved_config = type(extension.config) == "function" and extension.config() or extension.config
+        local resolved_path = type(resolved_config.path) == "function" and resolved_config.path()
+            or resolved_config.path
+
+        if not resolved_path then
+            vim.health.warn(string.format("Resolved path is empty "))
+        else
+            local stat = vim.uv.fs_stat(resolved_path)
+            local is_file = stat and stat.type == "file"
+            if is_file then
+                vim.health.ok(string.format("Resolved path: '%s' (file exists)", resolved_path))
             else
-                vim.health.warn(string.format("Roslyn extension: invalid path '%s'", resolved_path), {
-                    "Provided value or function must point to an existing .dll file.",
-                })
+                vim.health.warn(string.format("Resolved path: '%s' (file does not exist)", resolved_path))
             end
         end
-    else
-        vim.health.info("Roslyn extensions: No custom extensions provided")
+
+        local resolved_args = type(resolved_config.args) == "function" and resolved_config.args()
+            or resolved_config.args
+        if resolved_args then
+            vim.health.ok(string.format("Resolved args:\n%s", table.concat(resolved_args, "\n")))
+        else
+            vim.health.info("No args provided for this extension")
+        end
+    end
+
+    if ext_count == 0 then
+        vim.health.info("No roslyn extensions configured")
     end
 
     vim.health.start("roslyn.nvim: File Watching Configuration")
