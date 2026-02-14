@@ -34,9 +34,9 @@ local function get_default_cmd()
                     vim.log.levels.WARN,
                     { title = "roslyn.nvim" }
                 )
+            else
+                vim.list_extend(cmd, { "--extension=" .. resolved_path })
             end
-
-            vim.list_extend(cmd, { "--extension=" .. resolved_path })
 
             if resolved_config.args then
                 local resolved_args = type(resolved_config.args) == "function" and resolved_config.args()
