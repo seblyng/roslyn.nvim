@@ -43,10 +43,6 @@ local roslyn_config = {
             config = function()
                 local razor_extension_path = require("roslyn.utils").find_razor_extension_path()
                 if razor_extension_path == nil then
-                    vim.notify(
-                        "Could not find Razor extension for roslyn.nvim. Razor language features will be disabled.",
-                        vim.log.levels.WARN
-                    )
                     return {
                         path = nil,
                     }
