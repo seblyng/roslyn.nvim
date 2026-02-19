@@ -60,8 +60,10 @@ vim.api.nvim_create_autocmd({ "BufReadCmd" }, {
         vim.bo[args.buf].swapfile = false
 
         -- This triggers FileType event which should fire up the lsp client if not already running
+        local config = vim.lsp.config["roslyn"]
+        local client_id = assert(vim.lsp.start(config, { bufnr = args.buf }), "Failed to start roslyn")
         vim.bo[args.buf].filetype = "cs"
-        local client = vim.lsp.get_clients({ name = "roslyn", bufnr = args.buf })[1]
+        local client = vim.lsp.get_client_by_id(client_id)
         assert(client, "Must have a `roslyn` client to load roslyn source generated file")
 
         local content
