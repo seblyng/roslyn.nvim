@@ -26,8 +26,9 @@ vim.api.nvim_create_autocmd("BufEnter", {
     group = group,
     pattern = { "*.cs", ".*razor", "*.cshtml" },
     callback = function(args)
+        local config = require("roslyn.config").get()
         local client = vim.lsp.get_clients({ name = "roslyn", bufnr = args.buf })[1]
-        if client then
+        if client and not config.lock_target then
             vim.g.roslyn_nvim_selected_solution = require("roslyn.store").get(client.id)
         end
     end,
