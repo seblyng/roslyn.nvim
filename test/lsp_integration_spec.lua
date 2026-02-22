@@ -199,6 +199,26 @@ describe("LSP integration with mock server", function()
         assert.are_equal("Locked.sln", selected)
     end)
 
+    it("handles multiple csproj files when only one exist in sln", function()
+        create_sln_file("Foo.sln", { { name = "Bar", path = "Foo/Foo.csproj" } })
+        create_sln_file("Baz.sln", { { name = "Bar", path = "Bar/Bar.csproj" } })
+
+        create_file("Foo/Foo.csproj")
+        create_file("Foo/Test/Program.cs")
+
+        -- csproj file that doesn't belong to any solution should be ignored
+        create_file("Foo/Test/Foo.csproj")
+
+        create_file("Bar/Bar.csproj")
+        create_file("Bar/Program.cs")
+
+        command("edit " .. vim.fs.joinpath(helpers.scratch, "Foo", "Test", "Program.cs"))
+
+        local clients = get_lsp_clients()
+        assert.are_equal(1, #clients)
+        assert.are_equal(vim.fs.joinpath(scratch), clients[1].root_dir)
+    end)
+
     it("finds solution with broad_search enabled", function()
         helpers.exec_lua(function()
             require("roslyn.config").setup({ broad_search = true })
