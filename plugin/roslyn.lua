@@ -62,21 +62,43 @@ vim.api.nvim_create_autocmd({ "BufReadCmd" }, {
 
         -- This triggers FileType event which should fire up the lsp client if not already running
         vim.bo[args.buf].filetype = "cs"
-        local client = vim.lsp.get_clients({ name = "roslyn", bufnr = args.buf })[1]
-        assert(client, "Must have a `roslyn` client to load roslyn source generated file")
+        local client
+        vim.wait(1000, function()
+            client = vim.lsp.get_clients({ name = "roslyn", bufnr = args.buf })[1]
+            return client ~= nil
+        end, 50)
 
-        local content
+        if client == nil then
+            vim.bo[args.buf].modifiable = false
+            vim.notify(
+                "Unable to load roslyn source generated file: no running `roslyn` client",
+                vim.log.levels.WARN,
+                { title = "roslyn.nvim" }
+            )
+            return
+        end
+
+        local loaded = false
         local function handler(err, result)
-            assert(not err, vim.inspect(err))
-            content = result.text
-            if content == nil then
-                content = ""
+            if err then
+                loaded = true
+                vim.bo[args.buf].modifiable = false
+                vim.notify(
+                    "Failed to load roslyn source generated file: " .. vim.inspect(err),
+                    vim.log.levels.WARN,
+                    { title = "roslyn.nvim" }
+                )
+                return
             end
+
+            local content = result and result.text or ""
             local normalized = string.gsub(content, "\r\n", "\n")
             local source_lines = vim.split(normalized, "\n", { plain = true })
             vim.api.nvim_buf_set_lines(args.buf, 0, -1, false, source_lines)
             vim.b[args.buf].resultId = result.resultId
+            vim.bo[args.buf].modified = false
             vim.bo[args.buf].modifiable = false
+            loaded = true
         end
 
         local params = {
@@ -89,8 +111,13 @@ vim.api.nvim_create_autocmd({ "BufReadCmd" }, {
         client:request("sourceGeneratedDocument/_roslyn_getText", params, handler, args.buf)
         -- Need to block. Otherwise logic could run that sets the cursor to a position
         -- that's still missing.
-        vim.wait(1000, function()
-            return content ~= nil
-        end)
+        local done = vim.wait(1000, function()
+            return loaded
+        end, 50)
+
+        if not done then
+            vim.bo[args.buf].modifiable = false
+            vim.notify("Timed out loading roslyn source generated file", vim.log.levels.WARN, { title = "roslyn.nvim" })
+        end
     end,
 })
