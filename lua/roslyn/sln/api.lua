@@ -58,11 +58,7 @@ end
 ---@param project string Full path to the project's csproj file
 ---@return boolean
 function M.exists_in_target(target, project)
-    local projects = M.projects(target)
-
-    return vim.iter(projects):find(function(it)
-        return it == project
-    end) ~= nil
+    return vim.list_contains(M.projects(target), project)
 end
 
 return M
