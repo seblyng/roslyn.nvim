@@ -1,5 +1,8 @@
 local diagnostics = require("roslyn.lsp.diagnostics")
 
+-- Track which clients have already completed initialization to avoid duplicate notifications
+local initialized_clients = {}
+
 return {
     ["client/registerCapability"] = function(err, res, ctx)
         if require("roslyn.config").get().filewatching == "off" then
@@ -12,8 +15,22 @@ return {
         return vim.lsp.handlers["client/registerCapability"](err, res, ctx)
     end,
     ["workspace/projectInitializationComplete"] = function(_, _, ctx)
-        if not require("roslyn.config").get().silent then
-            vim.notify("Roslyn project initialization complete", vim.log.levels.INFO, { title = "roslyn.nvim" })
+        if not initialized_clients[ctx.client_id] then
+            initialized_clients[ctx.client_id] = true
+            if not require("roslyn.config").get().silent then
+                local store = require("roslyn.store")
+                local solution = store.get(ctx.client_id)
+                local elapsed_ms = store.get_init_elapsed_ms(ctx.client_id)
+
+                local sln_name = solution and vim.fn.fnamemodify(solution, ":t:r") or "project"
+                local time_str = elapsed_ms and string.format("%.1f sec", elapsed_ms / 1000) or "?"
+
+                vim.notify(
+                    sln_name .. "\ninitialization complete in " .. time_str,
+                    vim.log.levels.INFO,
+                    { title = "roslyn.nvim" }
+                )
+            end
         end
 
         local client = assert(vim.lsp.get_client_by_id(ctx.client_id))
