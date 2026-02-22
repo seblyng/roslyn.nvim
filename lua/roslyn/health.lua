@@ -38,7 +38,7 @@ function M.check()
     vim.health.start("roslyn.nvim: Requirements")
 
     local v = vim.version()
-    if v.major == 0 and v.minor >= 11 then
+    if v.major > 0 or (v.major == 0 and v.minor >= 11) then
         vim.health.ok("Neovim >= 0.11")
     else
         vim.health.error(
