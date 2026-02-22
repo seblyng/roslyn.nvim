@@ -3,6 +3,13 @@ local M = {}
 local sysname = vim.uv.os_uname().sysname:lower()
 local iswin = not not (sysname:find("windows") or sysname:find("mingw"))
 
+---@class RoslynSlnCacheEntry
+---@field projects string[]
+---@field mtime integer
+
+---@type table<string, RoslynSlnCacheEntry>
+local projects_cache = {}
+
 --- Attempts to extract the project path from a line in a solution file
 ---@param line string
 ---@param target string
@@ -30,6 +37,14 @@ end
 ---@param target string Path to solution or solution filter file
 ---@return string[] Table of projects in given solution
 function M.projects(target)
+    local stat = vim.uv.fs_stat(target)
+    local mtime = stat and stat.mtime.sec or 0
+
+    local cached = projects_cache[target]
+    if cached and cached.mtime == mtime then
+        return cached.projects
+    end
+
     local file = io.open(target, "r")
     if not file then
         return {}
@@ -50,6 +65,8 @@ function M.projects(target)
 
     file:close()
 
+    projects_cache[target] = { projects = paths, mtime = mtime }
+
     return paths
 end
 
@@ -58,11 +75,7 @@ end
 ---@param project string Full path to the project's csproj file
 ---@return boolean
 function M.exists_in_target(target, project)
-    local projects = M.projects(target)
-
-    return vim.iter(projects):find(function(it)
-        return it == project
-    end) ~= nil
+    return vim.list_contains(M.projects(target), project)
 end
 
 return M
