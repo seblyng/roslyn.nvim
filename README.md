@@ -28,6 +28,7 @@ A couple of additional things this plugin implements
 - Support for source generated files
 - Support for `Fix all`, `Nested code actions` and `Complex edit`.
 - `Roslyn target` command to switch between multiple solutions
+- Support for custom roslyn extensions, like Roslynator (passed via config)
 
 ## Demo
 
@@ -165,6 +166,35 @@ opts = {
 
     -- If the plugin should silence notifications about initialization
     silent = false,
+
+    -- Additional roslyn extensions (for example Roslynator/ Razor)
+    -- The path is expected to be .dll file
+    extensions = {
+        razor = {
+            enabled = true,
+            config = function()
+                local razor_extension_path = require("roslyn.utils").find_razor_extension_path()
+                if razor_extension_path == nil then
+                    return {
+                        path = nil,
+                    }
+                end
+
+                return {
+                    path = vim.fs.joinpath(razor_extension_path, "Microsoft.VisualStudioCode.RazorExtension.dll"),
+                    args = {
+                        "--razorSourceGenerator="
+                            .. vim.fs.joinpath(razor_extension_path, "Microsoft.CodeAnalysis.Razor.Compiler.dll"),
+                        "--razorDesignTimePath=" .. vim.fs.joinpath(
+                            razor_extension_path,
+                            "Targets",
+                            "Microsoft.NET.Sdk.Razor.DesignTime.targets"
+                        ),
+                    },
+                }
+            end,
+        },
+    },
 }
 ```
 

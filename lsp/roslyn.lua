@@ -6,10 +6,7 @@ local iswin = not not (sysname:find("windows") or sysname:find("mingw"))
 local function get_default_cmd()
     local roslyn_bin = iswin and "roslyn.cmd" or "roslyn"
 
-    -- Fallback in case mason is lazy loaded or MASON env var is just not set
-    local expanded_mason = vim.fn.expand("$MASON")
-    local mason = expanded_mason == "$MASON" and vim.fs.joinpath(vim.fn.stdpath("data"), "mason") or expanded_mason
-
+    local mason = require("roslyn.utils").get_mason_path()
     local mason_bin = vim.fs.joinpath(mason, "bin", roslyn_bin)
 
     local exe = vim.fn.executable(mason_bin) == 1 and mason_bin
@@ -23,34 +20,32 @@ local function get_default_cmd()
         "--stdio",
     }
 
-    local function find_razor_extension_path()
-        local mason_packages = vim.fs.joinpath(mason, "packages")
+    local roslyn_extensions = require("roslyn.config").get().extensions or {}
+    for ext_name, extension in pairs(roslyn_extensions) do
+        if extension.enabled then
+            local resolved_config = type(extension.config) == "function" and extension.config() or extension.config
 
-        local stable_path = vim.fs.joinpath(mason_packages, "roslyn", "libexec", ".razorExtension")
-        if vim.fn.isdirectory(stable_path) == 1 then
-            return stable_path
+            local resolved_path = type(resolved_config.path) == "function" and resolved_config.path()
+                or resolved_config.path
+
+            if resolved_path == nil then
+                vim.notify(
+                    string.format("Extension '%s' is enabled but no path was provided. Skipping...", ext_name),
+                    vim.log.levels.WARN,
+                    { title = "roslyn.nvim" }
+                )
+            else
+                vim.list_extend(cmd, { "--extension=" .. resolved_path })
+            end
+
+            if resolved_config.args then
+                local resolved_args = type(resolved_config.args) == "function" and resolved_config.args()
+                    or resolved_config.args
+                vim.list_extend(cmd, resolved_args)
+            end
         end
-
-        -- TODO: Once the .razorExtension moves to the stable roslyn package, remove this
-        local unstable_path = vim.fs.joinpath(mason_packages, "roslyn-unstable", "libexec", ".razorExtension")
-        if vim.fn.isdirectory(unstable_path) == 1 then
-            return unstable_path
-        end
-
-        return nil
     end
 
-    local razor_extension_path = find_razor_extension_path()
-    if razor_extension_path ~= nil then
-        cmd = vim.list_extend(cmd, {
-            "--razorSourceGenerator="
-                .. vim.fs.joinpath(razor_extension_path, "Microsoft.CodeAnalysis.Razor.Compiler.dll"),
-            "--razorDesignTimePath="
-                .. vim.fs.joinpath(razor_extension_path, "Targets", "Microsoft.NET.Sdk.Razor.DesignTime.targets"),
-            "--extension",
-            vim.fs.joinpath(razor_extension_path, "Microsoft.VisualStudioCode.RazorExtension.dll"),
-        })
-    end
     return cmd
 end
 

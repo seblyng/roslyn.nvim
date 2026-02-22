@@ -1,5 +1,13 @@
 local M = {}
 
+---@class RoslynExtension
+---@field enabled boolean
+---@field config (RoslynExtensionConfig | fun(): RoslynExtensionConfig)
+
+---@class RoslynExtensionConfig
+---@field path string?
+---@field args? string[]
+
 ---@class InternalRoslynNvimConfig
 ---@field filewatching "auto" | "off" | "roslyn"
 ---@field choose_target? fun(targets: string[]): string?
@@ -8,6 +16,7 @@ local M = {}
 ---@field lock_target boolean
 ---@field silent boolean
 ---@field debug boolean
+---@field extensions? table<string, RoslynExtension>
 
 ---@class RoslynNvimConfig
 ---@field filewatching? boolean | "auto" | "off" | "roslyn"
@@ -17,6 +26,7 @@ local M = {}
 ---@field lock_target? boolean
 ---@field silent? boolean
 ---@field debug? boolean
+---@field extensions? table<string, RoslynExtension>
 
 ---@type InternalRoslynNvimConfig
 local roslyn_config = {
@@ -27,6 +37,32 @@ local roslyn_config = {
     lock_target = false,
     silent = false,
     debug = false,
+    extensions = {
+        razor = {
+            enabled = true,
+            config = function()
+                local razor_extension_path = require("roslyn.utils").find_razor_extension_path()
+                if razor_extension_path == nil then
+                    return {
+                        path = nil,
+                    }
+                end
+
+                return {
+                    path = vim.fs.joinpath(razor_extension_path, "Microsoft.VisualStudioCode.RazorExtension.dll"),
+                    args = {
+                        "--razorSourceGenerator="
+                            .. vim.fs.joinpath(razor_extension_path, "Microsoft.CodeAnalysis.Razor.Compiler.dll"),
+                        "--razorDesignTimePath=" .. vim.fs.joinpath(
+                            razor_extension_path,
+                            "Targets",
+                            "Microsoft.NET.Sdk.Razor.DesignTime.targets"
+                        ),
+                    },
+                }
+            end,
+        },
+    },
 }
 
 function M.get()
