@@ -7,8 +7,6 @@ if vim.fn.has("nvim-0.11") == 0 then
     return vim.notify("roslyn.nvim requires at least nvim 0.11", vim.log.levels.WARN, { title = "roslyn.nvim" })
 end
 
-vim.lsp.enable("roslyn")
-
 vim.treesitter.language.register("c_sharp", "csharp")
 
 vim.filetype.add({
