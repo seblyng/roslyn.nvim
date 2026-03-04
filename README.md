@@ -165,6 +165,13 @@ opts = {
 
     -- If the plugin should silence notifications about initialization
     silent = false,
+
+    -- Whether or not to dim inactive regions of code inside preprocessor
+    -- directives (#if/#else/#endif) where the condition evaluates to false.
+    -- When enabled, inactive code is displayed with the `DiagnosticUnnecessary`
+    -- highlight (gray by default). You can override the appearance by setting
+    -- the `@lsp.type.excludedCode` or `@lsp.type.excludedCode.cs` highlight group.
+    dim_inactive_regions = true,
 }
 ```
 
