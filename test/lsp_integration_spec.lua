@@ -650,4 +650,143 @@ describe("LSP integration with mock server", function()
         assert.is_true(vim.tbl_contains(solutions, to_uri(vim.fs.joinpath(scratch, "src", "Bar", "Bar.sln"))))
         assert.is_true(vim.tbl_contains(solutions, to_uri(vim.fs.joinpath(scratch, "src", "Root.sln"))))
     end)
+
+    it("prevents duplicate textDocument/didOpen notifications", function()
+        create_sln_file("Foo.sln", { { name = "Bar", path = "Bar/Bar.csproj" } })
+        create_file("Bar/Bar.csproj")
+        create_file("Bar/Program.cs")
+        create_file("Bar/Other.cs")
+
+        -- Clear any previous RPC notifications
+        helpers.exec_lua(function()
+            require("test.utils.mock_server").reset()
+        end)
+
+        -- Open first file
+        command("edit " .. vim.fs.joinpath(helpers.scratch, "Bar", "Program.cs"))
+        local bufnr1 = helpers.api.nvim_get_current_buf()
+
+        -- Wait for LSP to fully attach and send didOpen
+        helpers.exec_lua(function()
+            vim.wait(100, function() end)
+        end)
+
+        -- Get all RPC notifications captured by the mock server
+        local rpc_notifications = helpers.exec_lua(function()
+            return require("test.utils.mock_server").rpc_notifications
+        end)
+
+        -- Count didOpen notifications for first file
+        local didOpen_count_1 = 0
+        for _, notif in ipairs(rpc_notifications) do
+            if notif.method == "textDocument/didOpen" then
+                local uri = notif.params and notif.params.textDocument and notif.params.textDocument.uri
+                if uri == to_uri(vim.fs.joinpath(scratch, "Bar", "Program.cs")) then
+                    didOpen_count_1 = didOpen_count_1 + 1
+                end
+            end
+        end
+        assert.are_equal(1, didOpen_count_1, "First file should have exactly 1 didOpen")
+
+        -- Open second file in same solution (same client)
+        command("edit " .. vim.fs.joinpath(helpers.scratch, "Bar", "Other.cs"))
+        local bufnr2 = helpers.api.nvim_get_current_buf()
+
+        -- Wait for LSP to process
+        helpers.exec_lua(function()
+            vim.wait(100, function() end)
+        end)
+
+        -- Get updated RPC notifications
+        rpc_notifications = helpers.exec_lua(function()
+            return require("test.utils.mock_server").rpc_notifications
+        end)
+
+        -- Count didOpen notifications for second file
+        local didOpen_count_2 = 0
+        for _, notif in ipairs(rpc_notifications) do
+            if notif.method == "textDocument/didOpen" then
+                local uri = notif.params and notif.params.textDocument and notif.params.textDocument.uri
+                if uri == to_uri(vim.fs.joinpath(scratch, "Bar", "Other.cs")) then
+                    didOpen_count_2 = didOpen_count_2 + 1
+                end
+            end
+        end
+        assert.are_equal(1, didOpen_count_2, "Second file should have exactly 1 didOpen")
+
+        -- Switch back to first file (should NOT send duplicate didOpen)
+        command("buffer " .. bufnr1)
+
+        -- Wait for any potential duplicate to be processed (should be blocked)
+        helpers.exec_lua(function()
+            vim.wait(100, function() end)
+        end)
+
+        -- Get final RPC notifications
+        rpc_notifications = helpers.exec_lua(function()
+            return require("test.utils.mock_server").rpc_notifications
+        end)
+
+        -- Count didOpen notifications for first file again
+        local didOpen_count_final = 0
+        for _, notif in ipairs(rpc_notifications) do
+            if notif.method == "textDocument/didOpen" then
+                local uri = notif.params and notif.params.textDocument.uri
+                if uri == to_uri(vim.fs.joinpath(scratch, "Bar", "Program.cs")) then
+                    didOpen_count_final = didOpen_count_final + 1
+                end
+            end
+        end
+        assert.are_equal(1, didOpen_count_final, "First file should still have exactly 1 didOpen after switching back (no duplicate)")
+
+        -- Close the first file (should send didClose and allow reopening)
+        command("bdelete " .. bufnr1)
+
+        -- Wait for didClose to be processed
+        helpers.exec_lua(function()
+            vim.wait(100, function() end)
+        end)
+
+        -- Get RPC notifications after close
+        rpc_notifications = helpers.exec_lua(function()
+            return require("test.utils.mock_server").rpc_notifications
+        end)
+
+        -- Verify didClose was sent
+        local didClose_count = 0
+        for _, notif in ipairs(rpc_notifications) do
+            if notif.method == "textDocument/didClose" then
+                local uri = notif.params and notif.params.textDocument.uri
+                if uri == to_uri(vim.fs.joinpath(scratch, "Bar", "Program.cs")) then
+                    didClose_count = didClose_count + 1
+                end
+            end
+        end
+        assert.are_equal(1, didClose_count, "didClose should be sent when buffer is deleted")
+
+        -- Reopen the same file (should allow didOpen again after didClose)
+        command("edit " .. vim.fs.joinpath(helpers.scratch, "Bar", "Program.cs"))
+
+        -- Wait for LSP to process reopen
+        helpers.exec_lua(function()
+            vim.wait(100, function() end)
+        end)
+
+        -- Get final RPC notifications
+        rpc_notifications = helpers.exec_lua(function()
+            return require("test.utils.mock_server").rpc_notifications
+        end)
+
+        -- Count didOpen notifications for first file after reopen
+        local didOpen_count_after_reopen = 0
+        for _, notif in ipairs(rpc_notifications) do
+            if notif.method == "textDocument/didOpen" then
+                local uri = notif.params and notif.params.textDocument.uri
+                if uri == to_uri(vim.fs.joinpath(scratch, "Bar", "Program.cs")) then
+                    didOpen_count_after_reopen = didOpen_count_after_reopen + 1
+                end
+            end
+        end
+        assert.are_equal(2, didOpen_count_after_reopen, "File should have 2 didOpen after reopening (1 original + 1 after close)")
+    end)
 end)
