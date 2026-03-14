@@ -96,6 +96,39 @@ where `<my_folder>` has to be the folder you extracted the nuget package to.
 
 - for all other platforms put the extracted folder to neovim's PATH (`vim.env.PATH`)
 
+For the full list of `Microsoft.CodeAnalysis.LanguageServer.dll` CLI options you
+can just run it without any options `dotnet <my_folder>/Microsoft.CodeAnalysis.LanguageServer.dll`
+(or you can check the [official repository][roslyn_ls_cli_options]).
+For instance (this may obviously not be up-to-date):
+
+```
+Option '--logLevel' is required.
+Option '--extensionLogDirectory' is required.
+
+Description:
+
+Usage:
+  Microsoft.CodeAnalysis.LanguageServer [options]
+
+Options:
+  --debug                                                                      Flag indicating if the debugger should be launched on startup.
+  --brokeredServicePipeName <brokeredServicePipeName>                          The name of the pipe used to connect to a remote process (if one exists).
+  --logLevel <Critical|Debug|Error|Information|None|Trace|Warning> (REQUIRED)  The minimum log verbosity.
+  --starredCompletionComponentPath <starredCompletionComponentPath>            The location of the starred completion component (if one exists).
+  --telemetryLevel <telemetryLevel>                                            Telemetry level, Defaults to 'off'. Example values: 'all', 'crash', 'error', or 'off'.
+  --sessionId <sessionId>                                                      Session Id to use for telemetry
+  --extension <extension>                                                      Full paths of extension assemblies to load (optional).
+  --devKitDependencyPath <devKitDependencyPath>                                Full path to the Roslyn dependency used with DevKit (optional).
+  --razorSourceGenerator <razorSourceGenerator>                                Full path to the Razor source generator (optional).
+  --razorDesignTimePath <razorDesignTimePath>                                  Full path to the Razor design time target path (optional).
+  --csharpDesignTimePath <csharpDesignTimePath>                                Full path to the C# design time target path (optional).
+  --extensionLogDirectory <extensionLogDirectory> (REQUIRED)                   The directory where we should write log files to
+  --pipe <pipe>                                                                The name of the pipe the server will connect to.
+  --stdio                                                                      Use stdio for communication with the client.
+  -?, -h, --help                                                               Show help and usage information
+  --version                                                                    Show version information
+```
+
 </details>
 
 > [!TIP]  
@@ -172,19 +205,129 @@ To configure language server specific settings sent to the server, you can use t
 
 ## Example
 
+The settings in the example below are verbose. You are expected to only copy the ones that you need.
+
 ```lua
 vim.lsp.config("roslyn", {
     on_attach = function()
         print("This will run when the server attaches!")
     end,
+    -- These settings are fetched from the official Roslyn LS repository at:
+    -- roslyn/src/LanguageServer/ProtocolUnitTests/Configuration/DidChangeConfigurationNotificationHandlerTest.cs
+    -- The expected values for these settings can be figured out by searching
+    -- the official Roslyn repository for the settings name.
     settings = {
-        ["csharp|inlay_hints"] = {
-            csharp_enable_inlay_hints_for_implicit_object_creation = true,
-            csharp_enable_inlay_hints_for_implicit_variable_types = true,
-        },
-        ["csharp|code_lens"] = {
-            dotnet_enable_references_code_lens = true,
-        },
+      ['csharp|background_analysis'] = {
+        -- Option to turn configure background analysis scope for the current
+        -- user. Note: setting this to "fullSolution" may result in significant
+        -- performance degradation, see: https://github.com/dotnet/vscode-csharp/issues/8145#issuecomment-2784568100
+        ---@type "openFiles" | "fullSolution" | "none"
+        dotnet_analyzer_diagnostics_scope = 'openFiles',
+
+        -- Option to configure compiler diagnostics scope for the current user.
+        -- Note: setting this to "fullSolution" may result in significant
+        -- performance degradation, see: https://github.com/dotnet/vscode-csharp/issues/8145#issuecomment-2784568100
+        ---@type "openFiles" | "fullSolution" | "none"
+        dotnet_compiler_diagnostics_scope = 'openFiles',
+      },
+      ['csharp|inlay_hints'] = {
+        ---@type boolean
+        dotnet_enable_inlay_hints_for_parameters = true,
+
+        ---@type boolean
+        dotnet_enable_inlay_hints_for_literal_parameters = true,
+
+        ---@type boolean
+        dotnet_enable_inlay_hints_for_indexer_parameters = true,
+
+        ---@type boolean
+        dotnet_enable_inlay_hints_for_object_creation_parameters = true,
+
+        ---@type boolean
+        dotnet_enable_inlay_hints_for_other_parameters = true,
+
+        ---@type boolean
+        dotnet_suppress_inlay_hints_for_parameters_that_differ_only_by_suffix = true,
+
+        ---@type boolean
+        dotnet_suppress_inlay_hints_for_parameters_that_match_method_intent = true,
+
+        ---@type boolean
+        dotnet_suppress_inlay_hints_for_parameters_that_match_argument_name = true,
+
+        ---@type boolean
+        csharp_enable_inlay_hints_for_types = true,
+
+        ---@type boolean
+        csharp_enable_inlay_hints_for_implicit_variable_types = true,
+
+        ---@type boolean
+        csharp_enable_inlay_hints_for_lambda_parameter_types = true,
+
+        ---@type boolean
+        csharp_enable_inlay_hints_for_implicit_object_creation = true,
+
+        ---@type boolean
+        csharp_enable_inlay_hints_for_collection_expressions = true,
+      },
+      ['csharp|symbol_search'] = {
+        ---@type boolean
+        dotnet_search_reference_assemblies = true,
+      },
+      ['csharp|completion'] = {
+        ---@type boolean
+        dotnet_show_name_completion_suggestions = true,
+
+        ---@type boolean
+        dotnet_provide_regex_completions = true,
+
+        ---@type boolean
+        dotnet_show_completion_items_from_unimported_namespaces = true,
+
+        ---@type boolean
+        dotnet_trigger_completion_in_argument_lists = true,
+      },
+      ['csharp|code_lens'] = {
+        ---@type boolean
+        dotnet_enable_references_code_lens = true,
+
+        ---@type boolean
+        dotnet_enable_tests_code_lens = true,
+      },
+      ['csharp|projects'] = {
+        -- A folder to log binlogs to when running design-time builds.
+        ---@type string?
+        dotnet_binary_log_path = nil,
+
+        -- Whether or not automatic nuget restore is enabled.
+        ---@type boolean
+        dotnet_enable_automatic_restore = true,
+
+        -- Whether to use the new 'dotnet run app.cs' (file-based programs)
+        -- experience.
+        ---@type boolean
+        dotnet_enable_file_based_programs = true,
+
+        -- Whether to use the new 'dotnet run app.cs' (file-based programs)
+        -- experience in files where the editor is unable to determine with
+        -- certainty whether the file is a file-based program.
+        ---@type boolean
+        dotnet_enable_file_based_programs_when_ambiguous = true,
+      },
+      ['csharp|navigation'] = {
+        ---@type boolean
+        dotnet_navigate_to_decompiled_sources = true,
+
+        ---@type boolean
+        dotnet_navigate_to_source_link_and_embedded_sources = true,
+      },
+      ['csharp|highlighting'] = {
+        ---@type boolean
+        dotnet_highlight_related_json_components = true,
+
+        ---@type boolean
+        dotnet_highlight_related_regex_components = true,
+      },
     },
 })
 ```
@@ -193,7 +336,12 @@ Some tips and tricks that may be useful, but not in the scope of this plugin,
 are documented in the [wiki](https://github.com/seblyng/roslyn.nvim/wiki).
 
 > [!NOTE]  
-> These settings are not guaranteed to be up-to-date and new ones can appear in the future. Aditionally, not all settings are shown here, but only the most relevant ones for Neovim. For a full list, visit [this](https://github.com/dotnet/vscode-csharp/blob/main/test/lsptoolshost/unitTests/configurationMiddleware.test.ts) unit test from the vscode extension and look especially for the ones which **don't** have `vsCodeConfiguration: null`.
+> These settings are not guaranteed to be up-to-date and new ones can appear in
+> the future. Aditionally, not all settings are shown here.
+> For an up-to-date full list, check the official Roslyn repository exactly at
+> this file location:
+> `roslyn/src/LanguageServer/ProtocolUnitTests/Configuration/DidChangeConfigurationNotificationHandlerTest.cs`
+> which is accessible from [here][roslyn_ls_server_options].
 
 ### Background Analysis
 
@@ -332,3 +480,6 @@ This setting controls how the language server should format code.
 
 - If you have multiple solutions, this plugin tries to guess which one to use. You can change the target with the `:Roslyn target` command.
 - The current solution is always stored in `vim.g.roslyn_nvim_selected_solution`. You can use this, for example, to display the current solution in your statusline.
+
+[roslyn_ls_server_options]: https://github.com/dotnet/roslyn/blob/main/src/LanguageServer/ProtocolUnitTests/Configuration/DidChangeConfigurationNotificationHandlerTest.cs#L114-L153
+[roslyn_ls_cli_options]: https://github.com/dotnet/roslyn/blob/main/src/LanguageServer/Microsoft.CodeAnalysis.LanguageServer/Program.cs#L187-L284 
