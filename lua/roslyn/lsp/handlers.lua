@@ -47,6 +47,7 @@ return {
                     vim.api.nvim_buf_set_lines(buf, 0, -1, false, source_lines)
                     vim.b[buf].resultId = result.resultId
                     vim.bo[buf].modifiable = false
+                    vim.bo[buf].modified = false
                 end
 
                 local params = {

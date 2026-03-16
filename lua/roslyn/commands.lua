@@ -38,7 +38,7 @@ local subcommand_tbl = {
                 vim.lsp.enable("roslyn")
             end)
 
-            local force_stop = vim.loop.os_uname().sysname == "Windows_NT"
+            local force_stop = vim.uv.os_uname().sysname == "Windows_NT"
             client:stop(force_stop)
         end,
     },
@@ -50,7 +50,7 @@ local subcommand_tbl = {
                 return
             end
 
-            local force_stop = vim.loop.os_uname().sysname == "Windows_NT"
+            local force_stop = vim.uv.os_uname().sysname == "Windows_NT"
             client:stop(force_stop)
         end,
     },
@@ -91,7 +91,7 @@ local subcommand_tbl = {
                     vim.lsp.start(config, { bufnr = bufnr })
                 end)
 
-                local force_stop = vim.loop.os_uname().sysname == "Windows_NT"
+                local force_stop = vim.uv.os_uname().sysname == "Windows_NT"
                 client:stop(force_stop)
             end)
         end,

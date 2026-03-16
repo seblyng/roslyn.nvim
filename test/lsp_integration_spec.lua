@@ -13,7 +13,6 @@ local function to_uri(path)
     return "file://" .. path
 end
 
-
 local function get_lsp_clients(bufnr)
     return helpers.exec_lua(function(bufnr0)
         return vim.tbl_map(function(client)
@@ -48,6 +47,7 @@ describe("LSP integration with mock server", function()
 
             vim.lsp.config["roslyn"] = lsp_config
             vim.lsp.enable("roslyn")
+            dofile(vim.fs.joinpath(cwd, "plugin", "roslyn.lua"))
         end)
     end)
 
@@ -137,6 +137,66 @@ describe("LSP integration with mock server", function()
             return vim.g.roslyn_nvim_selected_solution
         end)
         assert.are_equal(vim.fs.joinpath(scratch, "Foo.sln"), selected)
+    end)
+
+    it("change global variable if lock_target is false", function()
+        create_sln_file("Foo.sln", { { name = "Foo", path = "Foo/Foo.csproj" } })
+        create_file("Foo/Foo.csproj")
+        create_file("Foo/Program.cs")
+        create_file("Foo/Test.cs")
+
+        command("edit " .. vim.fs.joinpath(helpers.scratch, "Foo", "Program.cs"))
+
+        local selected = helpers.exec_lua(function()
+            return vim.g.roslyn_nvim_selected_solution
+        end)
+        assert.are_equal(vim.fs.joinpath(scratch, "Foo.sln"), selected)
+
+        helpers.exec_lua(function()
+            vim.g.roslyn_nvim_selected_solution = "Locked.sln"
+        end)
+
+        command("edit " .. vim.fs.joinpath(helpers.scratch, "Foo", "Test.cs"))
+
+        -- Switching back should update the global variable since lock_target is false
+        command("edit " .. vim.fs.joinpath(helpers.scratch, "Foo", "Program.cs"))
+
+        selected = helpers.exec_lua(function()
+            return vim.g.roslyn_nvim_selected_solution
+        end)
+        assert.are_equal(vim.fs.joinpath(scratch, "Foo.sln"), selected)
+    end)
+
+    it("does not change global variable if lock_target is true", function()
+        helpers.exec_lua(function()
+            require("roslyn.config").setup({ lock_target = true })
+        end)
+
+        create_sln_file("Foo.sln", { { name = "Foo", path = "Foo/Foo.csproj" } })
+        create_file("Foo/Foo.csproj")
+        create_file("Foo/Program.cs")
+        create_file("Foo/Test.cs")
+
+        command("edit " .. vim.fs.joinpath(helpers.scratch, "Foo", "Program.cs"))
+
+        local selected = helpers.exec_lua(function()
+            return vim.g.roslyn_nvim_selected_solution
+        end)
+        assert.are_equal(vim.fs.joinpath(scratch, "Foo.sln"), selected)
+
+        helpers.exec_lua(function()
+            vim.g.roslyn_nvim_selected_solution = "Locked.sln"
+        end)
+
+        command("edit " .. vim.fs.joinpath(helpers.scratch, "Foo", "Test.cs"))
+
+        -- Switching back to the open buffer should not change the globally selected solution when having lock_target enabled
+        command("edit " .. vim.fs.joinpath(helpers.scratch, "Foo", "Program.cs"))
+
+        selected = helpers.exec_lua(function()
+            return vim.g.roslyn_nvim_selected_solution
+        end)
+        assert.are_equal("Locked.sln", selected)
     end)
 
     it("finds solution with broad_search enabled", function()
