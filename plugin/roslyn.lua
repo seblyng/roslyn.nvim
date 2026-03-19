@@ -24,7 +24,7 @@ local group = vim.api.nvim_create_augroup("roslyn.nvim", { clear = true })
 -- so that it always reflects the current buffers' solution.
 vim.api.nvim_create_autocmd("BufEnter", {
     group = group,
-    pattern = { "*.cs", ".*razor", "*.cshtml" },
+    pattern = { "*.cs", "*.razor", "*.cshtml" },
     callback = function(args)
         local config = require("roslyn.config").get()
         local client = vim.lsp.get_clients({ name = "roslyn", bufnr = args.buf })[1]
