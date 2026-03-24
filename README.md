@@ -105,7 +105,7 @@ where `<my_folder>` has to be the folder you extracted the nuget package to.
 For the full list of `Microsoft.CodeAnalysis.LanguageServer.dll` CLI options you
 can just run it without any options `dotnet <my_folder>/Microsoft.CodeAnalysis.LanguageServer.dll`
 (or you can check the [official repository][roslyn_ls_cli_options]).
-For instance (this is for version  and may not be up-to-date):
+The following options are most likely available for your Roslyn LS version:
 
 ```
 Option '--logLevel' is required.
@@ -117,19 +117,8 @@ Usage:
   Microsoft.CodeAnalysis.LanguageServer [options]
 
 Options:
-  --debug                                                                      Flag indicating if the debugger should be launched on startup.
-  --brokeredServicePipeName <brokeredServicePipeName>                          The name of the pipe used to connect to a remote process (if one exists).
   --logLevel <Critical|Debug|Error|Information|None|Trace|Warning> (REQUIRED)  The minimum log verbosity.
-  --starredCompletionComponentPath <starredCompletionComponentPath>            The location of the starred completion component (if one exists).
-  --telemetryLevel <telemetryLevel>                                            Telemetry level, Defaults to 'off'. Example values: 'all', 'crash', 'error', or 'off'.
-  --sessionId <sessionId>                                                      Session Id to use for telemetry
-  --extension <extension>                                                      Full paths of extension assemblies to load (optional).
-  --devKitDependencyPath <devKitDependencyPath>                                Full path to the Roslyn dependency used with DevKit (optional).
-  --razorSourceGenerator <razorSourceGenerator>                                Full path to the Razor source generator (optional).
-  --razorDesignTimePath <razorDesignTimePath>                                  Full path to the Razor design time target path (optional).
-  --csharpDesignTimePath <csharpDesignTimePath>                                Full path to the C# design time target path (optional).
   --extensionLogDirectory <extensionLogDirectory> (REQUIRED)                   The directory where we should write log files to
-  --pipe <pipe>                                                                The name of the pipe the server will connect to.
   --stdio                                                                      Use stdio for communication with the client.
   -?, -h, --help                                                               Show help and usage information
   --version                                                                    Show version information
