@@ -1,10 +1,13 @@
 local M = {}
 
 function M.sln(client, solution)
-    require("roslyn.store").set(client.id, solution)
+    local store = require("roslyn.store")
+    store.set(client.id, solution)
+    store.set_init_start(client.id)
 
     if not require("roslyn.config").get().silent then
-        vim.notify("Initializing Roslyn for: " .. solution, vim.log.levels.INFO, { title = "roslyn.nvim" })
+        local sln_name = vim.fn.fnamemodify(solution, ":t:r")
+        vim.notify("Initializing\n" .. sln_name, vim.log.levels.INFO, { title = "roslyn.nvim" })
     end
 
     client:notify("solution/open", {
@@ -22,8 +25,10 @@ function M.sln(client, solution)
 end
 
 function M.project(client, projects)
+    require("roslyn.store").set_init_start(client.id)
+
     if not require("roslyn.config").get().silent then
-        vim.notify("Initializing Roslyn for: project", vim.log.levels.INFO, { title = "roslyn.nvim" })
+        vim.notify("Initializing project", vim.log.levels.INFO, { title = "roslyn.nvim" })
     end
     client:notify("project/open", {
         projects = vim.tbl_map(function(file)

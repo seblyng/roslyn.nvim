@@ -93,10 +93,12 @@ local ignored_dirs = {
 function M.find_solutions_broad(bufnr)
     local root = resolve_broad_search_root(bufnr)
     local dirs = { root }
+    local head = 1
     local slns = {} --- @type string[]
 
-    while #dirs > 0 do
-        local dir = table.remove(dirs, 1)
+    while head <= #dirs do
+        local dir = dirs[head]
+        head = head + 1
 
         for other, fs_obj_type in vim.fs.dir(dir) do
             local name = vim.fs.joinpath(dir, other)
