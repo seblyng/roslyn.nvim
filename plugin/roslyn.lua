@@ -9,14 +9,7 @@ end
 
 vim.lsp.enable("roslyn")
 
-vim.treesitter.language.register("c_sharp", "csharp")
-
-vim.filetype.add({
-    extension = {
-        razor = "razor",
-        cshtml = "razor",
-    },
-})
+-- vim.treesitter.language.register("c_sharp", "csharp")
 
 local group = vim.api.nvim_create_augroup("roslyn.nvim", { clear = true })
 
@@ -39,17 +32,6 @@ vim.api.nvim_create_autocmd("FileType", {
     pattern = { "cs", "razor" },
     callback = function()
         require("roslyn.commands").create_roslyn_commands()
-    end,
-})
-
-vim.api.nvim_create_autocmd({ "BufWritePost", "InsertLeave" }, {
-    group = group,
-    pattern = { "*.cs", "*.razor", "*.cshtml" },
-    callback = function()
-        local clients = vim.lsp.get_clients({ name = "roslyn" })
-        for _, client in ipairs(clients) do
-            require("roslyn.lsp.diagnostics").refresh(client)
-        end
     end,
 })
 
@@ -96,6 +78,7 @@ vim.api.nvim_create_autocmd({ "BufReadCmd" }, {
             resultId = nil,
         }
 
+        ---@diagnostic disable-next-line: param-type-mismatch
         client:request("sourceGeneratedDocument/_roslyn_getText", params, handler, args.buf)
         -- Need to block. Otherwise logic could run that sets the cursor to a position
         -- that's still missing.
