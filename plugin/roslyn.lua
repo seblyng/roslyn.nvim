@@ -9,8 +9,6 @@ end
 
 vim.lsp.enable("roslyn")
 
--- vim.treesitter.language.register("c_sharp", "csharp")
-
 local group = vim.api.nvim_create_augroup("roslyn.nvim", { clear = true })
 
 -- Updates `vim.g.roslyn_nvim_selected_solution` when entering a C# or Razor buffer
