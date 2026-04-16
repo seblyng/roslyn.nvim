@@ -1,5 +1,5 @@
-export NVIM_RUNNER_VERSION := v0.11.0
-export NVIM_TEST_VERSION ?= v0.11.0
+export NVIM_RUNNER_VERSION := v0.12.1
+export NVIM_TEST_VERSION ?= v0.12.1
 
 nvim-test:
 	git clone https://github.com/lewis6991/nvim-test
