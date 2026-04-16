@@ -28,30 +28,20 @@ end
 local subcommand_tbl = {
     restart = {
         impl = function()
-            local bufnr = vim.api.nvim_get_current_buf()
-            local client = vim.lsp.get_clients({ name = "roslyn", bufnr = bufnr })[1]
-            if not client then
-                return
-            end
-
-            on_stopped(function()
-                vim.lsp.enable("roslyn")
-            end)
-
-            local force_stop = vim.uv.os_uname().sysname == "Windows_NT"
-            client:stop(force_stop)
+            vim.deprecate(":Roslyn restart", ":lsp restart roslyn", "soon", "roslyn.nvim")
+            vim.cmd.lsp("restart", "roslyn")
         end,
     },
     stop = {
         impl = function()
-            local bufnr = vim.api.nvim_get_current_buf()
-            local client = vim.lsp.get_clients({ name = "roslyn", bufnr = bufnr })[1]
-            if not client then
-                return
-            end
-
-            local force_stop = vim.uv.os_uname().sysname == "Windows_NT"
-            client:stop(force_stop)
+            vim.deprecate(":Roslyn stop", ":lsp stop roslyn", "soon", "roslyn.nvim")
+            vim.cmd.lsp("stop", "roslyn")
+        end,
+    },
+    start = {
+        impl = function()
+            vim.deprecate(":Roslyn start", ":lsp enable roslyn", "soon", "roslyn.nvim")
+            vim.cmd.lsp("enable", "roslyn")
         end,
     },
     target = {
@@ -94,34 +84,6 @@ local subcommand_tbl = {
                 local force_stop = vim.uv.os_uname().sysname == "Windows_NT"
                 client:stop(force_stop)
             end)
-        end,
-    },
-    start = {
-        impl = function()
-            local bufnr = vim.api.nvim_get_current_buf()
-            local utils = require("roslyn.sln.utils")
-            local broad_search = require("roslyn.config").get().broad_search
-            local solutions = broad_search and utils.find_solutions_broad(bufnr) or utils.find_solutions(bufnr)
-
-            -- If we have more than one solution, immediately ask to pick one
-            if #solutions > 1 then
-                vim.ui.select(solutions or {}, { prompt = "Select target solution: " }, function(file)
-                    if not file then
-                        return
-                    end
-
-                    local config = vim.tbl_deep_extend("force", vim.lsp.config["roslyn"], {
-                        root_dir = vim.fs.dirname(file),
-                        on_init = function(client)
-                            require("roslyn.lsp.on_init").sln(client, file)
-                        end,
-                    })
-                    vim.lsp.start(config, { bufnr = bufnr })
-                end)
-                return
-            end
-
-            vim.lsp.enable("roslyn")
         end,
     },
 }
