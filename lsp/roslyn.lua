@@ -105,7 +105,8 @@ return {
                 if method == "textDocument/semanticTokens/full" then
                     ---@class lsp.SemanticTokensParams
                     local res = params
-                    if res.textDocument.uri:match("%.razor$") or res.textDocument.uri:match("%.cshtml$") then
+                    local bufnr = vim.uri_to_bufnr(res.textDocument.uri)
+                    if vim.bo[bufnr].filetype == "razor" then
                         return
                     end
                 end
