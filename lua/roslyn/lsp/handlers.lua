@@ -1,5 +1,3 @@
-local diagnostics = require("roslyn.lsp.diagnostics")
-
 return {
     ["client/registerCapability"] = function(err, res, ctx)
         if require("roslyn.config").get().filewatching == "off" then
@@ -16,16 +14,13 @@ return {
             vim.notify("Roslyn project initialization complete", vim.log.levels.INFO, { title = "roslyn.nvim" })
         end
 
-        local client = assert(vim.lsp.get_client_by_id(ctx.client_id))
-
         vim.api.nvim_exec_autocmds("User", {
             pattern = "RoslynInitialized",
             modeline = false,
             data = { client_id = ctx.client_id },
         })
 
-        -- Add diagnostics when project init
-        diagnostics.refresh(client)
+        vim.lsp.diagnostic._refresh()
     end,
     ["workspace/refreshSourceGeneratedDocument"] = function(_, _, ctx)
         local client = assert(vim.lsp.get_client_by_id(ctx.client_id))

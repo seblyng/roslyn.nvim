@@ -1,6 +1,7 @@
 ---@type table<vim.lsp.protocol.Method.ClientToServer, any>
 local nil_responses = {
     ["textDocument/hover"] = true,
+    ["textDocument/signatureHelp"] = true,
 }
 
 ---@generic T

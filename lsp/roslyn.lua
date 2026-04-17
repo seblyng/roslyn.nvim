@@ -59,14 +59,6 @@ return {
         -- Fixes LSP navigation in decompiled files for systems with symlinked TMPDIR (macOS)
         TMPDIR = vim.env.TMPDIR and vim.fn.resolve(vim.env.TMPDIR) or nil,
     },
-    capabilities = {
-        textDocument = {
-            -- HACK: Doesn't show any diagnostics if we do not set this to true
-            diagnostic = {
-                dynamicRegistration = true,
-            },
-        },
-    },
     settings = {
         razor = {
             language_server = {
@@ -98,20 +90,6 @@ return {
         function(client)
             -- Although roslyn supports prepareRename, cohosted razor doesnt. So we need to disable it
             client.server_capabilities.renameProvider = true
-
-            -- Disable semantictokens for > nvim 0.12 as `/full` requests aren't support for razor files
-            -- TODO: Remove when 0.12 is stable
-            if vim.fn.has("nvim-0.12") == 0 then
-                vim.api.nvim_create_autocmd("LspAttach", {
-                    callback = function(args)
-                        if vim.api.nvim_get_option_value("filetype", { buf = args.buf }) == "razor" then
-                            if args.data.client_id == client.id then
-                                client.server_capabilities.semanticTokensProvider.full = nil
-                            end
-                        end
-                    end,
-                })
-            end
 
             if not client.config.root_dir then
                 return

@@ -13,7 +13,7 @@ server.
 
 ## ⚡️ Requirements
 
-- Neovim >= 0.11.0
+- Neovim >= 0.12.0
 - Roslyn language server downloaded locally
 - .NET SDK installed and `dotnet` command available
 
