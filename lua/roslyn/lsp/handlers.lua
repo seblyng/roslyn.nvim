@@ -32,8 +32,8 @@ return {
                     if vim.b[buf].resultId == result.resultId then
                         return
                     end
-                    local content = result.text
-                    if content == nil or content == vim.NIL then
+                    local content = result.text or ""
+                    if content == vim.NIL then
                         content = ""
                     end
                     local normalized = string.gsub(content, "\r\n", "\n")
