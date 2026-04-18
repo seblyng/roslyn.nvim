@@ -33,7 +33,7 @@ return {
                         return
                     end
                     local content = result.text
-                    if content == nil then
+                    if content == nil or content == vim.NIL then
                         content = ""
                     end
                     local normalized = string.gsub(content, "\r\n", "\n")
