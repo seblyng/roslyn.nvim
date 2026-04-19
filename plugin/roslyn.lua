@@ -57,8 +57,8 @@ vim.api.nvim_create_autocmd({ "BufReadCmd" }, {
         local content
         local function handler(err, result)
             assert(not err, vim.inspect(err))
-            content = result.text
-            if content == nil then
+            content = result.text or ""
+            if content == vim.NIL then
                 content = ""
             end
             local normalized = string.gsub(content, "\r\n", "\n")

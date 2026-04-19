@@ -26,14 +26,14 @@ return {
         local client = assert(vim.lsp.get_client_by_id(ctx.client_id))
         for _, buf in ipairs(vim.api.nvim_list_bufs()) do
             local uri = vim.api.nvim_buf_get_name(buf)
-            if vim.api.nvim_buf_get_name(buf):match("^roslyn%-source%-generated://") then
+            if vim.api.nvim.buf_is_loaded(buf) and uri:match("^roslyn%-source%-generated://") then
                 local function handler(err, result)
                     assert(not err, vim.inspect(err))
                     if vim.b[buf].resultId == result.resultId then
                         return
                     end
-                    local content = result.text
-                    if content == nil then
+                    local content = result.text or ""
+                    if content == vim.NIL then
                         content = ""
                     end
                     local normalized = string.gsub(content, "\r\n", "\n")
