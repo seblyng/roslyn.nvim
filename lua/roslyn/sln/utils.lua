@@ -167,7 +167,7 @@ function M.root_dir(bufnr)
     end
 
     local selected_solution = vim.g.roslyn_nvim_selected_solution
-    return vim.fs.dirname(filtered_targets[1])
+    return filtered_targets[1] and vim.fs.dirname(filtered_targets[1])
         or selected_solution and vim.fs.dirname(selected_solution)
         or csproj and vim.fs.dirname(csproj)
 end
