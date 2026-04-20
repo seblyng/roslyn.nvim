@@ -53,7 +53,13 @@ end
 return {
     name = "roslyn",
     filetypes = { "cs", "razor" },
-    cmd = get_default_cmd(),
+    cmd = function(dispatchers, config)
+        return vim.lsp.rpc.start(get_default_cmd(), dispatchers, {
+            cwd = config.cmd_cwd,
+            env = config.cmd_env,
+            detached = config.detached,
+        })
+    end,
     cmd_env = {
         Configuration = vim.env.Configuration or "Debug",
         -- Fixes LSP navigation in decompiled files for systems with symlinked TMPDIR (macOS)
