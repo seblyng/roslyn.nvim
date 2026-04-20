@@ -14,26 +14,6 @@ local function get_roslyn_executables()
     }
 end
 
-local function find_razor_extension_path()
-    -- Fallback in case mason is lazy loaded or MASON env var is just not set
-    local expanded_mason = vim.fn.expand("$MASON")
-    local mason = expanded_mason == "$MASON" and vim.fs.joinpath(vim.fn.stdpath("data"), "mason") or expanded_mason
-    local mason_packages = vim.fs.joinpath(mason, "packages")
-
-    local stable_path = vim.fs.joinpath(mason_packages, "roslyn", "libexec", ".razorExtension")
-    if vim.fn.isdirectory(stable_path) == 1 then
-        return stable_path
-    end
-
-    -- TODO: Once the .razorExtension moves to the stable roslyn package, remove this
-    local unstable_path = vim.fs.joinpath(mason_packages, "roslyn-unstable", "libexec", ".razorExtension")
-    if vim.fn.isdirectory(unstable_path) == 1 then
-        return unstable_path
-    end
-
-    return nil
-end
-
 function M.check()
     vim.health.start("roslyn.nvim: Requirements")
 
@@ -86,49 +66,20 @@ function M.check()
         })
     end
 
-    vim.health.start("roslyn.nvim: Razor extension")
-    local found_razor_extension = find_razor_extension_path()
-    if found_razor_extension then
-        vim.health.ok(string.format("Razor extension: found at %s", found_razor_extension))
-    else
-        vim.health.warn("Razor extension not found", {
-            "Razor support will be limited.",
-            "Install the roslyn package via Mason to get the Razor extension.",
-        })
-    end
-
-    if vim.fn.executable("vscode-html-language-server") == 1 then
-        vim.health.ok("vscode-html-language-server: found")
-    else
-        vim.health.warn("vscode-html-language-server not found", {
-            "Razor HTML support will be limited.",
-            "Install the html_lsp package via Mason to get the Razor extension.",
-        })
-    end
-
-    if vim.lsp.config.html then
-        vim.health.ok("html-lsp client: configured")
-    else
-        vim.health.warn("html-lsp client not configured", {
-            "Razor HTML support will be limited.",
-            "Consider configuring the html-lsp client for better Razor support.",
-        })
-    end
-
-    vim.health.start("roslyn.nvim: Roslyn extensions")
+    vim.health.start("roslyn.nvim: Roslyn extensions:")
     local config = require("roslyn.config").get()
 
     local roslyn_extensions = require("roslyn.config").get().extensions or {}
 
     local ext_count = 0
     for ext_name, extension in pairs(roslyn_extensions) do
-        vim.health.start(string.format("roslyn.nvim: '%s'", ext_name))
+        vim.health.start(string.format("'%s'", ext_name))
         ext_count = ext_count + 1
 
         if extension.enabled then
-            vim.health.ok("Enabled: true")
+            vim.health.ok("Enabled")
         else
-            vim.health.info("Enabled: false")
+            vim.health.warn("Disabled")
         end
 
         local resolved_config = type(extension.config) == "function" and extension.config() or extension.config
@@ -153,6 +104,26 @@ function M.check()
             vim.health.ok(string.format("Resolved args:\n%s", table.concat(resolved_args, "\n")))
         else
             vim.health.info("No args provided for this extension")
+        end
+
+        if ext_name == "razor" then
+            if vim.fn.executable("vscode-html-language-server") == 1 then
+                vim.health.ok("vscode-html-language-server: found")
+            else
+                vim.health.warn("vscode-html-language-server not found", {
+                    "Razor HTML support will be limited.",
+                    "Install the html_lsp package via Mason to get the Razor extension.",
+                })
+            end
+
+            if vim.lsp.config.html then
+                vim.health.ok("html-lsp client: configured")
+            else
+                vim.health.warn("html-lsp client not configured", {
+                    "Razor HTML support will be limited.",
+                    "Consider configuring the html-lsp client for better Razor support.",
+                })
+            end
         end
     end
 
