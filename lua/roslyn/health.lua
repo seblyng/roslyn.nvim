@@ -14,6 +14,56 @@ local function get_roslyn_executables()
     }
 end
 
+local function check_razor_extras()
+    if vim.fn.executable("vscode-html-language-server") == 1 then
+        vim.health.ok("vscode-html-language-server: found")
+    else
+        vim.health.warn("vscode-html-language-server not found", {
+            "Razor HTML support will be limited.",
+            "Install the html_lsp package via Mason to get the Razor extension.",
+        })
+    end
+
+    if vim.lsp.config.html then
+        vim.health.ok("html-lsp client: configured")
+    else
+        vim.health.warn("html-lsp client not configured", {
+            "Razor HTML support will be limited.",
+            "Consider configuring the html-lsp client for better Razor support.",
+        })
+    end
+end
+
+---@param name: string
+---@param extension: RoslynExtensionConfig
+local function check_extension(name, extension)
+    local resolved_config = type(extension.config) == "function" and extension.config() or extension.config
+    local resolved_path = type(resolved_config.path) == "function" and resolved_config.path() or resolved_config.path
+
+    if not resolved_path then
+        vim.health.warn(string.format("Resolved path is empty "))
+    else
+        local stat = vim.uv.fs_stat(resolved_path)
+        local is_file = stat and stat.type == "file"
+        if is_file then
+            vim.health.ok(string.format("Resolved path: '%s' (file exists)", resolved_path))
+        else
+            vim.health.warn(string.format("Resolved path: '%s' (file does not exist)", resolved_path))
+        end
+    end
+
+    local resolved_args = type(resolved_config.args) == "function" and resolved_config.args() or resolved_config.args
+    if resolved_args then
+        vim.health.ok(string.format("Resolved args:\n%s", table.concat(resolved_args, "\n")))
+    else
+        vim.health.info("No args provided for this extension")
+    end
+
+    if name == "razor" then
+        check_razor_extras()
+    end
+end
+
 function M.check()
     vim.health.start("roslyn.nvim: Requirements")
 
@@ -78,52 +128,9 @@ function M.check()
 
         if extension.enabled then
             vim.health.ok("Enabled")
+            check_extension(ext_name, extension)
         else
-            vim.health.warn("Disabled")
-        end
-
-        local resolved_config = type(extension.config) == "function" and extension.config() or extension.config
-        local resolved_path = type(resolved_config.path) == "function" and resolved_config.path()
-            or resolved_config.path
-
-        if not resolved_path then
-            vim.health.warn(string.format("Resolved path is empty "))
-        else
-            local stat = vim.uv.fs_stat(resolved_path)
-            local is_file = stat and stat.type == "file"
-            if is_file then
-                vim.health.ok(string.format("Resolved path: '%s' (file exists)", resolved_path))
-            else
-                vim.health.warn(string.format("Resolved path: '%s' (file does not exist)", resolved_path))
-            end
-        end
-
-        local resolved_args = type(resolved_config.args) == "function" and resolved_config.args()
-            or resolved_config.args
-        if resolved_args then
-            vim.health.ok(string.format("Resolved args:\n%s", table.concat(resolved_args, "\n")))
-        else
-            vim.health.info("No args provided for this extension")
-        end
-
-        if ext_name == "razor" then
-            if vim.fn.executable("vscode-html-language-server") == 1 then
-                vim.health.ok("vscode-html-language-server: found")
-            else
-                vim.health.warn("vscode-html-language-server not found", {
-                    "Razor HTML support will be limited.",
-                    "Install the html_lsp package via Mason to get the Razor extension.",
-                })
-            end
-
-            if vim.lsp.config.html then
-                vim.health.ok("html-lsp client: configured")
-            else
-                vim.health.warn("html-lsp client not configured", {
-                    "Razor HTML support will be limited.",
-                    "Consider configuring the html-lsp client for better Razor support.",
-                })
-            end
+            vim.health.info("Disabled")
         end
     end
 
