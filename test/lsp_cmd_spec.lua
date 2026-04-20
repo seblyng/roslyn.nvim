@@ -48,9 +48,17 @@ describe("lsp cmd", function()
                 },
             })
 
+            local captured_cmd
+            vim.lsp.rpc = vim.lsp.rpc or {}
+            vim.lsp.rpc.start = function(c)
+                captured_cmd = c
+                return {}
+            end
+
             local cwd = vim.uv.cwd()
             local lsp_config = dofile(vim.fs.joinpath(cwd, "lsp", "roslyn.lua"))
-            return lsp_config.cmd
+            lsp_config.cmd({}, { cmd_cwd = nil, cmd_env = nil, detached = nil })
+            return captured_cmd
         end)
 
         assert.is_true(cmd_contains(cmd, "--extension=/tmp/roslyn-test-extension.dll"))
@@ -70,9 +78,17 @@ describe("lsp cmd", function()
                 },
             })
 
+            local captured_cmd
+            vim.lsp.rpc = vim.lsp.rpc or {}
+            vim.lsp.rpc.start = function(c)
+                captured_cmd = c
+                return {}
+            end
+
             local cwd = vim.uv.cwd()
             local lsp_config = dofile(vim.fs.joinpath(cwd, "lsp", "roslyn.lua"))
-            return lsp_config.cmd
+            lsp_config.cmd({}, { cmd_cwd = nil, cmd_env = nil, detached = nil })
+            return captured_cmd
         end)
 
         assert.is_false(cmd_has_prefix(cmd, "--extension="))
@@ -95,9 +111,17 @@ describe("lsp cmd", function()
                 },
             })
 
+            local captured_cmd
+            vim.lsp.rpc = vim.lsp.rpc or {}
+            vim.lsp.rpc.start = function(c)
+                captured_cmd = c
+                return {}
+            end
+
             local cwd = vim.uv.cwd()
             local lsp_config = dofile(vim.fs.joinpath(cwd, "lsp", "roslyn.lua"))
-            return lsp_config.cmd
+            lsp_config.cmd({}, { cmd_cwd = nil, cmd_env = nil, detached = nil })
+            return captured_cmd
         end)
 
         assert.is_true(cmd_contains(cmd, "--extension=/tmp/roslyn-test-extension-fn.dll"))
