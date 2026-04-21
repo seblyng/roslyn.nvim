@@ -1,5 +1,4 @@
 local helpers = require("nvim-test.helpers")
-local command = helpers.api.nvim_command
 local system = helpers.fn.system
 
 local M = helpers
