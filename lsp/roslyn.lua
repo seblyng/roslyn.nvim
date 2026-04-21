@@ -93,9 +93,26 @@ return {
         on_dir(root_dir)
     end,
     on_init = {
+        ---@param client vim.lsp.Client
         function(client)
             -- Although roslyn supports prepareRename, cohosted razor doesnt. So we need to disable it
             client.server_capabilities.renameProvider = true
+
+            local orig_request = client.request
+
+            --- @param method vim.lsp.protocol.Method.ClientToServer.Request LSP method name.
+            --- @param params? table LSP request params.
+            client.request = function(_, method, params, ...)
+                if method == "textDocument/semanticTokens/full" then
+                    ---@class lsp.SemanticTokensParams
+                    local res = params
+                    local bufnr = vim.uri_to_bufnr(res.textDocument.uri)
+                    if vim.bo[bufnr].filetype == "razor" then
+                        return
+                    end
+                end
+                return orig_request(client, method, params, ...)
+            end
 
             if not client.config.root_dir then
                 return
