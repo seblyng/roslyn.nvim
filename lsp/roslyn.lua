@@ -2,6 +2,11 @@ local function get_default_cmd()
     local resolved = require("roslyn.utils").get_roslyn_lsp_path()
     local exe = resolved and resolved.path or "Microsoft.CodeAnalysis.LanguageServer"
 
+    if has_mason_bin then
+        local pkg = require("mason-registry").get_package("roslyn")
+        vim.g.roslyn_server_version = pkg:get_installed_version()
+    end
+
     local cmd = {
         exe,
         "--logLevel=Information",
@@ -58,6 +63,14 @@ return {
         razor = {
             language_server = {
                 cohosting_enabled = true,
+            },
+        },
+    },
+    capabilities = {
+        workspace = {
+            -- support refreshing source generated documents
+            textDocumentContent = {
+                dynamicRegistration = true,
             },
         },
     },

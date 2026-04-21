@@ -69,15 +69,28 @@ vim.api.nvim_create_autocmd({ "BufReadCmd" }, {
             vim.bo[args.buf].modified = false
         end
 
-        local params = {
-            textDocument = {
+        local server_version = vim.version.parse(vim.g.roslyn_server_version)
+        -- this version started using `workspace/textDocument` standard LSP
+        -- method to get source generated content
+        if server_version and vim.version.ge(server_version, "5.7.0-1.26217.5") then
+            ---@type lsp.TextDocumentContentParams
+            local params = {
                 uri = args.match,
-            },
-            resultId = nil,
-        }
+            }
 
-        ---@diagnostic disable-next-line: param-type-mismatch
-        client:request("sourceGeneratedDocument/_roslyn_getText", params, handler, args.buf)
+            client:request("workspace/textDocumentContent", params, handler, args.buf)
+        else
+            local params = {
+                textDocument = {
+                    uri = args.match,
+                },
+                resultId = nil,
+            }
+
+            ---@diagnostic disable-next-line: param-type-mismatch
+            client:request("sourceGeneratedDocument/_roslyn_getText", params, handler, args.buf)
+        end
+
         -- Need to block. Otherwise logic could run that sets the cursor to a position
         -- that's still missing.
         vim.wait(1000, function()
