@@ -22,6 +22,39 @@ return {
 
         vim.lsp.diagnostic._refresh()
     end,
+    ["workspace/textDocumentContent/refresh"] = function(_, _, ctx)
+        local client = assert(vim.lsp.get_client_by_id(ctx.client_id))
+        for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+            local uri = vim.api.nvim_buf_get_name(buf)
+            if vim.api.nvim_buf_is_loaded(buf) and uri:match("^roslyn%-source%-generated://") then
+                ---@param result lsp.TextDocumentContentResult
+                local function handler(err, result)
+                    assert(not err, vim.inspect(err))
+                    local content = result.text or ""
+                    if content == vim.NIL then
+                        content = ""
+                    end
+                    local normalized = string.gsub(content, "\r\n", "\n")
+                    local source_lines = vim.split(normalized, "\n", { plain = true })
+                    vim.bo[buf].modifiable = true
+                    vim.api.nvim_buf_set_lines(buf, 0, -1, false, source_lines)
+                    vim.bo[buf].modifiable = false
+                    vim.bo[buf].modified = false
+                end
+
+                ---@type lsp.TextDocumentContentRefreshParams
+                local params = {
+                    uri = uri,
+                }
+
+                client:request("workspace/textDocumentContent", params, handler, buf)
+            end
+        end
+
+        return vim.NIL
+    end,
+    --TODO: No longed needed with roslyn (5.7.0-1.26217.5): https://github.com/dotnet/roslyn/pull/83119
+
     ["workspace/refreshSourceGeneratedDocument"] = function(_, _, ctx)
         local client = assert(vim.lsp.get_client_by_id(ctx.client_id))
         for _, buf in ipairs(vim.api.nvim_list_bufs()) do
