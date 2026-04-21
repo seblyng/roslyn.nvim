@@ -19,6 +19,25 @@ return {
             end
         end
     end,
+    ["workspace/textDocumentContent/refresh"] = function(_, _, ctx)
+        local client = assert(vim.lsp.get_client_by_id(ctx.client_id))
+        for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+            local uri = vim.api.nvim_buf_get_name(buf)
+            if vim.api.nvim_buf_is_loaded(buf) and uri:match("^roslyn%-source%-generated://") then
+                require("roslyn.utils").populate_virtual_buffer_content(client, uri, buf)
+            end
+        end
+
+        if vim.fn.has("nvim-0.13") == 0 then
+            for bufnr in pairs(client.attached_buffers) do
+                vim.lsp.diagnostic._refresh(bufnr, ctx.client_id)
+            end
+        end
+
+        return vim.NIL
+    end,
+    --TODO: No longed needed with roslyn (5.7.0-1.26217.5): https://github.com/dotnet/roslyn/pull/83119
+
     ["workspace/refreshSourceGeneratedDocument"] = function(_, _, ctx)
         local client = assert(vim.lsp.get_client_by_id(ctx.client_id))
         for _, buf in ipairs(vim.api.nvim_list_bufs()) do
