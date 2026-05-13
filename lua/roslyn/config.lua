@@ -28,6 +28,35 @@ local M = {}
 ---@field debug? boolean
 ---@field extensions? table<string, RoslynExtension>
 
+---@return table<string, RoslynExtension>
+local function detect_legacy_razor_config()
+    -- Will be removed eventually and only stays here  due to backwards compatibility.
+    -- Since May 2026 ( 5.8.0-1.26262.10 ) roslyn bundles the razor extensions
+    -- and does not require this setup anymore
+    local razor_extension_path = require("roslyn.utils").find_razor_extension_path()
+    if razor_extension_path == nil then
+        return {}
+    end
+
+    return {
+        razor = {
+            enabled = true,
+            config = {
+                path = vim.fs.joinpath(razor_extension_path, "Microsoft.VisualStudioCode.RazorExtension.dll"),
+                args = {
+                    "--razorSourceGenerator="
+                        .. vim.fs.joinpath(razor_extension_path, "Microsoft.CodeAnalysis.Razor.Compiler.dll"),
+                    "--razorDesignTimePath=" .. vim.fs.joinpath(
+                        razor_extension_path,
+                        "Targets",
+                        "Microsoft.NET.Sdk.Razor.DesignTime.targets"
+                    ),
+                },
+            },
+        },
+    }
+end
+
 ---@type InternalRoslynNvimConfig
 local roslyn_config = {
     filewatching = "auto",
@@ -37,32 +66,7 @@ local roslyn_config = {
     lock_target = false,
     silent = false,
     debug = false,
-    extensions = {
-        razor = {
-            enabled = true,
-            config = function()
-                local razor_extension_path = require("roslyn.utils").find_razor_extension_path()
-                if razor_extension_path == nil then
-                    return {
-                        path = nil,
-                    }
-                end
-
-                return {
-                    path = vim.fs.joinpath(razor_extension_path, "Microsoft.VisualStudioCode.RazorExtension.dll"),
-                    args = {
-                        "--razorSourceGenerator="
-                            .. vim.fs.joinpath(razor_extension_path, "Microsoft.CodeAnalysis.Razor.Compiler.dll"),
-                        "--razorDesignTimePath=" .. vim.fs.joinpath(
-                            razor_extension_path,
-                            "Targets",
-                            "Microsoft.NET.Sdk.Razor.DesignTime.targets"
-                        ),
-                    },
-                }
-            end,
-        },
-    },
+    extensions = detect_legacy_razor_config(),
 }
 
 function M.get()

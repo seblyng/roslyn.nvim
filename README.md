@@ -38,11 +38,10 @@ https://github.com/user-attachments/assets/a749f6c7-fc87-440c-912d-666d86453bc5
 
 <details>
   <summary>Mason</summary>
-  
+
   `roslyn` is not in the mason core registry, so a custom registry is used.
   This registry provides two binaries
   - `roslyn` (To be used with this repo)
-    - This has the `.razorExtensions` folder included for Razor/CSHTML support
 
 You need to set up the custom registry like this
 
@@ -99,7 +98,7 @@ where `<my_folder>` has to be the folder you extracted the nuget package to.
 
 </details>
 
-> [!TIP]  
+> [!TIP]
 > For server compatibility check the [roslyn repo](https://github.com/dotnet/roslyn/blob/main/docs/wiki/NuGet-packages.md#versioning)
 
 **Install the plugin with your preferred package manager:**
@@ -167,34 +166,9 @@ opts = {
     -- If the plugin should silence notifications about initialization
     silent = false,
 
-    -- Additional roslyn extensions (for example Roslynator/ Razor)
-    -- The path is expected to be .dll file
-    extensions = {
-        razor = {
-            enabled = true,
-            config = function()
-                local razor_extension_path = require("roslyn.utils").find_razor_extension_path()
-                if razor_extension_path == nil then
-                    return {
-                        path = nil,
-                    }
-                end
-
-                return {
-                    path = vim.fs.joinpath(razor_extension_path, "Microsoft.VisualStudioCode.RazorExtension.dll"),
-                    args = {
-                        "--razorSourceGenerator="
-                            .. vim.fs.joinpath(razor_extension_path, "Microsoft.CodeAnalysis.Razor.Compiler.dll"),
-                        "--razorDesignTimePath=" .. vim.fs.joinpath(
-                            razor_extension_path,
-                            "Targets",
-                            "Microsoft.NET.Sdk.Razor.DesignTime.targets"
-                        ),
-                    },
-                }
-            end,
-        },
-    },
+    -- Additional roslyn extensions (for example Roslynator).
+    -- The path is expected to be a .dll file.
+    extensions = {},
 }
 ```
 
@@ -222,7 +196,7 @@ vim.lsp.config("roslyn", {
 Some tips and tricks that may be useful, but not in the scope of this plugin,
 are documented in the [wiki](https://github.com/seblyng/roslyn.nvim/wiki).
 
-> [!NOTE]  
+> [!NOTE]
 > These settings are not guaranteed to be up-to-date and new ones can appear in the future. Aditionally, not all settings are shown here, but only the most relevant ones for Neovim. For a full list, visit [this](https://github.com/dotnet/vscode-csharp/blob/main/test/lsptoolshost/unitTests/configurationMiddleware.test.ts) unit test from the vscode extension and look especially for the ones which **don't** have `vsCodeConfiguration: null`.
 
 ### Background Analysis
@@ -231,12 +205,12 @@ are documented in the [wiki](https://github.com/seblyng/roslyn.nvim/wiki).
 
 These settings control the scope of background diagnostics.
 
-- `background_analysis.dotnet_analyzer_diagnostics_scope`  
-  Scope of the background analysis for .NET analyzer diagnostics.  
+- `background_analysis.dotnet_analyzer_diagnostics_scope`
+  Scope of the background analysis for .NET analyzer diagnostics.
   Expected values: `openFiles`, `fullSolution`, `none`
 
-- `background_analysis.dotnet_compiler_diagnostics_scope`  
-  Scope of the background analysis for .NET compiler diagnostics.  
+- `background_analysis.dotnet_compiler_diagnostics_scope`
+  Scope of the background analysis for .NET compiler diagnostics.
   Expected values: `openFiles`, `fullSolution`, `none`
 
 ### Code Lens
@@ -245,12 +219,12 @@ These settings control the scope of background diagnostics.
 
 These settings control the LSP code lens.
 
-- `dotnet_enable_references_code_lens`  
-  Enable code lens references.  
+- `dotnet_enable_references_code_lens`
+  Enable code lens references.
   Expected values: `true`, `false`
 
-- `dotnet_enable_tests_code_lens`  
-  Enable tests code lens.  
+- `dotnet_enable_tests_code_lens`
+  Enable tests code lens.
   Expected values: `true`, `false`
 
 > [!TIP]
@@ -262,16 +236,16 @@ These settings control the LSP code lens.
 
 These settings control how the completions behave.
 
-- `dotnet_provide_regex_completions`  
-  Show regular expressions in completion list.  
+- `dotnet_provide_regex_completions`
+  Show regular expressions in completion list.
   Expected values: `true`, `false`
 
-- `dotnet_show_completion_items_from_unimported_namespaces`  
-  Enables support for showing unimported types and unimported extension methods in completion lists.  
+- `dotnet_show_completion_items_from_unimported_namespaces`
+  Enables support for showing unimported types and unimported extension methods in completion lists.
   Expected values: `true`, `false`
 
-- `dotnet_show_name_completion_suggestions`  
-  Perform automatic object name completion for the members that you have recently selected.  
+- `dotnet_show_name_completion_suggestions`
+  Perform automatic object name completion for the members that you have recently selected.
   Expected values: `true`, `false`
 
 ### Inlay hints
@@ -280,52 +254,52 @@ These settings control how the completions behave.
 
 These settings control what inlay hints should be displayed.
 
-- `csharp_enable_inlay_hints_for_implicit_object_creation`  
-  Show hints for implicit object creation.  
+- `csharp_enable_inlay_hints_for_implicit_object_creation`
+  Show hints for implicit object creation.
   Expected values: `true`, `false`
 
-- `csharp_enable_inlay_hints_for_implicit_variable_types`  
-  Show hints for variables with inferred types.  
+- `csharp_enable_inlay_hints_for_implicit_variable_types`
+  Show hints for variables with inferred types.
   Expected values: `true`, `false`
 
-- `csharp_enable_inlay_hints_for_lambda_parameter_types`  
-  Show hints for lambda parameter types.  
+- `csharp_enable_inlay_hints_for_lambda_parameter_types`
+  Show hints for lambda parameter types.
   Expected values: `true`, `false`
 
-- `csharp_enable_inlay_hints_for_types`  
-  Display inline type hints.  
+- `csharp_enable_inlay_hints_for_types`
+  Display inline type hints.
   Expected values: `true`, `false`
 
-- `dotnet_enable_inlay_hints_for_indexer_parameters`  
-  Show hints for indexers.  
+- `dotnet_enable_inlay_hints_for_indexer_parameters`
+  Show hints for indexers.
   Expected values: `true`, `false`
 
-- `dotnet_enable_inlay_hints_for_literal_parameters`  
-  Show hints for literals.  
+- `dotnet_enable_inlay_hints_for_literal_parameters`
+  Show hints for literals.
   Expected values: `true`, `false`
 
-- `dotnet_enable_inlay_hints_for_object_creation_parameters`  
-  Show hints for 'new' expressions.  
+- `dotnet_enable_inlay_hints_for_object_creation_parameters`
+  Show hints for 'new' expressions.
   Expected values: `true`, `false`
 
-- `dotnet_enable_inlay_hints_for_other_parameters`  
-  Show hints for everything else.  
+- `dotnet_enable_inlay_hints_for_other_parameters`
+  Show hints for everything else.
   Expected values: `true`, `false`
 
-- `dotnet_enable_inlay_hints_for_parameters`  
-  Display inline parameter name hints.  
+- `dotnet_enable_inlay_hints_for_parameters`
+  Display inline parameter name hints.
   Expected values: `true`, `false`
 
-- `dotnet_suppress_inlay_hints_for_parameters_that_differ_only_by_suffix`  
-  Suppress hints when parameter names differ only by suffix.  
+- `dotnet_suppress_inlay_hints_for_parameters_that_differ_only_by_suffix`
+  Suppress hints when parameter names differ only by suffix.
   Expected values: `true`, `false`
 
-- `dotnet_suppress_inlay_hints_for_parameters_that_match_argument_name`  
-  Suppress hints when argument matches parameter name.  
+- `dotnet_suppress_inlay_hints_for_parameters_that_match_argument_name`
+  Suppress hints when argument matches parameter name.
   Expected values: `true`, `false`
 
-- `dotnet_suppress_inlay_hints_for_parameters_that_match_method_intent`  
-  Suppress hints when parameter name matches the method's intent.  
+- `dotnet_suppress_inlay_hints_for_parameters_that_match_method_intent`
+  Suppress hints when parameter name matches the method's intent.
   Expected values: `true`, `false`
 
 > [!TIP]
@@ -337,8 +311,8 @@ These settings control what inlay hints should be displayed.
 
 This setting controls how the language server should search for symbols.
 
-- `dotnet_search_reference_assemblies`  
-  Search symbols in reference assemblies.  
+- `dotnet_search_reference_assemblies`
+  Search symbols in reference assemblies.
   Expected values: `true`, `false`
 
 ### Formatting
@@ -347,8 +321,8 @@ This setting controls how the language server should search for symbols.
 
 This setting controls how the language server should format code.
 
-- `dotnet_organize_imports_on_format`  
-  Sort using directives on format alphabetically.  
+- `dotnet_organize_imports_on_format`
+  Sort using directives on format alphabetically.
   Expected values: `true`, `false`
 
 ## 📚 Commands
