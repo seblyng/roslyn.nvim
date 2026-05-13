@@ -1,19 +1,4 @@
 local M = {}
-
----@return string[]
-local function get_roslyn_executables()
-    local sysname = vim.uv.os_uname().sysname:lower()
-    local iswin = not not (sysname:find("windows") or sysname:find("mingw"))
-    local roslyn_bin = iswin and "roslyn.cmd" or "roslyn"
-    local mason_bin = vim.fs.joinpath(vim.fn.stdpath("data"), "mason", "bin", roslyn_bin)
-
-    return {
-        mason_bin,
-        roslyn_bin,
-        "Microsoft.CodeAnalysis.LanguageServer",
-    }
-end
-
 function M.check()
     vim.health.start("roslyn.nvim: Requirements")
 
@@ -52,16 +37,13 @@ function M.check()
 
     vim.health.start("roslyn.nvim: Roslyn Language Server")
 
-    local executables = get_roslyn_executables()
-    local found_exe = vim.iter(executables):find(function(exe)
-        return vim.fn.executable(exe) == 1
-    end)
-
-    if found_exe then
-        vim.health.ok(string.format("%s: found", found_exe))
+    local found = require("roslyn.utils").get_roslyn_lsp_path()
+    if found then
+        vim.health.ok(string.format("found %s", found.path))
     else
         vim.health.error("Roslyn language server not found", {
             "Install via Mason: :MasonInstall roslyn",
+            "Or install as a .NET global tool: dotnet tool install -g Microsoft.CodeAnalysis.LanguageServer",
             "Or follow manual installation instructions at https://github.com/seblj/roslyn.nvim#-installation",
         })
     end
