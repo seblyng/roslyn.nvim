@@ -37,7 +37,7 @@ https://github.com/user-attachments/assets/a749f6c7-fc87-440c-912d-666d86453bc5
 ## 📦 Installation
 
 <details>
-  <summary>Mason</summary>
+  <summary>Mason (recommended)</summary>
 
   `roslyn` is not in the mason core registry, so a custom registry is used.
   This registry provides two binaries
@@ -64,6 +64,36 @@ If you want the bleeding edge features, you can choose `roslyn-unstable`. Be awa
 
 There's currently an open [pull request](https://github.com/mason-org/mason-registry/pull/6330) to add the Roslyn server to [mason](https://github.com/williamboman/mason.nvim), which would greatly improve the experience. If you are interested in this, please react to the original comment, but don't spam the thread with unnecessary comments.
 
+</details>
+
+<details>
+  <summary>Dotnet tool</summary>
+
+  `roslyn-language-server` supports razor since version `5.8.0-1.26262.10`.
+  This allows installation of the lsp as a [dotnet tool](https://learn.microsoft.com/en-us/dotnet/core/tools/global-tools).
+
+  This dotnet tool exists at two places:
+  * [nuget,org](https://www.nuget.org/packages/roslyn-language-server) , which is not updated that often.
+  * [Azure Devops](https://dev.azure.com/azure-public/vside/_artifacts/feed/vs-impl/NuGet/roslyn-language-server.linux-x64) , where updates happen multiple times a day.
+
+  For now it is recommended to use the [Azure DevOps-Feed](https://dev.azure.com/azure-public/vside/_artifacts/feed/vs-impl/NuGet/roslyn-language-server.linux-x64) until later versions are published to nuget.org.
+
+  ```bash
+  # Installing the tool using the more recent Azure Devops feed
+  # This will take few seconds so please be patient
+  dotnet tool install -g roslyn-language-server --prerelease --source https://pkgs.dev.azure.com/azure-public/vside/_packaging/vs-impl/nuget/v3/index.json
+    You can invoke the tool using the following command: roslyn-language-server
+    Tool 'roslyn-language-server' (version '5.8.0-1.26263.4') was successfully installed.
+
+  # Installing the tool from nuget.org
+  # !! Any version before 5.8.0-1.26262.10 will not support razor/blazor !!
+  dotnet tool install -g roslyn-language-server --prerelease
+    You can invoke the tool using the following command: roslyn-language-server
+    Tool 'roslyn-language-server' (version '5.8.0-1.26252.1') was successfully installed.
+
+  # Updating works the same way as installing ( by replacing "install" with "update")
+  dotnet tool update -g roslyn-language-server --prerelease --source https://pkgs.dev.azure.com/azure-public/vside/_packaging/vs-impl/nuget/v3/index.json
+  ```
 </details>
 
 <details>
