@@ -67,13 +67,13 @@ There's currently an open [pull request](https://github.com/mason-org/mason-regi
 </details>
 
 <details>
-  <summary>Dotnet tool</summary>
+  <summary>Manually</summary>
 
   `roslyn-language-server` supports razor since version `5.8.0-1.26262.10`.
   This allows installation of the lsp as a [dotnet tool](https://learn.microsoft.com/en-us/dotnet/core/tools/global-tools).
 
   This dotnet tool exists at two places:
-  * [nuget,org](https://www.nuget.org/packages/roslyn-language-server) , which is not updated that often.
+  * [nuget.org](https://www.nuget.org/packages/roslyn-language-server) , which is not updated that often.
   * [Azure Devops](https://dev.azure.com/azure-public/vside/_artifacts/feed/vs-impl/NuGet/roslyn-language-server.linux-x64) , where updates happen multiple times a day.
 
   For now it is recommended to use the [Azure DevOps-Feed](https://dev.azure.com/azure-public/vside/_artifacts/feed/vs-impl/NuGet/roslyn-language-server.linux-x64) until later versions are published to nuget.org.
@@ -89,46 +89,14 @@ There's currently an open [pull request](https://github.com/mason-org/mason-regi
   # !! Any version before 5.8.0-1.26262.10 will not support razor/blazor !!
   dotnet tool install -g roslyn-language-server --prerelease
     You can invoke the tool using the following command: roslyn-language-server
-    Tool 'roslyn-language-server' (version '5.8.0-1.26252.1') was successfully installed.
+    Tool 'roslyn-language-server' (version '5.8.0-1.26262.10') was successfully installed.
 
   # Updating works the same way as installing ( by replacing "install" with "update")
   dotnet tool update -g roslyn-language-server --prerelease --source https://pkgs.dev.azure.com/azure-public/vside/_packaging/vs-impl/nuget/v3/index.json
   ```
 </details>
 
-<details>
-  <summary>Manually</summary>
-
-NOTE: The manual installation instructions are the same for this plugin and for nvim-lspconfig.
-The following instructions are copied from [nvim-lspconfig](https://github.com/neovim/nvim-lspconfig/blob/master/doc/configs.md#roslyn_ls).
-If the installation instructions are not up-to-date or not clear, please first send a PR to `nvim-lspconfig` with improvements so that we can align the installation instructions.
-
-To install the server, compile from source or download as nuget package.
-Go to `https://dev.azure.com/azure-public/vside/_artifacts/feed/vs-impl/NuGet/Microsoft.CodeAnalysis.LanguageServer.<platform>/overview`
-replace `<platform>` with one of the following `linux-x64`, `osx-x64`, `win-x64`, `neutral` (for more info on the download location see https://github.com/dotnet/roslyn/issues/71474#issuecomment-2177303207).
-Download and extract it (nuget's are zip files).
-
-- if you chose `neutral` nuget version, then you have to change the `cmd` like so:
-
-```lua
-cmd = {
-    "dotnet",
-    "<my_folder>/Microsoft.CodeAnalysis.LanguageServer.dll",
-    "--logLevel", -- this property is required by the server
-    "Information",
-    "--extensionLogDirectory", -- this property is required by the server
-    fs.joinpath(uv.os_tmpdir(), "roslyn_ls/logs"),
-    "--stdio",
-}
-```
-
-where `<my_folder>` has to be the folder you extracted the nuget package to.
-
-- for all other platforms put the extracted folder to neovim's PATH (`vim.env.PATH`)
-
-</details>
-
-> [!TIP]
+> [!TIP]  
 > For server compatibility check the [roslyn repo](https://github.com/dotnet/roslyn/blob/main/docs/wiki/NuGet-packages.md#versioning)
 
 **Install the plugin with your preferred package manager:**
@@ -226,7 +194,7 @@ vim.lsp.config("roslyn", {
 Some tips and tricks that may be useful, but not in the scope of this plugin,
 are documented in the [wiki](https://github.com/seblyng/roslyn.nvim/wiki).
 
-> [!NOTE]
+> [!NOTE]  
 > These settings are not guaranteed to be up-to-date and new ones can appear in the future. Aditionally, not all settings are shown here, but only the most relevant ones for Neovim. For a full list, visit [this](https://github.com/dotnet/vscode-csharp/blob/main/test/lsptoolshost/unitTests/configurationMiddleware.test.ts) unit test from the vscode extension and look especially for the ones which **don't** have `vsCodeConfiguration: null`.
 
 ### Background Analysis
@@ -235,12 +203,12 @@ are documented in the [wiki](https://github.com/seblyng/roslyn.nvim/wiki).
 
 These settings control the scope of background diagnostics.
 
-- `background_analysis.dotnet_analyzer_diagnostics_scope`
-  Scope of the background analysis for .NET analyzer diagnostics.
+- `background_analysis.dotnet_analyzer_diagnostics_scope`  
+  Scope of the background analysis for .NET analyzer diagnostics.  
   Expected values: `openFiles`, `fullSolution`, `none`
 
-- `background_analysis.dotnet_compiler_diagnostics_scope`
-  Scope of the background analysis for .NET compiler diagnostics.
+- `background_analysis.dotnet_compiler_diagnostics_scope`  
+  Scope of the background analysis for .NET compiler diagnostics.  
   Expected values: `openFiles`, `fullSolution`, `none`
 
 ### Code Lens
@@ -249,12 +217,12 @@ These settings control the scope of background diagnostics.
 
 These settings control the LSP code lens.
 
-- `dotnet_enable_references_code_lens`
-  Enable code lens references.
+- `dotnet_enable_references_code_lens`  
+  Enable code lens references.  
   Expected values: `true`, `false`
 
-- `dotnet_enable_tests_code_lens`
-  Enable tests code lens.
+- `dotnet_enable_tests_code_lens`  
+  Enable tests code lens.  
   Expected values: `true`, `false`
 
 > [!TIP]
@@ -266,16 +234,16 @@ These settings control the LSP code lens.
 
 These settings control how the completions behave.
 
-- `dotnet_provide_regex_completions`
-  Show regular expressions in completion list.
+- `dotnet_provide_regex_completions`  
+  Show regular expressions in completion list.  
   Expected values: `true`, `false`
 
-- `dotnet_show_completion_items_from_unimported_namespaces`
-  Enables support for showing unimported types and unimported extension methods in completion lists.
+- `dotnet_show_completion_items_from_unimported_namespaces`  
+  Enables support for showing unimported types and unimported extension methods in completion lists.  
   Expected values: `true`, `false`
 
-- `dotnet_show_name_completion_suggestions`
-  Perform automatic object name completion for the members that you have recently selected.
+- `dotnet_show_name_completion_suggestions`  
+  Perform automatic object name completion for the members that you have recently selected.  
   Expected values: `true`, `false`
 
 ### Inlay hints
@@ -284,52 +252,52 @@ These settings control how the completions behave.
 
 These settings control what inlay hints should be displayed.
 
-- `csharp_enable_inlay_hints_for_implicit_object_creation`
-  Show hints for implicit object creation.
+- `csharp_enable_inlay_hints_for_implicit_object_creation`  
+  Show hints for implicit object creation.  
+  Expected values: `true`, `false`  
+
+- `csharp_enable_inlay_hints_for_implicit_variable_types`  
+  Show hints for variables with inferred types.  
   Expected values: `true`, `false`
 
-- `csharp_enable_inlay_hints_for_implicit_variable_types`
-  Show hints for variables with inferred types.
+- `csharp_enable_inlay_hints_for_lambda_parameter_types`  
+  Show hints for lambda parameter types.  
   Expected values: `true`, `false`
 
-- `csharp_enable_inlay_hints_for_lambda_parameter_types`
-  Show hints for lambda parameter types.
+- `csharp_enable_inlay_hints_for_types`  
+  Display inline type hints.  
   Expected values: `true`, `false`
 
-- `csharp_enable_inlay_hints_for_types`
-  Display inline type hints.
+- `dotnet_enable_inlay_hints_for_indexer_parameters`  
+  Show hints for indexers.  
   Expected values: `true`, `false`
 
-- `dotnet_enable_inlay_hints_for_indexer_parameters`
-  Show hints for indexers.
+- `dotnet_enable_inlay_hints_for_literal_parameters`  
+  Show hints for literals.  
   Expected values: `true`, `false`
 
-- `dotnet_enable_inlay_hints_for_literal_parameters`
-  Show hints for literals.
+- `dotnet_enable_inlay_hints_for_object_creation_parameters`  
+  Show hints for 'new' expressions.  
   Expected values: `true`, `false`
 
-- `dotnet_enable_inlay_hints_for_object_creation_parameters`
-  Show hints for 'new' expressions.
+- `dotnet_enable_inlay_hints_for_other_parameters`  
+  Show hints for everything else.  
   Expected values: `true`, `false`
 
-- `dotnet_enable_inlay_hints_for_other_parameters`
-  Show hints for everything else.
+- `dotnet_enable_inlay_hints_for_parameters`  
+  Display inline parameter name hints.  
   Expected values: `true`, `false`
 
-- `dotnet_enable_inlay_hints_for_parameters`
-  Display inline parameter name hints.
+- `dotnet_suppress_inlay_hints_for_parameters_that_differ_only_by_suffix`  
+  Suppress hints when parameter names differ only by suffix.  
   Expected values: `true`, `false`
 
-- `dotnet_suppress_inlay_hints_for_parameters_that_differ_only_by_suffix`
-  Suppress hints when parameter names differ only by suffix.
+- `dotnet_suppress_inlay_hints_for_parameters_that_match_argument_name`  
+  Suppress hints when argument matches parameter name.  
   Expected values: `true`, `false`
 
-- `dotnet_suppress_inlay_hints_for_parameters_that_match_argument_name`
-  Suppress hints when argument matches parameter name.
-  Expected values: `true`, `false`
-
-- `dotnet_suppress_inlay_hints_for_parameters_that_match_method_intent`
-  Suppress hints when parameter name matches the method's intent.
+- `dotnet_suppress_inlay_hints_for_parameters_that_match_method_intent`  
+  Suppress hints when parameter name matches the method's intent.  
   Expected values: `true`, `false`
 
 > [!TIP]
@@ -341,8 +309,8 @@ These settings control what inlay hints should be displayed.
 
 This setting controls how the language server should search for symbols.
 
-- `dotnet_search_reference_assemblies`
-  Search symbols in reference assemblies.
+- `dotnet_search_reference_assemblies`  
+  Search symbols in reference assemblies.  
   Expected values: `true`, `false`
 
 ### Formatting
@@ -351,8 +319,8 @@ This setting controls how the language server should search for symbols.
 
 This setting controls how the language server should format code.
 
-- `dotnet_organize_imports_on_format`
-  Sort using directives on format alphabetically.
+- `dotnet_organize_imports_on_format`  
+  Sort using directives on format alphabetically.  
   Expected values: `true`, `false`
 
 ## 📚 Commands
