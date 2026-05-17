@@ -19,8 +19,8 @@ server.
 
 ## Difference to nvim-lspconfig
 
-`roslyn` is now a part of [nvim-lspconfig](https://github.com/neovim/nvim-lspconfig), but it does not implement all things that are implemented here. This plugin
-tries to keep things minimal but still implement some things that is not suited for [nvim-lspconfig](https://github.com/neovim/nvim-lspconfig).
+`roslyn` is now a part of [nvim-lspconfig], but it does not implement all things that are implemented here.  
+This plugin tries to keep things minimal but still implement some things that is not suited for [nvim-lspconfig].  
 A couple of additional things this plugin implements
 
 - Support for multiple solutions
@@ -54,7 +54,7 @@ require("mason").setup({
 })
 ```
 
-You can then install it with `:MasonInstall roslyn` or through the popup menu by running `:Mason`. It is not available through [mason-lspconfig.nvim](https://github.com/williamboman/mason-lspconfig.nvim) and the `:LspInstall` interface
+You can then install it with `:MasonInstall roslyn` or through the popup menu by running `:Mason`. It is not available through [mason-lspconfig.nvim] and the `:LspInstall` interface
 When installing the server through mason, the cmd is automatically added to the LSP config, so no need to add it manually
 
 The stable version of `roslyn` is provided through `roslyn` in the mason registry. This is the same version as in vscode.
@@ -62,7 +62,7 @@ If you want the bleeding edge features, you can choose `roslyn-unstable`. Be awa
 
 **NOTE**
 
-There's currently an open [pull request](https://github.com/mason-org/mason-registry/pull/6330) to add the Roslyn server to [mason](https://github.com/williamboman/mason.nvim), which would greatly improve the experience. If you are interested in this, please react to the original comment, but don't spam the thread with unnecessary comments.
+There's currently an open [pull request](https://github.com/mason-org/mason-registry/pull/6330) to add the Roslyn server to [mason], which would greatly improve the experience. If you are interested in this, please react to the original comment, but don't spam the thread with unnecessary comments.
 
 </details>
 
@@ -73,10 +73,14 @@ There's currently an open [pull request](https://github.com/mason-org/mason-regi
   This allows installation of the lsp as a [dotnet tool](https://learn.microsoft.com/en-us/dotnet/core/tools/global-tools).
 
   This dotnet tool exists at two places:
-  * [nuget.org](https://www.nuget.org/packages/roslyn-language-server) , which is not updated that often.
-  * [Azure Devops](https://dev.azure.com/azure-public/vside/_artifacts/feed/vs-impl/NuGet/roslyn-language-server.linux-x64) , where updates happen multiple times a day.
+  * [nuget.org], which is not updated that often.
+  * [Azure Devops feed], where updates happen multiple times a day.
 
-  For now it is recommended to use the [Azure DevOps-Feed](https://dev.azure.com/azure-public/vside/_artifacts/feed/vs-impl/NuGet/roslyn-language-server.linux-x64) until later versions are published to nuget.org.
+  It is highly recommended to use the [Azure DevOps feed].
+
+  > [!IMPORTANT]  
+  > The version used in vscode can be extracted [here](https://github.com/dotnet/vscode-csharp/blob/main/package.json#L43).  
+  > The extension uses the [Azure Devops feed] as well.
 
   ```bash
   # Installing the tool using the more recent Azure Devops feed
@@ -334,3 +338,9 @@ This setting controls how the language server should format code.
 
 - If you have multiple solutions, this plugin tries to guess which one to use. You can change the target with the `:Roslyn target` command.
 - The current solution is always stored in `vim.g.roslyn_nvim_selected_solution`. You can use this, for example, to display the current solution in your statusline.
+
+[nuget.org]: https://www.nuget.org/packages/roslyn-language-server
+[mason-lspconfig.nvim]: https://github.com/williamboman/mason-lspconfig.nvim
+[nvim-lspconfig]: https://github.com/neovim/nvim-lspconfig
+[mason.nvim]: https://github.com/williamboman/mason.nvim
+[Azure Devops feed]: https://dev.azure.com/azure-public/vside/_artifacts/feed/vs-impl/NuGet/roslyn-language-server.linux-x64
