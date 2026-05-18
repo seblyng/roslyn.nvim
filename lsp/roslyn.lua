@@ -49,13 +49,6 @@ return {
         -- Fixes LSP navigation in decompiled files for systems with symlinked TMPDIR (macOS)
         TMPDIR = vim.env.TMPDIR and vim.fn.resolve(vim.env.TMPDIR) or nil,
     },
-    settings = {
-        razor = {
-            language_server = {
-                cohosting_enabled = true,
-            },
-        },
-    },
     root_dir = function(bufnr, on_dir)
         if require("roslyn.config").get().lock_target and vim.g.roslyn_nvim_selected_solution then
             local root_dir = vim.fs.dirname(vim.g.roslyn_nvim_selected_solution)
