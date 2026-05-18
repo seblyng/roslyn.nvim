@@ -1,236 +1,207 @@
 local helpers = require("test.utils.helpers")
 
 local function cmd_contains(cmd, value)
-  for _, entry in ipairs(cmd) do
-    if entry == value then
-      return true
+    for _, entry in ipairs(cmd) do
+        if entry == value then
+            return true
+        end
     end
-  end
-  return false
+    return false
 end
 
 local function cmd_has_prefix(cmd, prefix)
-  for _, entry in ipairs(cmd) do
-    if type(entry) == "string" and vim.startswith(entry, prefix) then
-      return true
+    for _, entry in ipairs(cmd) do
+        if type(entry) == "string" and vim.startswith(entry, prefix) then
+            return true
+        end
     end
-  end
-  return false
+    return false
 end
 
 helpers.env()
 
 describe("lsp cmd", function()
-  after_each(function()
-    helpers.exec_lua(function()
-      package.loaded["roslyn.config"] = nil
-      require("roslyn.config")
-    end)
-  end)
-
-  before_each(function()
-    helpers.clear()
-    helpers.exec_lua("package.path = ...", package.path)
-  end)
-
-  it("adds extension path and args when provided", function()
-    local cmd = helpers.exec_lua(function()
-      require("roslyn.config").setup({
-        extensions = {
-          testext = {
-            enabled = true,
-            config = {
-              path = "/tmp/roslyn-test-extension.dll",
-              args = { "--foo=bar", "--baz" },
-            },
-          },
-        },
-      })
-
-      local captured_cmd
-      vim.lsp.rpc = vim.lsp.rpc or {}
-      vim.lsp.rpc.start = function(c)
-        captured_cmd = c
-        return {}
-      end
-
-      local cwd = vim.uv.cwd()
-      local lsp_config = dofile(vim.fs.joinpath(cwd, "lsp", "roslyn.lua"))
-      lsp_config.cmd({}, { cmd_cwd = nil, cmd_env = nil, detached = nil })
-      return captured_cmd
+    after_each(function()
+        helpers.exec_lua(function()
+            package.loaded["roslyn.config"] = nil
+            require("roslyn.config")
+        end)
     end)
 
-    assert.is_true(cmd_contains(cmd, "--extension=/tmp/roslyn-test-extension.dll"))
-    assert.is_true(cmd_contains(cmd, "--foo=bar"))
-    assert.is_true(cmd_contains(cmd, "--baz"))
-  end)
-
-  it("skips extension when no path is provided", function()
-    local cmd = helpers.exec_lua(function()
-      require("roslyn.config").setup({
-        extensions = {
-          testext = {
-            enabled = true,
-            config = { path = nil },
-          },
-        },
-      })
-
-      local captured_cmd
-      vim.lsp.rpc = vim.lsp.rpc or {}
-      vim.lsp.rpc.start = function(c)
-        captured_cmd = c
-        return {}
-      end
-
-      local cwd = vim.uv.cwd()
-      local lsp_config = dofile(vim.fs.joinpath(cwd, "lsp", "roslyn.lua"))
-      lsp_config.cmd({}, { cmd_cwd = nil, cmd_env = nil, detached = nil })
-      return captured_cmd
+    before_each(function()
+        helpers.clear()
+        helpers.exec_lua("package.path = ...", package.path)
     end)
 
-    assert.is_false(cmd_has_prefix(cmd, "--extension="))
-  end)
+    it("adds extension path and args when provided", function()
+        local cmd = helpers.exec_lua(function()
+            require("roslyn.config").setup({
+                extensions = {
+                    testext = {
+                        enabled = true,
+                        config = {
+                            path = "/tmp/roslyn-test-extension.dll",
+                            args = { "--foo=bar", "--baz" },
+                        },
+                    },
+                },
+            })
 
-  it("appends roslyn_args to cmd", function()
-    local cmd = helpers.exec_lua(function()
-      require("roslyn.config").setup({
-        roslyn_args = { "--autoLoadProjects", "--sessionId=42" },
-      })
+            local captured_cmd
+            vim.lsp.rpc = vim.lsp.rpc or {}
+            vim.lsp.rpc.start = function(c)
+                captured_cmd = c
+                return {}
+            end
 
-      local captured_cmd
-      vim.lsp.rpc = vim.lsp.rpc or {}
-      vim.lsp.rpc.start = function(c)
-        captured_cmd = c
-        return {}
-      end
+            local cwd = vim.uv.cwd()
+            local lsp_config = dofile(vim.fs.joinpath(cwd, "lsp", "roslyn.lua"))
+            lsp_config.cmd({}, { cmd_cwd = nil, cmd_env = nil, detached = nil })
+            return captured_cmd
+        end)
 
-      local cwd = vim.uv.cwd()
-      local lsp_config = dofile(vim.fs.joinpath(cwd, "lsp", "roslyn.lua"))
-      lsp_config.cmd({}, { cmd_cwd = nil, cmd_env = nil, detached = nil })
-      return captured_cmd
+        assert.is_true(cmd_contains(cmd, "--extension=/tmp/roslyn-test-extension.dll"))
+        assert.is_true(cmd_contains(cmd, "--foo=bar"))
+        assert.is_true(cmd_contains(cmd, "--baz"))
     end)
 
-    assert.is_true(cmd_contains(cmd, "--sessionId=42"))
-    assert.is_true(cmd_contains(cmd, "--autoLoadProjects"))
-    assert.is_true(cmd_contains(cmd, "--logLevel=Information")) -- Our default logLevel
-    assert.is_true(cmd_contains(cmd, "--stdio"))                -- Always appended by us and the only one we support
-  end)
+    it("skips extension when no path is provided", function()
+        local cmd = helpers.exec_lua(function()
+            require("roslyn.config").setup({
+                extensions = {
+                    testext = {
+                        enabled = true,
+                        config = { path = nil },
+                    },
+                },
+            })
 
-  it("supports roslyn_args as a function", function()
-    local cmd = helpers.exec_lua(function()
-      require("roslyn.config").setup({
-        roslyn_args = function()
-          return { "--clientId 123" }
-        end,
-      })
+            local captured_cmd
+            vim.lsp.rpc = vim.lsp.rpc or {}
+            vim.lsp.rpc.start = function(c)
+                captured_cmd = c
+                return {}
+            end
 
-      local captured_cmd
-      vim.lsp.rpc = vim.lsp.rpc or {}
-      vim.lsp.rpc.start = function(c)
-        captured_cmd = c
-        return {}
-      end
+            local cwd = vim.uv.cwd()
+            local lsp_config = dofile(vim.fs.joinpath(cwd, "lsp", "roslyn.lua"))
+            lsp_config.cmd({}, { cmd_cwd = nil, cmd_env = nil, detached = nil })
+            return captured_cmd
+        end)
 
-      local cwd = vim.uv.cwd()
-      local lsp_config = dofile(vim.fs.joinpath(cwd, "lsp", "roslyn.lua"))
-      lsp_config.cmd({}, {
-        cmd_cwd = nil,
-        cmd_env = ni
-        ,
-        detached = nil
-      })
-      return captured_cmd
+        assert.is_false(cmd_has_prefix(cmd, "--extension="))
     end)
 
-    assert.is_true(cmd_contains(cmd, "--clientId 123"))
-  end)
+    it("appends roslyn_args to cmd", function()
+        local cmd = helpers.exec_lua(function()
+            require("roslyn.config").setup({
+                roslyn_args = { "--autoLoadProjects", "--sessionId=42" },
+            })
 
-  it("supports overriding our defaults", function()
-    local cmd = helpers.exec_lua(function()
-      require("roslyn.config").setup({
-        roslyn_args = { "--logLevel=Debug", "--extensionLogDirectory=/dev/null" },
-      })
+            local captured_cmd
+            vim.lsp.rpc = vim.lsp.rpc or {}
+            vim.lsp.rpc.start = function(c)
+                captured_cmd = c
+                return {}
+            end
 
-      local captured_cmd
-      vim.lsp.rpc = vim.lsp.rpc or {}
-      vim.lsp.rpc.start = function(c)
-        captured_cmd = c
-        return {}
-      end
+            local cwd = vim.uv.cwd()
+            local lsp_config = dofile(vim.fs.joinpath(cwd, "lsp", "roslyn.lua"))
+            lsp_config.cmd({}, { cmd_cwd = nil, cmd_env = nil, detached = nil })
+            return captured_cmd
+        end)
 
-      local cwd = vim.uv.cwd()
-      local lsp_config = dofile(vim.fs.joinpath(cwd, "lsp", "roslyn.lua"))
-      lsp_config.cmd({}, { cmd_cwd = nil, cmd_env = nil, detached = nil })
-      return captured_cmd
+        assert.is_true(cmd_contains(cmd, "--sessionId=42"))
+        assert.is_true(cmd_contains(cmd, "--autoLoadProjects"))
+        assert.is_true(cmd_contains(cmd, "--logLevel=Information")) -- Our default logLevel
+        assert.is_true(cmd_contains(cmd, "--stdio")) -- Always appended by us and the only one we support
     end)
 
-    assert.is_false(cmd_contains(cmd, "--logLevel=Information"))
-    assert.is_true(cmd_contains(cmd, "--logLevel=Debug"))
-    assert.is_true(cmd_contains(cmd, "--extensionLogDirectory=/dev/null"))
-  end)
+    it("it supports overriding our defaults", function()
+        local cmd = helpers.exec_lua(function()
+            require("roslyn.config").setup({
+                roslyn_args = { "--logLevel=Debug", "--extensionLogDirectory=/dev/null" },
+            })
 
-  it("strips --pipe and --stdio from roslyn_args", function()
-    local cmd = helpers.exec_lua(function()
-      require("roslyn.config").setup({
-        roslyn_args = { "--pipe", "some_pipe", "--stdio" },
-      })
+            local captured_cmd
+            vim.lsp.rpc = vim.lsp.rpc or {}
+            vim.lsp.rpc.start = function(c)
+                captured_cmd = c
+                return {}
+            end
 
-      local captured_cmd
-      vim.lsp.rpc = vim.lsp.rpc or {}
-      vim.lsp.rpc.start = function(c)
-        captured_cmd = c
-        return {}
-      end
+            local cwd = vim.uv.cwd()
+            local lsp_config = dofile(vim.fs.joinpath(cwd, "lsp", "roslyn.lua"))
+            lsp_config.cmd({}, { cmd_cwd = nil, cmd_env = nil, detached = nil })
+            return captured_cmd
+        end)
 
-      local cwd = vim.uv.cwd()
-      local lsp_config = dofile(vim.fs.joinpath(cwd, "lsp", "roslyn.lua"))
-      lsp_config.cmd({}, { cmd_cwd = nil, cmd_env = nil, detached = nil })
-      return captured_cmd
+        assert.is_false(cmd_contains(cmd, "--logLevel=Information"))
+        assert.is_true(cmd_contains(cmd, "--logLevel=Debug"))
+        assert.is_true(cmd_contains(cmd, "--extensionLogDirectory=/dev/null"))
     end)
 
-    assert.is_false(cmd_contains(cmd, "--pipe"))
+    it("strips --pipe and --stdio from roslyn_args", function()
+        local cmd = helpers.exec_lua(function()
+            require("roslyn.config").setup({
+                roslyn_args = { "--pipe", "some_pipe", "--stdio" },
+            })
 
-    local stdio_count = 0
-    for _, entry in ipairs(cmd) do
-      if entry == "--stdio" then
-        stdio_count = stdio_count + 1
-      end
-    end
-    assert.are.equal(1, stdio_count)
-  end)
+            local captured_cmd
+            vim.lsp.rpc = vim.lsp.rpc or {}
+            vim.lsp.rpc.start = function(c)
+                captured_cmd = c
+                return {}
+            end
 
-  it("supports extension config as function", function()
-    local cmd = helpers.exec_lua(function()
-      require("roslyn.config").setup({
-        extensions = {
-          testext = {
-            enabled = true,
-            config = function()
-              return {
-                path = "/tmp/roslyn-test-extension-fn.dll",
-                args = { "--alpha", "--beta=1" },
-              }
-            end,
-          },
-        },
-      })
+            local cwd = vim.uv.cwd()
+            local lsp_config = dofile(vim.fs.joinpath(cwd, "lsp", "roslyn.lua"))
+            lsp_config.cmd({}, { cmd_cwd = nil, cmd_env = nil, detached = nil })
+            return captured_cmd
+        end)
 
-      local captured_cmd
-      vim.lsp.rpc = vim.lsp.rpc or {}
-      vim.lsp.rpc.start = function(c)
-        captured_cmd = c
-        return {}
-      end
+        assert.is_false(cmd_contains(cmd, "--pipe"))
 
-      local cwd = vim.uv.cwd()
-      local lsp_config = dofile(vim.fs.joinpath(cwd, "lsp", "roslyn.lua"))
-      lsp_config.cmd({}, { cmd_cwd = nil, cmd_env = nil, detached = nil })
-      return captured_cmd
+        local stdio_count = 0
+        for _, entry in ipairs(cmd) do
+            if entry == "--stdio" then
+                stdio_count = stdio_count + 1
+            end
+        end
+        assert.are.equal(1, stdio_count)
     end)
 
-    assert.is_true(cmd_contains(cmd, "--extension=/tmp/roslyn-test-extension-fn.dll"))
-    assert.is_true(cmd_contains(cmd, "--alpha"))
-    assert.is_true(cmd_contains(cmd, "--beta=1"))
-  end)
+    it("supports extension config as function", function()
+        local cmd = helpers.exec_lua(function()
+            require("roslyn.config").setup({
+                extensions = {
+                    testext = {
+                        enabled = true,
+                        config = function()
+                            return {
+                                path = "/tmp/roslyn-test-extension-fn.dll",
+                                args = { "--alpha", "--beta=1" },
+                            }
+                        end,
+                    },
+                },
+            })
+
+            local captured_cmd
+            vim.lsp.rpc = vim.lsp.rpc or {}
+            vim.lsp.rpc.start = function(c)
+                captured_cmd = c
+                return {}
+            end
+
+            local cwd = vim.uv.cwd()
+            local lsp_config = dofile(vim.fs.joinpath(cwd, "lsp", "roslyn.lua"))
+            lsp_config.cmd({}, { cmd_cwd = nil, cmd_env = nil, detached = nil })
+            return captured_cmd
+        end)
+
+        assert.is_true(cmd_contains(cmd, "--extension=/tmp/roslyn-test-extension-fn.dll"))
+        assert.is_true(cmd_contains(cmd, "--alpha"))
+        assert.is_true(cmd_contains(cmd, "--beta=1"))
+    end)
 end)
