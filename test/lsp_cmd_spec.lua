@@ -37,7 +37,6 @@ describe("lsp cmd", function()
         local cmd = helpers.exec_lua(function()
             require("roslyn.config").setup({
                 extensions = {
-                    razor = { enabled = false },
                     testext = {
                         enabled = true,
                         config = {
@@ -70,7 +69,6 @@ describe("lsp cmd", function()
         local cmd = helpers.exec_lua(function()
             require("roslyn.config").setup({
                 extensions = {
-                    razor = { enabled = false },
                     testext = {
                         enabled = true,
                         config = { path = nil },
@@ -98,7 +96,6 @@ describe("lsp cmd", function()
         local cmd = helpers.exec_lua(function()
             require("roslyn.config").setup({
                 extensions = {
-                    razor = { enabled = false },
                     testext = {
                         enabled = true,
                         config = function()

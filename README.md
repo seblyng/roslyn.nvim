@@ -19,8 +19,8 @@ server.
 
 ## Difference to nvim-lspconfig
 
-`roslyn` is now a part of [nvim-lspconfig](https://github.com/neovim/nvim-lspconfig), but it does not implement all things that are implemented here. This plugin
-tries to keep things minimal but still implement some things that is not suited for [nvim-lspconfig](https://github.com/neovim/nvim-lspconfig).
+`roslyn` is now a part of [nvim-lspconfig], but it does not implement all things that are implemented here.  
+This plugin tries to keep things minimal but still implement some things that is not suited for [nvim-lspconfig].  
 A couple of additional things this plugin implements
 
 - Support for multiple solutions
@@ -37,12 +37,11 @@ https://github.com/user-attachments/assets/a749f6c7-fc87-440c-912d-666d86453bc5
 ## 📦 Installation
 
 <details>
-  <summary>Mason</summary>
-  
+  <summary>Mason (recommended)</summary>
+
   `roslyn` is not in the mason core registry, so a custom registry is used.
   This registry provides two binaries
   - `roslyn` (To be used with this repo)
-    - This has the `.razorExtensions` folder included for Razor/CSHTML support
 
 You need to set up the custom registry like this
 
@@ -55,7 +54,7 @@ require("mason").setup({
 })
 ```
 
-You can then install it with `:MasonInstall roslyn` or through the popup menu by running `:Mason`. It is not available through [mason-lspconfig.nvim](https://github.com/williamboman/mason-lspconfig.nvim) and the `:LspInstall` interface
+You can then install it with `:MasonInstall roslyn` or through the popup menu by running `:Mason`. It is not available through [mason-lspconfig.nvim] and the `:LspInstall` interface
 When installing the server through mason, the cmd is automatically added to the LSP config, so no need to add it manually
 
 The stable version of `roslyn` is provided through `roslyn` in the mason registry. This is the same version as in vscode.
@@ -63,40 +62,42 @@ If you want the bleeding edge features, you can choose `roslyn-unstable`. Be awa
 
 **NOTE**
 
-There's currently an open [pull request](https://github.com/mason-org/mason-registry/pull/6330) to add the Roslyn server to [mason](https://github.com/williamboman/mason.nvim), which would greatly improve the experience. If you are interested in this, please react to the original comment, but don't spam the thread with unnecessary comments.
+There's currently an open [pull request](https://github.com/mason-org/mason-registry/pull/6330) to add the Roslyn server to [mason], which would greatly improve the experience. If you are interested in this, please react to the original comment, but don't spam the thread with unnecessary comments.
 
 </details>
 
 <details>
   <summary>Manually</summary>
 
-NOTE: The manual installation instructions are the same for this plugin and for nvim-lspconfig.
-The following instructions are copied from [nvim-lspconfig](https://github.com/neovim/nvim-lspconfig/blob/master/doc/configs.md#roslyn_ls).
-If the installation instructions are not up-to-date or not clear, please first send a PR to `nvim-lspconfig` with improvements so that we can align the installation instructions.
+  `roslyn-language-server` supports razor since version `5.8.0-1.26262.10`.
+  This allows installation of the lsp as a [dotnet tool](https://learn.microsoft.com/en-us/dotnet/core/tools/global-tools).
 
-To install the server, compile from source or download as nuget package.
-Go to `https://dev.azure.com/azure-public/vside/_artifacts/feed/vs-impl/NuGet/Microsoft.CodeAnalysis.LanguageServer.<platform>/overview`
-replace `<platform>` with one of the following `linux-x64`, `osx-x64`, `win-x64`, `neutral` (for more info on the download location see https://github.com/dotnet/roslyn/issues/71474#issuecomment-2177303207).
-Download and extract it (nuget's are zip files).
+  This dotnet tool exists at two places:
+  * [nuget.org], which is not updated that often.
+  * [Azure Devops feed], where updates happen multiple times a day.
 
-- if you chose `neutral` nuget version, then you have to change the `cmd` like so:
+  It is highly recommended to use the [Azure DevOps feed].
 
-```lua
-cmd = {
-    "dotnet",
-    "<my_folder>/Microsoft.CodeAnalysis.LanguageServer.dll",
-    "--logLevel", -- this property is required by the server
-    "Information",
-    "--extensionLogDirectory", -- this property is required by the server
-    fs.joinpath(uv.os_tmpdir(), "roslyn_ls/logs"),
-    "--stdio",
-}
-```
+  > [!IMPORTANT]  
+  > The version used in vscode can be extracted [here](https://github.com/dotnet/vscode-csharp/blob/main/package.json#L43).  
+  > The extension uses the [Azure Devops feed] as well.
 
-where `<my_folder>` has to be the folder you extracted the nuget package to.
+  ```bash
+  # Installing the tool using the more recent Azure Devops feed
+  # This will take few seconds so please be patient
+  dotnet tool install -g roslyn-language-server --prerelease --source https://pkgs.dev.azure.com/azure-public/vside/_packaging/vs-impl/nuget/v3/index.json
+    You can invoke the tool using the following command: roslyn-language-server
+    Tool 'roslyn-language-server' (version '5.8.0-1.26263.4') was successfully installed.
 
-- for all other platforms put the extracted folder to neovim's PATH (`vim.env.PATH`)
+  # Installing the tool from nuget.org
+  # !! Any version before 5.8.0-1.26262.10 will not support razor/blazor !!
+  dotnet tool install -g roslyn-language-server --prerelease
+    You can invoke the tool using the following command: roslyn-language-server
+    Tool 'roslyn-language-server' (version '5.8.0-1.26262.10') was successfully installed.
 
+  # Updating works the same way as installing ( by replacing "install" with "update")
+  dotnet tool update -g roslyn-language-server --prerelease --source https://pkgs.dev.azure.com/azure-public/vside/_packaging/vs-impl/nuget/v3/index.json
+  ```
 </details>
 
 > [!TIP]  
@@ -167,34 +168,9 @@ opts = {
     -- If the plugin should silence notifications about initialization
     silent = false,
 
-    -- Additional roslyn extensions (for example Roslynator/ Razor)
-    -- The path is expected to be .dll file
-    extensions = {
-        razor = {
-            enabled = true,
-            config = function()
-                local razor_extension_path = require("roslyn.utils").find_razor_extension_path()
-                if razor_extension_path == nil then
-                    return {
-                        path = nil,
-                    }
-                end
-
-                return {
-                    path = vim.fs.joinpath(razor_extension_path, "Microsoft.VisualStudioCode.RazorExtension.dll"),
-                    args = {
-                        "--razorSourceGenerator="
-                            .. vim.fs.joinpath(razor_extension_path, "Microsoft.CodeAnalysis.Razor.Compiler.dll"),
-                        "--razorDesignTimePath=" .. vim.fs.joinpath(
-                            razor_extension_path,
-                            "Targets",
-                            "Microsoft.NET.Sdk.Razor.DesignTime.targets"
-                        ),
-                    },
-                }
-            end,
-        },
-    },
+    -- Additional roslyn extensions (for example Roslynator).
+    -- The path is expected to be a .dll file.
+    extensions = {},
 }
 ```
 
@@ -282,7 +258,7 @@ These settings control what inlay hints should be displayed.
 
 - `csharp_enable_inlay_hints_for_implicit_object_creation`  
   Show hints for implicit object creation.  
-  Expected values: `true`, `false`
+  Expected values: `true`, `false`  
 
 - `csharp_enable_inlay_hints_for_implicit_variable_types`  
   Show hints for variables with inferred types.  
@@ -362,3 +338,9 @@ This setting controls how the language server should format code.
 
 - If you have multiple solutions, this plugin tries to guess which one to use. You can change the target with the `:Roslyn target` command.
 - The current solution is always stored in `vim.g.roslyn_nvim_selected_solution`. You can use this, for example, to display the current solution in your statusline.
+
+[nuget.org]: https://www.nuget.org/packages/roslyn-language-server
+[mason-lspconfig.nvim]: https://github.com/williamboman/mason-lspconfig.nvim
+[nvim-lspconfig]: https://github.com/neovim/nvim-lspconfig
+[mason.nvim]: https://github.com/williamboman/mason.nvim
+[Azure Devops feed]: https://dev.azure.com/azure-public/vside/_artifacts/feed/vs-impl/NuGet/roslyn-language-server.linux-x64
