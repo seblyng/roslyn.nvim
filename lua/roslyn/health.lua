@@ -39,7 +39,7 @@ function M.check()
 
     local found = require("roslyn.utils").get_roslyn_lsp_path()
     if found then
-        vim.health.ok(string.format("found %s", found.path))
+        vim.health.ok(string.format("found %s", found))
     else
         vim.health.error("Roslyn language server not found", {
             "Install via Mason: :MasonInstall roslyn",
@@ -83,7 +83,6 @@ function M.check()
             else
                 vim.health.info("No args provided for this extension")
             end
-
         else
             vim.health.info("Disabled")
         end

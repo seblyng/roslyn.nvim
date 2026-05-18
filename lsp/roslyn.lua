@@ -1,13 +1,8 @@
 local function get_default_cmd()
     local resolved = require("roslyn.utils").get_roslyn_lsp_path()
-    local exe = resolved and resolved.path or "Microsoft.CodeAnalysis.LanguageServer"
+    local exe = resolved or "Microsoft.CodeAnalysis.LanguageServer"
 
-    local cmd = {
-        exe,
-        "--logLevel=Information",
-        "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.log.get_filename()),
-        "--stdio",
-    }
+    local cmd = { exe, "--stdio" }
 
     local roslyn_extensions = require("roslyn.config").get().extensions or {}
     for ext_name, extension in pairs(roslyn_extensions) do
@@ -53,13 +48,6 @@ return {
         Configuration = vim.env.Configuration or "Debug",
         -- Fixes LSP navigation in decompiled files for systems with symlinked TMPDIR (macOS)
         TMPDIR = vim.env.TMPDIR and vim.fn.resolve(vim.env.TMPDIR) or nil,
-    },
-    settings = {
-        razor = {
-            language_server = {
-                cohosting_enabled = true,
-            },
-        },
     },
     root_dir = function(bufnr, on_dir)
         if require("roslyn.config").get().lock_target and vim.g.roslyn_nvim_selected_solution then
