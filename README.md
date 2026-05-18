@@ -171,15 +171,6 @@ opts = {
     -- Additional roslyn extensions (for example Roslynator).
     -- The path is expected to be a .dll file.
     extensions = {},
-
-    -- Additional args passed to roslyn-language-server.
-    -- Execute roslyn-language-server --help to see all available args.
-    -- --stdio is always set by the plugin
-    --
-    -- Example:
-    --
-    -- roslyn_args = { "--logLevel=Debug", "--telemetryLevel=off" },
-    roslyn_args = {},
 }
 ```
 

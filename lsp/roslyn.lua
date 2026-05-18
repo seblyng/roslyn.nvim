@@ -1,41 +1,15 @@
-local function has_arg(args, name)
-    for _, entry in ipairs(args) do
-        if type(entry) == "string" and (entry == name or vim.startswith(entry, name .. "=")) then
-            return true
-        end
-    end
-    return false
-end
-
 local function get_default_cmd()
     local resolved = require("roslyn.utils").get_roslyn_lsp_path()
     local exe = resolved and resolved.path or "Microsoft.CodeAnalysis.LanguageServer"
-    local config = require("roslyn.config").get()
-    local user_args = type(config.roslyn_args) == "function" and config.roslyn_args() or config.roslyn_args or {}
 
-    local cmd = { exe }
-    if not has_arg(user_args, "--logLevel") then
-        table.insert(cmd, "--logLevel=Information")
-    end
-    if not has_arg(user_args, "--extensionLogDirectory") then
-        table.insert(cmd, "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.log.get_filename()))
-    end
-    vim.list_extend(cmd, user_args)
+    local cmd = {
+        exe,
+        "--logLevel=Information",
+        "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.log.get_filename()),
+        "--stdio",
+    }
 
-    if has_arg(cmd, "--pipe") then
-        vim.notify(
-            "Ignoring '--pipe' in roslyn_args. roslyn.nvim only supports stdio.",
-            vim.log.levels.WARN,
-            { title = "roslyn.nvim" }
-        )
-    end
-
-    cmd = vim.tbl_filter(function(arg)
-        return arg ~= "--pipe" and arg ~= "--stdio"
-    end, cmd)
-    table.insert(cmd, "--stdio")
-
-    local roslyn_extensions = config.extensions or {}
+    local roslyn_extensions = require("roslyn.config").get().extensions or {}
     for ext_name, extension in pairs(roslyn_extensions) do
         if extension.enabled then
             local resolved_config = type(extension.config) == "function" and extension.config() or extension.config

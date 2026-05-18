@@ -16,7 +16,6 @@ local M = {}
 ---@field lock_target boolean
 ---@field silent boolean
 ---@field debug boolean
----@field roslyn_args? string[] | fun(): string[]
 ---@field extensions? table<string, RoslynExtension>
 
 ---@class RoslynNvimConfig
@@ -27,7 +26,6 @@ local M = {}
 ---@field lock_target? boolean
 ---@field silent? boolean
 ---@field debug? boolean
----@field roslyn_args? string[] | fun(): string[]
 ---@field extensions? table<string, RoslynExtension>
 
 ---@type InternalRoslynNvimConfig
@@ -39,7 +37,6 @@ local roslyn_config = {
     lock_target = false,
     silent = false,
     debug = false,
-    roslyn_args = {},
     extensions = {},
 }
 
