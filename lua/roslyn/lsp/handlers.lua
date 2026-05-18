@@ -53,43 +53,6 @@ return {
 
         return vim.NIL
     end,
-    --TODO: No longed needed with roslyn (5.7.0-1.26217.5): https://github.com/dotnet/roslyn/pull/83119
-
-    ["workspace/refreshSourceGeneratedDocument"] = function(_, _, ctx)
-        local client = assert(vim.lsp.get_client_by_id(ctx.client_id))
-        for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-            local uri = vim.api.nvim_buf_get_name(buf)
-            if vim.api.nvim_buf_is_loaded(buf) and uri:match("^roslyn%-source%-generated://") then
-                local function handler(err, result)
-                    assert(not err, vim.inspect(err))
-                    if vim.b[buf].resultId == result.resultId then
-                        return
-                    end
-                    local content = result.text or ""
-                    if content == vim.NIL then
-                        content = ""
-                    end
-                    local normalized = string.gsub(content, "\r\n", "\n")
-                    local source_lines = vim.split(normalized, "\n", { plain = true })
-                    vim.bo[buf].modifiable = true
-                    vim.api.nvim_buf_set_lines(buf, 0, -1, false, source_lines)
-                    vim.b[buf].resultId = result.resultId
-                    vim.bo[buf].modifiable = false
-                    vim.bo[buf].modified = false
-                end
-
-                local params = {
-                    textDocument = {
-                        uri = uri,
-                    },
-                    resultId = vim.b[buf].resultId,
-                }
-
-                ---@diagnostic disable-next-line: param-type-mismatch
-                client:request("sourceGeneratedDocument/_roslyn_getText", params, handler, buf)
-            end
-        end
-    end,
     -- TODO: This is no longer needed with latest roslyn: https://github.com/dotnet/roslyn/pull/81233
     ["workspace/_roslyn_projectNeedsRestore"] = function(_, result, ctx)
         local client = assert(vim.lsp.get_client_by_id(ctx.client_id))
