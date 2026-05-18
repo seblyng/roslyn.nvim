@@ -61,6 +61,14 @@ return {
             },
         },
     },
+    capabilities = {
+        workspace = {
+            -- support refreshing source generated documents
+            textDocumentContent = {
+                dynamicRegistration = true,
+            },
+        },
+    },
     root_dir = function(bufnr, on_dir)
         if require("roslyn.config").get().lock_target and vim.g.roslyn_nvim_selected_solution then
             local root_dir = vim.fs.dirname(vim.g.roslyn_nvim_selected_solution)
