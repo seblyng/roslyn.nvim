@@ -138,8 +138,9 @@ function M.check()
 
     vim.health.start("roslyn.nvim: Solution Detection")
 
-    if vim.g.roslyn_nvim_selected_solution then
-        vim.health.ok(string.format("Selected solution: %s", vim.g.roslyn_nvim_selected_solution))
+    local selected_solution = require("roslyn.store").get_selected_target()
+    if selected_solution then
+        vim.health.ok(string.format("Selected solution: %s", selected_solution))
     else
         vim.health.info("No solution selected")
     end
