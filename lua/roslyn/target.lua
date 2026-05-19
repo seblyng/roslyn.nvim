@@ -41,13 +41,11 @@ function M.predict_target(bufnr, targets)
 
     local csproj = find_csproj_file(bufnr)
     local filtered_targets = filter_targets(targets, csproj)
-    local result = filtered_targets[1]
     if #filtered_targets > 1 then
-        result = config.choose_target and config.choose_target(filtered_targets) or nil
+        return config.choose_target and config.choose_target(filtered_targets) or nil
     end
 
-    log.log(string.format("predict_target targets: %s, result: %s", vim.inspect(targets), result))
-    return result
+    return filtered_targets[1]
 end
 
 ---@param bufnr number
@@ -111,6 +109,7 @@ local function resolve_open_target(bufnr, root_dir)
     local files = discovery.find_files_with_extensions(root_dir, { ".sln", ".slnx", ".slnf" })
 
     local solution = M.predict_target(bufnr, files)
+    log.log(string.format("predict_target targets: %s, result: %s", vim.inspect(files), solution))
     if solution then
         return { kind = "solution", root_dir = root_dir, target = solution }
     end
