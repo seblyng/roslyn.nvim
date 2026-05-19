@@ -10,7 +10,7 @@ local pending_by_root = {}
 ---@return string?
 local function find_csproj_file(bufnr)
     return vim.fs.find(function(name)
-        return name:match("%.csproj$") ~= nil
+        return vim.endswith(name, ".csproj")
     end, { upward = true, path = vim.api.nvim_buf_get_name(bufnr) })[1]
 end
 
@@ -19,15 +19,18 @@ end
 ---@return string[]
 local function filter_targets(targets, csproj)
     local config = require("roslyn.config").get()
-    return vim.iter(targets)
-        :filter(function(target)
-            if config.ignore_target and config.ignore_target(target) then
-                return false
-            end
+    local filtered = {}
 
-            return not csproj or sln_api.exists_in_target(target, csproj)
-        end)
-        :totable()
+    for _, target in ipairs(targets) do
+        if
+            not (config.ignore_target and config.ignore_target(target))
+            and (not csproj or sln_api.exists_in_target(target, csproj))
+        then
+            filtered[#filtered + 1] = target
+        end
+    end
+
+    return filtered
 end
 
 ---@param bufnr number
@@ -38,12 +41,11 @@ function M.predict_target(bufnr, targets)
 
     local csproj = find_csproj_file(bufnr)
     local filtered_targets = filter_targets(targets, csproj)
-    local result
+    local result = filtered_targets[1]
     if #filtered_targets > 1 then
         result = config.choose_target and config.choose_target(filtered_targets) or nil
-    else
-        result = filtered_targets[1]
     end
+
     log.log(string.format("predict_target targets: %s, result: %s", vim.inspect(targets), result))
     return result
 end
@@ -67,20 +69,24 @@ local function resolve_root(bufnr)
             return { kind = "root", root_dir = vim.fs.dirname(chosen) }
         end
 
-        local possible_solutions = vim.iter(vim.lsp.get_clients({ name = "roslyn" }))
-            :map(function(client)
-                local client_solution = store.get_client_target(client.id)
-                if client_solution and vim.list_contains(filtered_targets, client_solution) then
-                    return vim.fs.dirname(client_solution)
-                end
-            end)
-            :totable()
-
-        if #possible_solutions == 1 and possible_solutions[1] then
-            return { kind = "root", root_dir = possible_solutions[1] }
+        local targets = {}
+        for _, target in ipairs(filtered_targets) do
+            targets[target] = true
         end
 
-        return { kind = "ambiguous", targets = filtered_targets }
+        local root_dir
+        for _, client in ipairs(vim.lsp.get_clients({ name = "roslyn" })) do
+            local target = store.get_client_target(client.id)
+            if target and targets[target] then
+                if root_dir then
+                    return { kind = "ambiguous", targets = filtered_targets }
+                end
+
+                root_dir = vim.fs.dirname(target)
+            end
+        end
+
+        return root_dir and { kind = "root", root_dir = root_dir } or { kind = "ambiguous", targets = filtered_targets }
     end
 
     local selected_solution = store.get_selected_target()
@@ -109,9 +115,9 @@ local function resolve_open_target(bufnr, root_dir)
         return { kind = "solution", root_dir = root_dir, target = solution }
     end
 
-    local csproj = discovery.find_files_with_extensions(root_dir, { ".csproj" })
-    if #csproj > 0 then
-        return { kind = "project", root_dir = root_dir, projects = csproj }
+    local projects = discovery.find_files_with_extensions(root_dir, { ".csproj" })
+    if #projects > 0 then
+        return { kind = "project", root_dir = root_dir, projects = projects }
     end
 
     if selected_solution then
@@ -130,12 +136,10 @@ function M.resolve(bufnr)
         return { kind = "solution", root_dir = vim.fs.dirname(selected_solution), target = selected_solution }
     end
 
-    local buf_name = vim.api.nvim_buf_get_name(bufnr)
-    if buf_name:match("^roslyn%-source%-generated://") then
-        local existing_client = vim.lsp.get_clients({ name = "roslyn" })[1]
-        if existing_client and existing_client.config.root_dir then
-            return { kind = "reuse", root_dir = existing_client.config.root_dir }
-        end
+    local existing_client = vim.api.nvim_buf_get_name(bufnr):match("^roslyn%-source%-generated://")
+        and vim.lsp.get_clients({ name = "roslyn" })[1]
+    if existing_client and existing_client.config.root_dir then
+        return { kind = "reuse", root_dir = existing_client.config.root_dir }
     end
 
     local root = resolve_root(bufnr)
@@ -161,9 +165,11 @@ end
 
 ---@param decision table
 function M.remember(decision)
-    if decision.root_dir and (decision.kind == "solution" or decision.kind == "project") then
-        pending_by_root[decision.root_dir] = decision
+    if not decision.root_dir or (decision.kind ~= "solution" and decision.kind ~= "project") then
+        return
     end
+
+    pending_by_root[decision.root_dir] = decision
 end
 
 ---@param root_dir string
