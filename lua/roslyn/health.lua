@@ -83,7 +83,6 @@ function M.check()
             else
                 vim.health.info("No args provided for this extension")
             end
-
         else
             vim.health.info("Disabled")
         end
