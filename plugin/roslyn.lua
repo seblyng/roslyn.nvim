@@ -11,17 +11,12 @@ vim.lsp.enable("roslyn")
 
 local group = vim.api.nvim_create_augroup("roslyn.nvim", { clear = true })
 
--- Updates `vim.g.roslyn_nvim_selected_solution` when entering a C# or Razor buffer
--- so that it always reflects the current buffers' solution.
+-- Keeps the selected target aligned with the current buffer's Roslyn client.
 vim.api.nvim_create_autocmd("BufEnter", {
     group = group,
     pattern = { "*.cs", "*.razor", "*.cshtml" },
     callback = function(args)
-        local config = require("roslyn.config").get()
-        local client = vim.lsp.get_clients({ name = "roslyn", bufnr = args.buf })[1]
-        if client and not config.lock_target then
-            vim.g.roslyn_nvim_selected_solution = require("roslyn.store").get(client.id)
-        end
+        require("roslyn.store").sync_selected_target_for_buffer(args.buf)
     end,
 })
 
