@@ -28,7 +28,7 @@ A couple of additional things this plugin implements
 - Support for source generated files
 - Support for `Fix all`, `Nested code actions` and `Complex edit`.
 - `Roslyn target` command to switch between multiple solutions
-- Support for custom roslyn extensions, like Roslynator (passed via config)
+- Support for custom roslyn extensions, like Roslynator (configured with `vim.lsp.config`)
 
 ## Demo
 
@@ -167,10 +167,6 @@ opts = {
 
     -- If the plugin should silence notifications about initialization
     silent = false,
-
-    -- Additional roslyn extensions (for example Roslynator).
-    -- The path is expected to be a .dll file.
-    extensions = {},
 }
 ```
 
@@ -191,6 +187,22 @@ vim.lsp.config("roslyn", {
         ["csharp|code_lens"] = {
             dotnet_enable_references_code_lens = true,
         },
+    },
+})
+```
+
+To pass custom Roslyn extensions, override the server command and include one
+`--extension=/path/to/extension.dll` argument per extension.
+
+```lua
+local resolved = require("roslyn.utils").get_roslyn_lsp_path()
+local exe = resolved and resolved.path or "Microsoft.CodeAnalysis.LanguageServer"
+
+vim.lsp.config("roslyn", {
+    cmd = {
+        exe,
+        "--stdio",
+        "--extension=/path/to/Roslynator.dll",
     },
 })
 ```
