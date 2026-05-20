@@ -49,13 +49,6 @@ return {
         -- Fixes LSP navigation in decompiled files for systems with symlinked TMPDIR (macOS)
         TMPDIR = vim.env.TMPDIR and vim.fn.resolve(vim.env.TMPDIR) or nil,
     },
-    settings = {
-        razor = {
-            language_server = {
-                cohosting_enabled = true,
-            },
-        },
-    },
     capabilities = {
         workspace = {
             -- support refreshing source generated documents
