@@ -1,13 +1,8 @@
 local function get_default_cmd()
     local resolved = require("roslyn.utils").get_roslyn_lsp_path()
-    local exe = resolved and resolved.path or "Microsoft.CodeAnalysis.LanguageServer"
+    local exe = resolved or "Microsoft.CodeAnalysis.LanguageServer"
 
-    local cmd = {
-        exe,
-        "--logLevel=Information",
-        "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.log.get_filename()),
-        "--stdio",
-    }
+    local cmd = { exe, "--stdio" }
 
     local roslyn_extensions = require("roslyn.config").get().extensions or {}
     for ext_name, extension in pairs(roslyn_extensions) do
