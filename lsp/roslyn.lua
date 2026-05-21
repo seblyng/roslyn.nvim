@@ -70,10 +70,8 @@ return {
         on_dir(root_dir)
     end,
     on_init = {
+        --- @param client vim.lsp.Client
         function(client)
-            -- Although roslyn supports prepareRename, cohosted razor doesnt. So we need to disable it
-            client.server_capabilities.renameProvider = true
-
             if not client.config.root_dir then
                 return
             end
