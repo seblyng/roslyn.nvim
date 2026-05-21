@@ -195,12 +195,9 @@ To pass custom Roslyn extensions, override the server command and include one
 `--extension=/path/to/extension.dll` argument per extension.
 
 ```lua
-local resolved = require("roslyn.utils").get_roslyn_lsp_path()
-local exe = resolved and resolved.path or "Microsoft.CodeAnalysis.LanguageServer"
-
 vim.lsp.config("roslyn", {
     cmd = {
-        exe,
+        "roslyn-language-server",
         "--stdio",
         "--extension=/path/to/Roslynator.dll",
     },
