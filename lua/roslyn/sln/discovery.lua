@@ -5,8 +5,9 @@ local M = {}
 local solution_extensions = { sln = true, slnx = true, slnf = true }
 local ignored_dirs = { obj = true, bin = true, [".git"] = true }
 
+---@param name string
 local function is_solution(name)
-    return solution_extensions[vim.fn.fnamemodify(name, ":e")]
+    return solution_extensions[vim.fs.ext(name)]
 end
 
 ---@param dir string
@@ -14,15 +15,11 @@ end
 ---@return string[]
 function M.find_files_with_extensions(dir, extensions)
     local matches = {}
-    local wanted = {}
-    for _, ext in ipairs(extensions) do
-        wanted[ext:gsub("^%.", "")] = true
-    end
 
     log.log(string.format("find_files_with_extensions dir: %s, extensions: %s", dir, vim.inspect(extensions)))
 
     for name, type in vim.fs.dir(dir) do
-        if type == "file" and wanted[name:match("%.([^%./]+)$")] then
+        if type == "file" and vim.tbl_contains(extensions, vim.fs.ext(name)) then
             matches[#matches + 1] = vim.fs.normalize(vim.fs.joinpath(dir, name))
         end
     end
@@ -30,35 +27,22 @@ function M.find_files_with_extensions(dir, extensions)
     return matches
 end
 
----@param paths string[]
----@return string?
-local function get_shortest_path(paths)
-    local shortest = nil
-    for _, path in ipairs(paths) do
-        local dir = vim.fs.dirname(path)
-        if not shortest or #dir < #shortest then
-            shortest = dir
-        end
-    end
-    return shortest
-end
-
 ---@param bufnr number
 ---@return string[]
 function M.find_solutions(bufnr)
-    local results =
-        vim.fs.find(is_solution, { upward = true, path = vim.api.nvim_buf_get_name(bufnr), limit = math.huge })
+    local path = vim.api.nvim_buf_get_name(bufnr)
+    local results = vim.fs.find(is_solution, { upward = true, path = path, limit = math.huge })
     log.log(string.format("find_solutions found: %s", vim.inspect(results)))
     return results
 end
 
----@param buffer number
+---@param bufnr number
 ---@return string?
-local function resolve_broad_search_root(buffer)
-    local solutions = M.find_solutions(buffer)
-    local sln_root = get_shortest_path(solutions)
+local function resolve_broad_search_root(bufnr)
+    local solutions = M.find_solutions(bufnr)
+    local sln_root = solutions[#solutions] and vim.fs.dirname(solutions[#solutions])
 
-    local git_root = vim.fs.root(buffer, ".git")
+    local git_root = vim.fs.root(bufnr, ".git")
     if not (sln_root and git_root) then
         return sln_root or git_root
     end
@@ -74,22 +58,14 @@ function M.find_solutions_broad(bufnr)
         return {}
     end
 
-    local dirs = { root }
+    local skip = function(dir)
+        return not ignored_dirs[vim.fs.basename(dir)]
+    end
+
     local slns = {} --- @type string[]
-    local i = 1
-
-    while dirs[i] do
-        local dir = dirs[i]
-        i = i + 1
-
-        for other, fs_obj_type in vim.fs.dir(dir) do
-            local name = vim.fs.joinpath(dir, other)
-
-            if fs_obj_type == "file" and is_solution(name) then
-                slns[#slns + 1] = vim.fs.normalize(name)
-            elseif fs_obj_type == "directory" and not ignored_dirs[vim.fs.basename(name)] then
-                dirs[#dirs + 1] = name
-            end
+    for name, fs_obj_type in vim.fs.dir(root, { depth = math.huge, skip = skip }) do
+        if fs_obj_type == "file" and is_solution(name) then
+            slns[#slns + 1] = vim.fs.normalize(vim.fs.joinpath(root, name))
         end
     end
 
