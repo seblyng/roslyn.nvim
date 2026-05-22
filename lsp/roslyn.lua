@@ -5,6 +5,10 @@ local function get_default_cmd()
     local cmd = { exe, "--stdio" }
 
     local roslyn_extensions = require("roslyn.config").get().extensions or {}
+    if next(roslyn_extensions) then
+        vim.deprecate("roslyn.nvim extensions", 'vim.lsp.config("roslyn", { cmd = ... })', "soon", "roslyn.nvim")
+    end
+
     for ext_name, extension in pairs(roslyn_extensions) do
         if extension.enabled then
             local resolved_config = type(extension.config) == "function" and extension.config() or extension.config
@@ -25,7 +29,9 @@ local function get_default_cmd()
             if resolved_config.args then
                 local resolved_args = type(resolved_config.args) == "function" and resolved_config.args()
                     or resolved_config.args
-                vim.list_extend(cmd, resolved_args)
+                if resolved_args then
+                    vim.list_extend(cmd, resolved_args)
+                end
             end
         end
     end
