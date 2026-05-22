@@ -5,14 +5,6 @@ local M = {}
 
 local pending_by_root = {}
 
----@param bufnr number
----@return string?
-local function find_csproj_file(bufnr)
-    return vim.fs.find(function(name)
-        return vim.endswith(name, ".csproj")
-    end, { upward = true, path = vim.api.nvim_buf_get_name(bufnr) })[1]
-end
-
 ---@param targets string[]
 ---@param csproj? string
 ---@return string[]
@@ -38,7 +30,7 @@ end
 function M.predict_target(bufnr, targets)
     local config = require("roslyn.config").get()
 
-    local csproj = find_csproj_file(bufnr)
+    local csproj = require("roslyn.sln.discovery").find_project(bufnr)
     local filtered_targets = filter_targets(targets, csproj)
     if #filtered_targets > 1 then
         return config.choose_target and config.choose_target(filtered_targets) or nil
@@ -51,13 +43,14 @@ end
 ---@return { kind: "root", root_dir: string } | { kind: "ambiguous", targets: string[] } | { kind: "none" }
 local function resolve_root(bufnr)
     local config = require("roslyn.config").get()
-    local solutions = require("roslyn.sln.discovery").find_solutions_for_buffer(bufnr)
+    local discovery = require("roslyn.sln.discovery")
+    local solutions = discovery.find_solutions_for_buffer(bufnr)
 
     if #solutions == 1 then
         return { kind = "root", root_dir = vim.fs.dirname(solutions[1]) }
     end
 
-    local csproj = find_csproj_file(bufnr)
+    local csproj = discovery.find_project(bufnr)
 
     local filtered_targets = filter_targets(solutions, csproj)
     if #filtered_targets > 1 then
@@ -69,26 +62,28 @@ local function resolve_root(bufnr)
         local possible_solutions = vim.iter(vim.lsp.get_clients({ name = "roslyn" }))
             :map(function(client)
                 local target = store.get(client.id)
-                if target and vim.list_contains(filtered_targets, target) then
-                    return { kind = "root", root_dir = vim.fs.dirname(target) }
-                end
+                return target and vim.list_contains(filtered_targets, target) and target or nil
             end)
             :totable()
 
         if #possible_solutions == 1 then
-            return possible_solutions[1]
+            return { kind = "root", root_dir = vim.fs.dirname(possible_solutions[1]) }
         end
 
         return { kind = "ambiguous", targets = filtered_targets }
     end
 
-    local selected_solution = store.get_selected_target()
-    local root_dir = vim.fs.dirname(filtered_targets[1])
-        or selected_solution and vim.fs.dirname(selected_solution)
-        or csproj and vim.fs.dirname(csproj)
+    if #filtered_targets == 1 then
+        return { kind = "root", root_dir = vim.fs.dirname(filtered_targets[1]) }
+    end
 
-    if root_dir then
-        return { kind = "root", root_dir = root_dir }
+    local selected_solution = store.get_selected_target()
+    if selected_solution then
+        return { kind = "root", root_dir = vim.fs.dirname(selected_solution) }
+    end
+
+    if csproj then
+        return { kind = "root", root_dir = vim.fs.dirname(csproj) }
     end
 
     return { kind = "none" }
@@ -100,15 +95,13 @@ end
 local function resolve_open_target(bufnr, root_dir)
     local discovery = require("roslyn.sln.discovery")
     local selected_solution = store.get_selected_target()
+    local solutions, projects = discovery.find_target_files(root_dir)
 
-    local files = discovery.find_files_with_extensions(root_dir, { "sln", "slnx", "slnf" })
-
-    local solution = M.predict_target(bufnr, files)
+    local solution = M.predict_target(bufnr, solutions)
     if solution then
         return { kind = "solution", root_dir = root_dir, target = solution }
     end
 
-    local projects = discovery.find_files_with_extensions(root_dir, { "csproj" })
     if #projects > 0 then
         return { kind = "project", root_dir = root_dir, projects = projects }
     end

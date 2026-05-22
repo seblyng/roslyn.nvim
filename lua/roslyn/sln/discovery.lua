@@ -2,36 +2,75 @@ local log = require("roslyn.log")
 
 local M = {}
 
-local solution_extensions = { sln = true, slnx = true, slnf = true }
+M.solution_extensions = { sln = true, slnx = true, slnf = true }
+M.project_extensions = { csproj = true }
+
+local target_extensions = vim.tbl_extend("force", M.solution_extensions, M.project_extensions)
 local ignored_dirs = { obj = true, bin = true, [".git"] = true }
 
 ---@param name string
-local function is_solution(name)
-    return solution_extensions[vim.fs.ext(name)]
+---@param extensions table<string, boolean>
+---@return boolean
+local function has_extension(name, extensions)
+    return extensions[vim.fs.ext(name)] == true
 end
 
 ---@param dir string
----@param extensions string[]
+---@param extensions table<string, boolean>
+---@param opts? table
 ---@return string[]
-function M.find_files_with_extensions(dir, extensions)
-    local matches = {}
+local function find_files(dir, extensions, opts)
+    local files = {}
 
-    log.log(string.format("find_files_with_extensions dir: %s, extensions: %s", dir, vim.inspect(extensions)))
-
-    for name, type in vim.fs.dir(dir) do
-        if type == "file" and vim.tbl_contains(extensions, vim.fs.ext(name)) then
-            matches[#matches + 1] = vim.fs.normalize(vim.fs.joinpath(dir, name))
+    for name, type in vim.fs.dir(dir, opts) do
+        if type == "file" and has_extension(name, extensions) then
+            files[#files + 1] = vim.fs.normalize(vim.fs.joinpath(dir, name))
         end
     end
 
-    return matches
+    return files
+end
+
+---@param bufnr number
+---@param extensions table<string, boolean>
+---@param limit? number
+---@return string[]
+local function find_upward(bufnr, extensions, limit)
+    local path = vim.api.nvim_buf_get_name(bufnr)
+    return vim.fs.find(function(name)
+        return has_extension(name, extensions)
+    end, { upward = true, path = path, limit = limit })
+end
+
+---@param dir string
+---@return string[] solutions, string[] projects
+function M.find_target_files(dir)
+    local solutions = {}
+    local projects = {}
+
+    log.log(string.format("find_target_files dir: %s, extensions: %s", dir, vim.inspect(target_extensions)))
+
+    for _, file in ipairs(find_files(dir, target_extensions)) do
+        if has_extension(file, M.project_extensions) then
+            projects[#projects + 1] = file
+        else
+            solutions[#solutions + 1] = file
+        end
+    end
+
+    return solutions, projects
+end
+
+---@param bufnr number
+---@return string?
+function M.find_project(bufnr)
+    return find_upward(bufnr, M.project_extensions)[1]
 end
 
 ---@param bufnr number
 ---@return string[]
 function M.find_solutions(bufnr)
-    local path = vim.api.nvim_buf_get_name(bufnr)
-    local results = vim.fs.find(is_solution, { upward = true, path = path, limit = math.huge })
+    local results = find_upward(bufnr, M.solution_extensions, math.huge)
     log.log(string.format("find_solutions found: %s", vim.inspect(results)))
     return results
 end
@@ -62,12 +101,7 @@ function M.find_solutions_broad(bufnr)
         return not ignored_dirs[vim.fs.basename(dir)]
     end
 
-    local slns = {} --- @type string[]
-    for name, fs_obj_type in vim.fs.dir(root, { depth = math.huge, skip = skip }) do
-        if fs_obj_type == "file" and is_solution(name) then
-            slns[#slns + 1] = vim.fs.normalize(vim.fs.joinpath(root, name))
-        end
-    end
+    local slns = find_files(root, M.solution_extensions, { depth = math.huge, skip = skip })
 
     log.log(string.format("find_solutions_broad root: %s, found: %s", root, vim.inspect(slns)))
     return slns
