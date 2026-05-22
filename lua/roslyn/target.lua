@@ -106,7 +106,7 @@ local function resolve_open_target(bufnr, root_dir)
     local discovery = require("roslyn.sln.discovery")
     local selected_solution = store.get_selected_target()
 
-    local files = discovery.find_files_with_extensions(root_dir, { ".sln", ".slnx", ".slnf" })
+    local files = discovery.find_files_with_extensions(root_dir, { "sln", "slnx", "slnf" })
 
     local solution = M.predict_target(bufnr, files)
     log.log(string.format("predict_target targets: %s, result: %s", vim.inspect(files), solution))
@@ -114,7 +114,7 @@ local function resolve_open_target(bufnr, root_dir)
         return { kind = "solution", root_dir = root_dir, target = solution }
     end
 
-    local projects = discovery.find_files_with_extensions(root_dir, { ".csproj" })
+    local projects = discovery.find_files_with_extensions(root_dir, { "csproj" })
     if #projects > 0 then
         return { kind = "project", root_dir = root_dir, projects = projects }
     end
