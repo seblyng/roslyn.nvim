@@ -336,9 +336,6 @@ This setting controls how the language server should format code.
 
 ## 📚 Commands
 
-- `:Roslyn restart` restarts the server
-- `:Roslyn start` starts the server
-- `:Roslyn stop` stops the server
 - `:Roslyn target` chooses a solution if there are multiple to chose from
 
 ## 🚀 Other usage
