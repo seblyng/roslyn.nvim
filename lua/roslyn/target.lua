@@ -1,4 +1,3 @@
-local log = require("roslyn.log")
 local sln_api = require("roslyn.sln.api")
 local store = require("roslyn.store")
 
@@ -67,24 +66,20 @@ local function resolve_root(bufnr)
             return { kind = "root", root_dir = vim.fs.dirname(chosen) }
         end
 
-        local targets = {}
-        for _, target in ipairs(filtered_targets) do
-            targets[target] = true
-        end
-
-        local root_dir
-        for _, client in ipairs(vim.lsp.get_clients({ name = "roslyn" })) do
-            local target = store.get_client_target(client.id)
-            if target and targets[target] then
-                if root_dir then
-                    return { kind = "ambiguous", targets = filtered_targets }
+        local possible_solutions = vim.iter(vim.lsp.get_clients({ name = "roslyn" }))
+            :map(function(client)
+                local target = store.get(client.id)
+                if target and vim.list_contains(filtered_targets, target) then
+                    return { kind = "root", root_dir = vim.fs.dirname(target) }
                 end
+            end)
+            :totable()
 
-                root_dir = vim.fs.dirname(target)
-            end
+        if #possible_solutions == 1 then
+            return possible_solutions[1]
         end
 
-        return root_dir and { kind = "root", root_dir = root_dir } or { kind = "ambiguous", targets = filtered_targets }
+        return { kind = "ambiguous", targets = filtered_targets }
     end
 
     local selected_solution = store.get_selected_target()
@@ -109,7 +104,6 @@ local function resolve_open_target(bufnr, root_dir)
     local files = discovery.find_files_with_extensions(root_dir, { "sln", "slnx", "slnf" })
 
     local solution = M.predict_target(bufnr, files)
-    log.log(string.format("predict_target targets: %s, result: %s", vim.inspect(files), solution))
     if solution then
         return { kind = "solution", root_dir = root_dir, target = solution }
     end

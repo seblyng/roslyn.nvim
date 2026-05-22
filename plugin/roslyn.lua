@@ -16,7 +16,12 @@ vim.api.nvim_create_autocmd("BufEnter", {
     group = group,
     pattern = { "*.cs", "*.razor", "*.cshtml" },
     callback = function(args)
-        require("roslyn.store").sync_selected_target_for_buffer(args.buf)
+        local store = require("roslyn.store")
+        local config = require("roslyn.config").get()
+        local client = vim.lsp.get_clients({ name = "roslyn", bufnr = args.buf })[1]
+        if client and not config.lock_target then
+            store.set_selected_target(store.get(client.id))
+        end
     end,
 })
 

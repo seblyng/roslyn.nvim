@@ -94,7 +94,7 @@ describe("target resolution", function()
                 return get_clients(opts)
             end
 
-            require("roslyn.store").set_client_target(10, vim.fs.joinpath(scratch0, "Baz.sln"))
+            require("roslyn.store").set(10, vim.fs.joinpath(scratch0, "Baz.sln"))
 
             local ok, result = pcall(function()
                 return require("roslyn.target").resolve(vim.api.nvim_get_current_buf())
