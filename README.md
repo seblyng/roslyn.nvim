@@ -56,7 +56,7 @@ You can then install it with `:MasonInstall roslyn` or through the popup menu by
 When installing the server through mason, the cmd is automatically added to the LSP config, so no need to add it manually
 
 The stable version of `roslyn` is provided through `roslyn` in the mason registry. This is the same version as in vscode.
-If you want the bleeding edge features, you can choose `roslyn-unstable`. Be aware of breaking changes if you choose this version
+If you want the bleeding edge features, you can choose `roslyn-nightly`. Be aware of breaking changes if you choose this version
 
 **NOTE**
 
