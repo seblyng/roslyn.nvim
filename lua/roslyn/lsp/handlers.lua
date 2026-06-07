@@ -20,7 +20,11 @@ return {
             data = { client_id = ctx.client_id },
         })
 
-        vim.lsp.diagnostic._refresh()
+        -- lsp provides stale diagnostics before it is fully initialized
+        local lsp_client = assert(vim.lsp.get_client_by_id(ctx.client_id))
+        for bufnr in pairs(lsp_client.attached_buffers) do
+            vim.lsp.diagnostic._refresh(bufnr, ctx.client_id)
+        end
     end,
     ["workspace/refreshSourceGeneratedDocument"] = function(_, _, ctx)
         local client = assert(vim.lsp.get_client_by_id(ctx.client_id))
