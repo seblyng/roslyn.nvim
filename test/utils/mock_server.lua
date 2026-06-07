@@ -1,16 +1,27 @@
 local M = {}
 
 M.notifications = {}
+M.diagnostic_requests = {}
 
 function M.server()
     local closing = false
     local srv = {}
 
-    function srv.request(method, _, handler)
+    function srv.request(method, params, handler)
         if method == "initialize" then
-            handler(nil, { capabilities = {} })
+            handler(nil, {
+                capabilities = {
+                    diagnosticProvider = {
+                        interFileDependencies = true,
+                        workspaceDiagnostics = false,
+                    },
+                },
+            })
         elseif method == "shutdown" then
             handler(nil, nil)
+        elseif method == "textDocument/diagnostic" then
+            table.insert(M.diagnostic_requests, { uri = params.textDocument.uri })
+            handler(nil, { kind = "full", items = {} })
         else
             assert(false, "Unhandled method: " .. method)
         end
@@ -37,6 +48,7 @@ end
 
 function M.reset()
     M.notifications = {}
+    M.diagnostic_requests = {}
 end
 
 return M

@@ -26,9 +26,7 @@ A couple of additional things this plugin implements
 - Support for multiple solutions
 - Broad root_dir detection support. Meaning it will search for solutions upward in parent directories if `broad_search` option is set
 - Support for source generated files
-- Support for `Fix all`, `Nested code actions` and `Complex edit`.
 - `Roslyn target` command to switch between multiple solutions
-- Support for custom roslyn extensions, like Roslynator (passed via config)
 
 ## Demo
 
@@ -39,11 +37,10 @@ https://github.com/user-attachments/assets/a749f6c7-fc87-440c-912d-666d86453bc5
 <details>
   <summary>Mason (recommended)</summary>
 
-  `roslyn` is not in the mason core registry, so a custom registry is used.
-  This registry provides two binaries
-  - `roslyn` (To be used with this repo)
+You can install with `MasonInstall roslyn-language-server`. Note that this is installing it from [nuget.org] which is not necessarily up to date with the same version used in vscode.
 
-You need to set up the custom registry like this
+For the time being, I would recommend using a custom registry to get a more up to date version.
+For this, you need to use a custom mason registry and set it up like this.
 
 ```lua
 require("mason").setup({
@@ -54,15 +51,9 @@ require("mason").setup({
 })
 ```
 
-You can then install it with `:MasonInstall roslyn` or through the popup menu by running `:Mason`. It is not available through [mason-lspconfig.nvim] and the `:LspInstall` interface
-When installing the server through mason, the cmd is automatically added to the LSP config, so no need to add it manually
-
-The stable version of `roslyn` is provided through `roslyn` in the mason registry. This is the same version as in vscode.
-If you want the bleeding edge features, you can choose `roslyn-unstable`. Be aware of breaking changes if you choose this version
-
-**NOTE**
-
-There's currently an open [pull request](https://github.com/mason-org/mason-registry/pull/6330) to add the Roslyn server to [mason], which would greatly improve the experience. If you are interested in this, please react to the original comment, but don't spam the thread with unnecessary comments.
+This registry provides two versions:
+- `roslyn` (same version as in vscode)
+- `roslyn-nightly` (bleeding edge features with potentially breaking changes)
 
 </details>
 
@@ -167,10 +158,6 @@ opts = {
 
     -- If the plugin should silence notifications about initialization
     silent = false,
-
-    -- Additional roslyn extensions (for example Roslynator).
-    -- The path is expected to be a .dll file.
-    extensions = {},
 }
 ```
 
@@ -191,6 +178,19 @@ vim.lsp.config("roslyn", {
         ["csharp|code_lens"] = {
             dotnet_enable_references_code_lens = true,
         },
+    },
+})
+```
+
+To pass custom Roslyn extensions, override the server command and include one
+`--extension=/path/to/extension.dll` argument per extension.
+
+```lua
+vim.lsp.config("roslyn", {
+    cmd = {
+        "roslyn-language-server",
+        "--stdio",
+        "--extension=/path/to/Roslynator.dll",
     },
 })
 ```
@@ -329,9 +329,6 @@ This setting controls how the language server should format code.
 
 ## 📚 Commands
 
-- `:Roslyn restart` restarts the server
-- `:Roslyn start` starts the server
-- `:Roslyn stop` stops the server
 - `:Roslyn target` chooses a solution if there are multiple to chose from
 
 ## 🚀 Other usage
@@ -340,7 +337,5 @@ This setting controls how the language server should format code.
 - The current solution is always stored in `vim.g.roslyn_nvim_selected_solution`. You can use this, for example, to display the current solution in your statusline.
 
 [nuget.org]: https://www.nuget.org/packages/roslyn-language-server
-[mason-lspconfig.nvim]: https://github.com/williamboman/mason-lspconfig.nvim
 [nvim-lspconfig]: https://github.com/neovim/nvim-lspconfig
-[mason.nvim]: https://github.com/williamboman/mason.nvim
 [Azure Devops feed]: https://dev.azure.com/azure-public/vside/_artifacts/feed/vs-impl/NuGet/roslyn-language-server.linux-x64
