@@ -20,7 +20,7 @@ return {
             data = { client_id = ctx.client_id },
         })
 
-        -- lsp provides stale diagnostics pbefore it is fully initialized
+        -- lsp provides stale diagnostics before it is fully initialized
         local lsp_client = assert(vim.lsp.get_client_by_id(ctx.client_id))
         for bufnr in pairs(lsp_client.attached_buffers) do
             vim.lsp.diagnostic._refresh(bufnr, ctx.client_id)
