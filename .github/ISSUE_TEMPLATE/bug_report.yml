@@ -71,14 +71,6 @@ body:
                 },
                 {
                     "seblyng/roslyn.nvim",
-                    init = function()
-                        vim.filetype.add({
-                            extension = {
-                                razor = "razor",
-                                cshtml = "razor",
-                            },
-                        })
-                    end,
                 },
             },
         })
