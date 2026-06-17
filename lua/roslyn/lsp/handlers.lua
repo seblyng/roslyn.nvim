@@ -26,16 +26,14 @@ return {
             vim.lsp.diagnostic._refresh(bufnr, ctx.client_id)
         end
     end,
-    ["workspace/refreshSourceGeneratedDocument"] = function(_, _, ctx)
+    ["workspace/textDocumentContent/refresh"] = function(_, _, ctx)
         local client = assert(vim.lsp.get_client_by_id(ctx.client_id))
         for _, buf in ipairs(vim.api.nvim_list_bufs()) do
             local uri = vim.api.nvim_buf_get_name(buf)
             if vim.api.nvim_buf_is_loaded(buf) and uri:match("^roslyn%-source%-generated://") then
+                ---@param result lsp.TextDocumentContentResult
                 local function handler(err, result)
                     assert(not err, vim.inspect(err))
-                    if vim.b[buf].resultId == result.resultId then
-                        return
-                    end
                     local content = result.text or ""
                     if content == vim.NIL then
                         content = ""
@@ -44,22 +42,20 @@ return {
                     local source_lines = vim.split(normalized, "\n", { plain = true })
                     vim.bo[buf].modifiable = true
                     vim.api.nvim_buf_set_lines(buf, 0, -1, false, source_lines)
-                    vim.b[buf].resultId = result.resultId
                     vim.bo[buf].modifiable = false
                     vim.bo[buf].modified = false
                 end
 
+                ---@type lsp.TextDocumentContentRefreshParams
                 local params = {
-                    textDocument = {
-                        uri = uri,
-                    },
-                    resultId = vim.b[buf].resultId,
+                    uri = uri,
                 }
 
-                ---@diagnostic disable-next-line: param-type-mismatch
-                client:request("sourceGeneratedDocument/_roslyn_getText", params, handler, buf)
+                client:request("workspace/textDocumentContent", params, handler, buf)
             end
         end
+
+        return vim.NIL
     end,
 
     -- NOTE: Razor End Points
