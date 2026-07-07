@@ -14,7 +14,6 @@ local M = {}
 ---@field ignore_target? fun(target: string): boolean
 ---@field broad_search boolean
 ---@field lock_target boolean
----@field silent boolean
 ---@field debug boolean
 ---@field extensions? table<string, RoslynExtension>
 
@@ -24,7 +23,6 @@ local M = {}
 ---@field ignore_target? fun(target: string): boolean
 ---@field broad_search? boolean
 ---@field lock_target? boolean
----@field silent? boolean
 ---@field debug? boolean
 ---@field extensions? table<string, RoslynExtension>
 
@@ -35,7 +33,6 @@ local roslyn_config = {
     ignore_target = nil,
     broad_search = false,
     lock_target = false,
-    silent = false,
     debug = false,
     extensions = {},
 }

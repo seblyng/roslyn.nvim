@@ -10,16 +10,6 @@ return {
         return vim.lsp.handlers["client/registerCapability"](err, res, ctx)
     end,
     ["workspace/projectInitializationComplete"] = function(_, _, ctx)
-        if not require("roslyn.config").get().silent then
-            vim.notify("Roslyn project initialization complete", vim.log.levels.INFO, { title = "roslyn.nvim" })
-        end
-
-        vim.api.nvim_exec_autocmds("User", {
-            pattern = "RoslynInitialized",
-            modeline = false,
-            data = { client_id = ctx.client_id },
-        })
-
         -- lsp provides stale diagnostics before it is fully initialized
         local lsp_client = assert(vim.lsp.get_client_by_id(ctx.client_id))
         for bufnr in pairs(lsp_client.attached_buffers) do
