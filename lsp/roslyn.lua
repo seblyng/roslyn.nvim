@@ -1,55 +1,8 @@
-local function get_default_cmd()
-    local resolved = require("roslyn.utils").get_roslyn_lsp_path()
-    local exe = resolved or "Microsoft.CodeAnalysis.LanguageServer"
-
-    local cmd = { exe, "--stdio" }
-
-    local roslyn_extensions = require("roslyn.config").get().extensions or {}
-    if next(roslyn_extensions) then
-        vim.deprecate("roslyn.nvim extensions", 'vim.lsp.config("roslyn", { cmd = ... })', "soon", "roslyn.nvim")
-    end
-
-    for ext_name, extension in pairs(roslyn_extensions) do
-        if extension.enabled then
-            local resolved_config = type(extension.config) == "function" and extension.config() or extension.config
-
-            local resolved_path = type(resolved_config.path) == "function" and resolved_config.path()
-                or resolved_config.path
-
-            if resolved_path == nil then
-                vim.notify(
-                    string.format("Extension '%s' is enabled but no path was provided. Skipping...", ext_name),
-                    vim.log.levels.WARN,
-                    { title = "roslyn.nvim" }
-                )
-            else
-                vim.list_extend(cmd, { "--extension=" .. resolved_path })
-            end
-
-            if resolved_config.args then
-                local resolved_args = type(resolved_config.args) == "function" and resolved_config.args()
-                    or resolved_config.args
-                if resolved_args then
-                    vim.list_extend(cmd, resolved_args)
-                end
-            end
-        end
-    end
-
-    return cmd
-end
-
 ---@type vim.lsp.Config
 return {
     name = "roslyn",
     filetypes = { "cs", "razor" },
-    cmd = function(dispatchers, config)
-        return vim.lsp.rpc.start(get_default_cmd(), dispatchers, {
-            cwd = config.cmd_cwd,
-            env = config.cmd_env,
-            detached = config.detached,
-        })
-    end,
+    cmd = { require("roslyn.utils").get_roslyn_lsp_path(), "--stdio" },
     cmd_env = {
         Configuration = vim.env.Configuration or "Debug",
         -- Fixes LSP navigation in decompiled files for systems with symlinked TMPDIR (macOS)
