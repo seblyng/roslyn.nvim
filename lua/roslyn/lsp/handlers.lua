@@ -10,10 +10,13 @@ return {
         return vim.lsp.handlers["client/registerCapability"](err, res, ctx)
     end,
     ["workspace/projectInitializationComplete"] = function(_, _, ctx)
-        -- lsp provides stale diagnostics before it is fully initialized
-        local lsp_client = assert(vim.lsp.get_client_by_id(ctx.client_id))
-        for bufnr in pairs(lsp_client.attached_buffers) do
-            vim.lsp.diagnostic._refresh(bufnr, ctx.client_id)
+        -- `vim.lsp.diagnostic._refresh` is not available in nightly. However, this is no longer needed
+        -- in nightly after https://github.com/neovim/neovim/pull/40623
+        if vim.fn.has("nvim-0.13") == 0 then
+            local lsp_client = assert(vim.lsp.get_client_by_id(ctx.client_id))
+            for bufnr in pairs(lsp_client.attached_buffers) do
+                vim.lsp.diagnostic._refresh(bufnr, ctx.client_id)
+            end
         end
     end,
     ["workspace/refreshSourceGeneratedDocument"] = function(_, _, ctx)
