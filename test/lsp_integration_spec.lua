@@ -87,6 +87,25 @@ describe("LSP integration with mock server", function()
         assert.are_equal("project/open", notifications[1].method)
     end)
 
+    it("sends project/open when the only solution does not contain the project", function()
+        create_sln_file("Foo.sln", { { name = "Foo", path = "Foo/Foo.csproj" } })
+        create_file("Foo/Foo.csproj")
+        create_file("Bar/Bar.csproj")
+        create_file("Bar/Program.cs")
+
+        command("edit " .. vim.fs.joinpath(helpers.scratch, "Bar", "Program.cs"))
+
+        local clients = get_lsp_clients()
+        assert.are_equal(1, #clients)
+        assert.are_equal(vim.fs.joinpath(scratch, "Bar"), clients[1].root_dir)
+
+        local notifications = helpers.exec_lua(function()
+            return require("test.utils.mock_server").notifications
+        end)
+        assert.are_equal(1, #notifications)
+        assert.are_equal("project/open", notifications[1].method)
+    end)
+
     it("reuses same client when opening another file in same solution", function()
         create_sln_file("Foo.sln", {
             { name = "Bar", path = "Bar/Bar.csproj" },
