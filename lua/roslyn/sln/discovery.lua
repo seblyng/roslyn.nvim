@@ -37,9 +37,10 @@ end
 ---@return string[]
 local function find_upward(bufnr, extensions, limit)
     local path = vim.api.nvim_buf_get_name(bufnr)
-    return vim.fs.find(function(name)
+    local matches = vim.fs.find(function(name)
         return has_extension(name, extensions)
     end, { upward = true, path = path, limit = limit })
+    return matches
 end
 
 ---@param dir string
