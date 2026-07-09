@@ -51,12 +51,8 @@ end
 ---@return { kind: "solution", root_dir: string, target: string } | { kind: "root", root_dir: string } | { kind: "ambiguous", targets: string[] } | { kind: "none" }
 local function resolve_root(bufnr)
     local discovery = require("roslyn.sln.discovery")
+
     local solutions = discovery.find_solutions_for_buffer(bufnr)
-
-    if #solutions == 1 then
-        return { kind = "solution", root_dir = vim.fs.dirname(solutions[1]), target = solutions[1] }
-    end
-
     local csproj = discovery.find_project(bufnr)
 
     local filtered_targets = filter_targets(solutions, csproj)
