@@ -15,7 +15,6 @@ local M = {}
 ---@field broad_search boolean
 ---@field lock_target boolean
 ---@field debug boolean
----@field extensions? table<string, RoslynExtension>
 
 ---@class RoslynNvimConfig
 ---@field filewatching? boolean | "auto" | "off" | "roslyn"
@@ -24,7 +23,6 @@ local M = {}
 ---@field broad_search? boolean
 ---@field lock_target? boolean
 ---@field debug? boolean
----@field extensions? table<string, RoslynExtension>
 
 ---@type InternalRoslynNvimConfig
 local roslyn_config = {
@@ -34,7 +32,6 @@ local roslyn_config = {
     broad_search = false,
     lock_target = false,
     debug = false,
-    extensions = {},
 }
 
 function M.get()

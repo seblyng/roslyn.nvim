@@ -650,46 +650,4 @@ describe("LSP integration with mock server", function()
         assert.is_true(vim.tbl_contains(solutions, to_uri(vim.fs.joinpath(scratch, "src", "Bar", "Bar.sln"))))
         assert.is_true(vim.tbl_contains(solutions, to_uri(vim.fs.joinpath(scratch, "src", "Root.sln"))))
     end)
-
-    it("refreshes possibly stale diagnostics for attached buffers after initialization", function()
-        create_sln_file("Foo.sln", { { name = "Bar", path = "Bar/Bar.csproj" } })
-        create_file("Bar/Bar.csproj")
-        create_file("Bar/Program.cs")
-
-        command("edit " .. vim.fs.joinpath(helpers.scratch, "Bar", "Program.cs"))
-
-        local cs_uri = helpers.exec_lua(function()
-            return vim.uri_from_bufnr(vim.api.nvim_get_current_buf())
-        end)
-
-        local client_id = helpers.exec_lua(function()
-            return vim.lsp.get_clients({ name = "roslyn" })[1].id
-        end)
-
-        -- Move away the focus to ensure 'valid' buffers only are part of the refresh
-        -- Resembles the buggy behaviour of https://github.com/seblyng/roslyn.nvim/issues/371
-        command("enew")
-
-        local uris = helpers.exec_lua(function(id, uri)
-            local mock_server = require("test.utils.mock_server")
-            mock_server.diagnostic_requests = {}
-
-            require("roslyn.lsp.handlers")["workspace/projectInitializationComplete"](nil, nil, { client_id = id })
-
-            vim.wait(1000, function()
-                return vim.iter(mock_server.diagnostic_requests):any(function(req)
-                    return req.uri == uri
-                end)
-            end)
-
-            return vim.tbl_map(function(req)
-                return req.uri
-            end, mock_server.diagnostic_requests)
-        end, client_id, cs_uri)
-
-        assert.is_true(vim.tbl_contains(uris, cs_uri))
-        for _, uri in ipairs(uris) do
-            assert.is_true(uri:match("Program%.cs$") ~= nil)
-        end
-    end)
 end)

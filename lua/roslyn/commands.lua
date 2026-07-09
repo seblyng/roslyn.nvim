@@ -26,24 +26,6 @@ end
 
 ---@type RoslynSubcommandTable[]
 local subcommand_tbl = {
-    restart = {
-        impl = function()
-            vim.deprecate(":Roslyn restart", ":lsp restart roslyn", "soon", "roslyn.nvim")
-            vim.cmd.lsp("restart", "roslyn")
-        end,
-    },
-    stop = {
-        impl = function()
-            vim.deprecate(":Roslyn stop", ":lsp stop roslyn", "soon", "roslyn.nvim")
-            vim.cmd.lsp("stop", "roslyn")
-        end,
-    },
-    start = {
-        impl = function()
-            vim.deprecate(":Roslyn start", ":lsp enable roslyn", "soon", "roslyn.nvim")
-            vim.cmd.lsp("enable", "roslyn")
-        end,
-    },
     target = {
         impl = function()
             local bufnr = vim.api.nvim_get_current_buf()
