@@ -2,10 +2,10 @@ local log = require("roslyn.log")
 
 local M = {}
 
-M.solution_extensions = { sln = true, slnx = true, slnf = true }
-M.project_extensions = { csproj = true }
+local solution_extensions = { sln = true, slnx = true, slnf = true }
+local project_extensions = { csproj = true }
 
-local target_extensions = vim.tbl_extend("force", M.solution_extensions, M.project_extensions)
+local target_extensions = vim.tbl_extend("force", solution_extensions, project_extensions)
 local ignored_dirs = { obj = true, bin = true, [".git"] = true }
 
 ---@param name string
@@ -51,7 +51,7 @@ function M.find_target_files(dir)
     log.log(string.format("find_target_files dir: %s, extensions: %s", dir, vim.inspect(target_extensions)))
 
     for _, file in ipairs(find_files(dir, target_extensions)) do
-        if has_extension(file, M.project_extensions) then
+        if has_extension(file, project_extensions) then
             projects[#projects + 1] = file
         else
             solutions[#solutions + 1] = file
@@ -64,13 +64,13 @@ end
 ---@param bufnr number
 ---@return string?
 function M.find_project(bufnr)
-    return find_upward(bufnr, M.project_extensions)[1]
+    return find_upward(bufnr, project_extensions)[1]
 end
 
 ---@param bufnr number
 ---@return string[]
-function M.find_solutions(bufnr)
-    local results = find_upward(bufnr, M.solution_extensions, math.huge)
+local function find_solutions(bufnr)
+    local results = find_upward(bufnr, solution_extensions, math.huge)
     log.log(string.format("find_solutions found: %s", vim.inspect(results)))
     return results
 end
@@ -78,7 +78,7 @@ end
 ---@param bufnr number
 ---@return string?
 local function resolve_broad_search_root(bufnr)
-    local solutions = M.find_solutions(bufnr)
+    local solutions = find_solutions(bufnr)
     local sln_root = solutions[#solutions] and vim.fs.dirname(solutions[#solutions])
 
     local git_root = vim.fs.root(bufnr, ".git")
@@ -91,7 +91,7 @@ end
 
 ---@param bufnr number
 ---@return string[]
-function M.find_solutions_broad(bufnr)
+local function find_solutions_broad(bufnr)
     local root = resolve_broad_search_root(bufnr)
     if not root then
         return {}
@@ -101,7 +101,7 @@ function M.find_solutions_broad(bufnr)
         return not ignored_dirs[vim.fs.basename(dir)]
     end
 
-    local slns = find_files(root, M.solution_extensions, { depth = math.huge, skip = skip })
+    local slns = find_files(root, solution_extensions, { depth = math.huge, skip = skip })
 
     log.log(string.format("find_solutions_broad root: %s, found: %s", root, vim.inspect(slns)))
     return slns
@@ -111,7 +111,7 @@ end
 ---@return string[]
 function M.find_solutions_for_buffer(bufnr)
     local config = require("roslyn.config").get()
-    return config.broad_search and M.find_solutions_broad(bufnr) or M.find_solutions(bufnr)
+    return config.broad_search and find_solutions_broad(bufnr) or find_solutions(bufnr)
 end
 
 return M
