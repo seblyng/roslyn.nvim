@@ -6,10 +6,14 @@
   "type": {
     "checkTableShape": true
   },
-    "diagnostics.globals": [
-        "describe",
-        "it",
-        "before_each",
-        "after_each"
+  "workspace": {
+    "library": [
+      "$VIMRUNTIME/lua",
+      "${3rd}/luv/library",
+      "${3rd}/busted/library",
+      "${3rd}/luassert/library",
+      "nvim-test/lua",
+      "nvim-test/meta"
     ]
+  }
 }
