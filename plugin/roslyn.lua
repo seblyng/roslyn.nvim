@@ -37,51 +37,16 @@ vim.api.nvim_create_autocmd({ "BufReadCmd" }, {
     group = group,
     pattern = "roslyn-source-generated://*",
     callback = function(args)
-        vim.bo[args.buf].modifiable = true
         vim.bo[args.buf].swapfile = false
+        vim.bo[args.buf].buftype = "nofile"
+        vim.bo[args.buf].readonly = true
+
+        local client = vim.lsp.get_clients({ name = "roslyn" })[1]
+        assert(client, "Must have a `roslyn` client to load roslyn source generated file")
+        require("roslyn.utils").populate_virtual_buffer_content(client, args.match, args.buf)
 
         -- This triggers FileType event which should fire up the lsp client if not already running
         vim.bo[args.buf].filetype = "cs"
-        local client = vim.lsp.get_clients({ name = "roslyn", bufnr = args.buf })[1]
-            or vim.lsp.get_clients({ name = "roslyn" })[1]
-        if not client then
-            vim.wait(5000, function()
-                return next(vim.lsp.get_clients({ name = "roslyn", bufnr = args.buf })) ~= nil
-            end)
-            client = vim.lsp.get_clients({ name = "roslyn", bufnr = args.buf })[1]
-        else
-            vim.lsp.buf_attach_client(args.buf, client.id)
-        end
-        assert(client, "Must have a `roslyn` client to load roslyn source generated file")
-
-        local content
-        local function handler(err, result)
-            assert(not err, vim.inspect(err))
-            content = result.text or ""
-            if content == vim.NIL then
-                content = ""
-            end
-            local normalized = string.gsub(content, "\r\n", "\n")
-            local source_lines = vim.split(normalized, "\n", { plain = true })
-            vim.api.nvim_buf_set_lines(args.buf, 0, -1, false, source_lines)
-            vim.b[args.buf].resultId = result.resultId
-            vim.bo[args.buf].modifiable = false
-            vim.bo[args.buf].modified = false
-        end
-
-        local params = {
-            textDocument = {
-                uri = args.match,
-            },
-            resultId = nil,
-        }
-
-        ---@diagnostic disable-next-line: param-type-mismatch
-        client:request("sourceGeneratedDocument/_roslyn_getText", params, handler, args.buf)
-        -- Need to block. Otherwise logic could run that sets the cursor to a position
-        -- that's still missing.
-        vim.wait(1000, function()
-            return content ~= nil
-        end)
+        vim.lsp.buf_attach_client(args.buf, client.id)
     end,
 })

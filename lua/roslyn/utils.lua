@@ -27,4 +27,28 @@ function M.get_roslyn_lsp_path()
     return "Microsoft.CodeAnalysis.LanguageServer"
 end
 
+function M.populate_virtual_buffer_content(lsp_client, uri, bufnr)
+    assert(lsp_client, "Must have a `roslyn` client to load roslyn source generated file")
+
+    ---@type lsp.TextDocumentContentParams
+    local params = {
+        uri = uri,
+    }
+
+    local response = lsp_client:request_sync("workspace/textDocumentContent", params, bufnr)
+
+    assert(not response.err, vim.inspect(response.err))
+    local content = response.result.text or ""
+    if content == vim.NIL then
+        content = ""
+    end
+    local normalized = string.gsub(content, "\r\n", "\n")
+    local source_lines = vim.split(normalized, "\n", { plain = true, trimempty = true })
+
+    vim.bo[bufnr].modifiable = true
+    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, source_lines)
+    vim.bo[bufnr].modifiable = false
+    vim.bo[bufnr].modified = false
+end
+
 return M
