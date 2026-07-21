@@ -28,9 +28,22 @@ return {
             end
         end
 
-        if vim.fn.has("nvim-0.13") == 0 then
-            for bufnr in pairs(client.attached_buffers) do
-                vim.lsp.diagnostic._refresh(bufnr, ctx.client_id)
+        ---https://github.com/neovim/nvim-lspconfig/pull/4474
+        ---Avoid using vim.lsp.diagnostic._refresh since it is removed from nightly
+        local capabilities = vim.iter(client.dynamic_capabilities.capabilities.diagnosticProvider)
+            :map(function(cap)
+                return cap.registerOptions.identifier
+            end)
+            :totable()
+
+        for buf, _ in pairs(client.attached_buffers) do
+            if vim.api.nvim_buf_is_loaded(buf) then
+                for _, cap in pairs(capabilities) do
+                    client:request(vim.lsp.protocol.Methods.textDocument_diagnostic, {
+                        identifier = cap,
+                        textDocument = vim.lsp.util.make_text_document_params(buf),
+                    }, nil, buf)
+                end
             end
         end
 
