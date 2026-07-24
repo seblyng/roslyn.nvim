@@ -29,9 +29,9 @@ function M.find_files_with_extensions(dir, extensions)
 end
 
 ---@param targets string[]
----@param csproj? string
+---@param csproj_files string[]
 ---@return string[]
-local function filter_targets(targets, csproj)
+local function filter_targets(targets, csproj_files)
     local config = require("roslyn.config").get()
     return vim.iter(targets)
         :filter(function(target)
@@ -39,7 +39,9 @@ local function filter_targets(targets, csproj)
                 return false
             end
 
-            return not csproj or sln_api.exists_in_target(target, csproj)
+            return vim.iter(csproj_files):any(function(csproj_path)
+                return sln_api.exists_in_target(target, csproj_path)
+            end)
         end)
         :totable()
 end
@@ -116,11 +118,11 @@ function M.find_solutions_broad(bufnr)
 end
 
 ---@param bufnr number
----@return string?
+---@return string[]
 local function find_csproj_file(bufnr)
     return vim.fs.find(function(name)
         return name:match("%.csproj$") ~= nil
-    end, { upward = true, path = vim.api.nvim_buf_get_name(bufnr) })[1]
+    end, { upward = true, path = vim.api.nvim_buf_get_name(bufnr), limit = math.huge })
 end
 
 ---@param bufnr number
@@ -133,9 +135,9 @@ function M.root_dir(bufnr)
         return vim.fs.dirname(solutions[1])
     end
 
-    local csproj = find_csproj_file(bufnr)
+    local csproj_files = find_csproj_file(bufnr)
 
-    local filtered_targets = filter_targets(solutions, csproj)
+    local filtered_targets = filter_targets(solutions, csproj_files)
     if #filtered_targets > 1 then
         local chosen = config.choose_target and config.choose_target(filtered_targets)
         if chosen then
@@ -169,7 +171,7 @@ function M.root_dir(bufnr)
     local selected_solution = vim.g.roslyn_nvim_selected_solution
     return vim.fs.dirname(filtered_targets[1])
         or selected_solution and vim.fs.dirname(selected_solution)
-        or csproj and vim.fs.dirname(csproj)
+        or csproj_files[1] and vim.fs.dirname(csproj_files[1])
 end
 
 ---@param bufnr number
