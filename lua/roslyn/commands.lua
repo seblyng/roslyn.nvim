@@ -29,9 +29,7 @@ local subcommand_tbl = {
     target = {
         impl = function()
             local bufnr = vim.api.nvim_get_current_buf()
-            local utils = require("roslyn.sln.utils")
-            local broad_search = require("roslyn.config").get().broad_search
-            local targets = broad_search and utils.find_solutions_broad(bufnr) or utils.find_solutions(bufnr)
+            local targets = require("roslyn.sln.discovery").find_solutions_for_buffer(bufnr)
             vim.ui.select(targets or {}, {
                 prompt = "Select target solution: ",
                 format_item = function(item)

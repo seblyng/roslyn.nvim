@@ -22,6 +22,9 @@ function M.server()
         elseif method == "textDocument/diagnostic" then
             table.insert(M.diagnostic_requests, { uri = params.textDocument.uri })
             handler(nil, { kind = "full", items = {} })
+        elseif method == "workspace/textDocumentContent" then
+            handler(nil, { text = "namespace Generated {}" })
+            return true, 1
         else
             assert(false, "Unhandled method: " .. method)
         end
