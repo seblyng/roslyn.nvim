@@ -35,7 +35,7 @@ function M.populate_virtual_buffer_content(lsp_client, uri, bufnr)
         uri = uri,
     }
 
-    local response = lsp_client:request_sync("workspace/textDocumentContent", params, bufnr)
+    local response = lsp_client:request_sync("workspace/textDocumentContent", params, nil, bufnr)
 
     assert(not response.err, vim.inspect(response.err))
     local content = response.result.text or ""
