@@ -6,7 +6,7 @@ local function get_mason_path()
     return expanded_mason == "$MASON" and vim.fs.joinpath(vim.fn.stdpath("data"), "mason") or expanded_mason
 end
 
----@return string?
+---@return string
 function M.get_roslyn_lsp_path()
     local sysname = vim.uv.os_uname().sysname:lower()
     local iswin = not not (sysname:find("windows") or sysname:find("mingw"))

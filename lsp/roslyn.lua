@@ -2,7 +2,13 @@
 return {
     name = "roslyn",
     filetypes = { "cs", "razor" },
-    cmd = { require("roslyn.utils").get_roslyn_lsp_path(), "--stdio" },
+    cmd = {
+        require("roslyn.utils").get_roslyn_lsp_path(),
+        "--stdio",
+        "--daemon-mode",
+        "--clientProcessId",
+        tostring(vim.uv.os_getpid()),
+    },
     cmd_env = {
         Configuration = vim.env.Configuration or "Debug",
         -- Fixes LSP navigation in decompiled files for systems with symlinked TMPDIR (macOS)
