@@ -13,18 +13,12 @@ function M.get_roslyn_lsp_path()
     local language_server_bin = iswin and "roslyn-language-server.cmd" or "roslyn-language-server"
 
     local mason = get_mason_path()
-    local candidates = {
-        vim.fs.joinpath(mason, "bin", language_server_bin),
-        language_server_bin,
-    }
-
-    for _, candidate in ipairs(candidates) do
-        if vim.fn.executable(candidate) == 1 then
-            return candidate
-        end
+    local mason_bin = vim.fs.joinpath(mason, "bin", language_server_bin)
+    if vim.fn.executable(mason_bin) == 1 then
+        return mason_bin
     end
 
-    return "Microsoft.CodeAnalysis.LanguageServer"
+    return language_server_bin
 end
 
 function M.populate_virtual_buffer_content(lsp_client, uri, bufnr)

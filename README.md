@@ -60,35 +60,22 @@ This registry provides two versions:
 <details>
   <summary>Manually</summary>
 
-  `roslyn-language-server` supports razor since version `5.8.0-1.26262.10`.
-  This allows installation of the lsp as a [dotnet tool](https://learn.microsoft.com/en-us/dotnet/core/tools/global-tools).
-
-  This dotnet tool exists at two places:
-  * [nuget.org], which is not updated that often.
-  * [Azure Devops feed], where updates happen multiple times a day.
-
-  It is highly recommended to use the [Azure DevOps feed].
-
-  > [!IMPORTANT]  
-  > The version used in vscode can be extracted [here](https://github.com/dotnet/vscode-csharp/blob/main/package.json#L43).  
-  > The extension uses the [Azure Devops feed] as well.
+  Requires .NET 10 or later. Install the latest development build from Microsoft's [Azure DevOps feed] (recommended):
 
   ```bash
-  # Installing the tool using the more recent Azure Devops feed
-  # This will take few seconds so please be patient
   dotnet tool install -g roslyn-language-server --prerelease --source https://pkgs.dev.azure.com/azure-public/vside/_packaging/vs-impl/nuget/v3/index.json
-    You can invoke the tool using the following command: roslyn-language-server
-    Tool 'roslyn-language-server' (version '5.8.0-1.26263.4') was successfully installed.
-
-  # Installing the tool from nuget.org
-  # !! Any version before 5.8.0-1.26262.10 will not support razor/blazor !!
-  dotnet tool install -g roslyn-language-server --prerelease
-    You can invoke the tool using the following command: roslyn-language-server
-    Tool 'roslyn-language-server' (version '5.8.0-1.26262.10') was successfully installed.
-
-  # Updating works the same way as installing ( by replacing "install" with "update")
-  dotnet tool update -g roslyn-language-server --prerelease --source https://pkgs.dev.azure.com/azure-public/vside/_packaging/vs-impl/nuget/v3/index.json
   ```
+
+  Or install from [nuget.org], which is updated less frequently:
+
+  ```bash
+  dotnet tool install -g roslyn-language-server --prerelease
+  ```
+
+  To update, replace `install` with `update`. To pin a build, replace `--prerelease` with `--version <version>`.
+
+  Ensure `~/.dotnet/tools` (Linux/macOS) or `%USERPROFILE%\.dotnet\tools` (Windows) is on Neovim's PATH.
+  The plugin automatically detects `roslyn-language-server`.
 </details>
 
 > [!TIP]  

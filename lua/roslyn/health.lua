@@ -43,7 +43,7 @@ function M.check()
     else
         vim.health.error("Roslyn language server not found", {
             "Install via Mason: :MasonInstall roslyn",
-            "Or install as a .NET global tool: dotnet tool install -g Microsoft.CodeAnalysis.LanguageServer",
+            "Or install as a .NET global tool: dotnet tool install -g roslyn-language-server --prerelease",
             "Or follow manual installation instructions at https://github.com/seblj/roslyn.nvim#-installation",
         })
     end
