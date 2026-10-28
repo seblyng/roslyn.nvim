@@ -27,6 +27,8 @@ A couple of additional things this plugin implements
 - Broad root_dir detection support. Meaning it will search for solutions upward in parent directories if `broad_search` option is set
 - Support for source generated files
 - `Roslyn target` command to switch between multiple solutions
+- Auto insert of documentation comments, raw string literals and braces while typing
+- Running and debugging tests through the server
 
 ## Demo
 
@@ -243,7 +245,7 @@ These settings control the scope of background diagnostics.
 These settings control the LSP code lens.
 
 - `dotnet_enable_references_code_lens`  
-  Enable code lens references.  
+  Enable code lens references. 
   Expected values: `true`, `false`
 
 - `dotnet_enable_tests_code_lens`  
@@ -251,7 +253,8 @@ These settings control the LSP code lens.
   Expected values: `true`, `false`
 
 > [!TIP]
-> You must refresh the code lens yourself. Check `:h vim.lsp.codelens.refresh()` and the example autocmd.
+> Enable code lenses with `vim.lsp.codelens.enable(true)`. `vim.lsp.codelens.run()` runs the lens on the
+> cursor line and shows a `vim.ui.select` menu when there are several.
 
 ### Completions
 
@@ -351,12 +354,29 @@ This setting controls how the language server should format code.
 ## 📚 Commands
 
 - `:Roslyn target` chooses a solution if there are multiple to chose from
-- `:Roslyn test` runs the test under the cursor (all of them if the cursor is on the class).
-    The output is shown in the `roslyn://test-output` buffer.  
-    All modified buffers are saved first. 
-    The indicators can be disabled with `test_signs = false`
+- `:Roslyn test` runs the test under the cursor, or all tests of the class when the cursor is on the class.
+  It works without code lenses. All modified buffers are saved first.  
+  The output is shown in the `roslyn://test-output` buffer, and the result of each test as a sign next to it
+  (highlight groups `RoslynTestPassed`, `RoslynTestFailed` and `RoslynTestSkipped`, disable with `test_signs = false`).
 - `:Roslyn test debug` does the same but attaches [nvim-dap](https://github.com/mfussenegger/nvim-dap) to the test host
-  using its `coreclr` adapter (e.g. netcoredbg), so breakpoints in tests are hit.
+  using its `coreclr` adapter, so breakpoints in tests are hit.  
+  nvim-dap doesn't define that adapter itself. Let [mason-nvim-dap](https://github.com/jay-babu/mason-nvim-dap.nvim)
+  set it up with `handlers = {}`, or define it for netcoredbg:
+
+  ```lua
+  require("dap").adapters.coreclr = {
+      type = "executable",
+      command = vim.fn.exepath("netcoredbg"),
+      args = { "--interpreter=vscode" },
+  }
+  ```
+
+The plugin doesn't define keymaps. For example:
+
+```lua
+vim.keymap.set("n", "<leader>tr", "<cmd>Roslyn test<cr>", { desc = "Run the test under the cursor" })
+vim.keymap.set("n", "<leader>td", "<cmd>Roslyn test debug<cr>", { desc = "Debug the test under the cursor" })
+```
 
 ## 🚀 Other usage
 
