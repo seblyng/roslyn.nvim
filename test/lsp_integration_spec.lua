@@ -25,6 +25,18 @@ local function get_lsp_clients(bufnr)
     end, bufnr)
 end
 
+---@param method string
+---@param count integer
+local function wait_for_requests(method, count)
+    return helpers.exec_lua(function(method0, count0)
+        local mock_server = require("test.utils.mock_server")
+        vim.wait(1000, function()
+            return #(mock_server.requests[method0] or {}) >= count0
+        end, 10)
+        return mock_server.requests[method0] or {}
+    end, method, count)
+end
+
 helpers.env()
 
 describe("LSP integration with mock server", function()
@@ -775,4 +787,53 @@ describe("LSP integration with mock server", function()
         assert.are_equal("solution/open", notifications[1].method)
         assert.are_equal(to_uri(vim.fs.joinpath(scratch, "Foo.sln")), notifications[1].params.solution)
     end)
+
+    it("sends trigger character and caret position for auto insert", function()
+        create_file("Bar/Bar.csproj")
+        create_file("Bar/Program.cs", "class Foo\n{\n\n}\n")
+
+        local program = vim.fs.joinpath(helpers.scratch, "Bar", "Program.cs")
+        command("edit " .. program)
+        command("3")
+        helpers.feed("A    ")
+        local requests
+        for count = 1, 3 do
+            helpers.feed("/")
+            requests = wait_for_requests("textDocument/_vs_onAutoInsert", count)
+        end
+        helpers.feed("<Esc>")
+
+        assert.are_same({
+            { _vs_ch = "/", _vs_position = { line = 2, character = 5 } },
+            { _vs_ch = "/", _vs_position = { line = 2, character = 6 } },
+            { _vs_ch = "/", _vs_position = { line = 2, character = 7 } },
+        }, vim.tbl_map(function(request)
+            return { _vs_ch = request._vs_ch, _vs_position = request._vs_position }
+        end, requests))
+        assert.are_equal(to_uri(program), requests[1]._vs_textDocument.uri)
+    end)
+
+    for _, case in ipairs({
+        { name = "letters", keys = "Afoo<Esc>" },
+        { name = "whitespace", keys = "A   <Esc>" },
+        { name = "trigger character pasted in normal mode", keys = [[:let @a = '/'<CR>"ap]] },
+    }) do
+        it("does not request auto insert for " .. case.name, function()
+            create_file("Bar/Bar.csproj")
+            create_file("Bar/Program.cs", "class Foo\n{\n\n}\n")
+
+            command("edit " .. vim.fs.joinpath(helpers.scratch, "Bar", "Program.cs"))
+            command("3")
+            helpers.feed(case.keys)
+            helpers.feed("A'<Esc>")
+
+            local requests = wait_for_requests("textDocument/_vs_onAutoInsert", 1)
+            assert.are_same(
+                { "'" },
+                vim.tbl_map(function(request)
+                    return request._vs_ch
+                end, requests)
+            )
+        end)
+    end
 end)

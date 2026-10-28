@@ -207,6 +207,18 @@ are documented in the [wiki](https://github.com/seblyng/roslyn.nvim/wiki).
 > [!NOTE]  
 > These settings are not guaranteed to be up-to-date and new ones can appear in the future. Aditionally, not all settings are shown here, but only the most relevant ones for Neovim. For a full list, visit [this](https://github.com/dotnet/vscode-csharp/blob/main/test/lsptoolshost/unitTests/configurationMiddleware.test.ts) unit test from the vscode extension and look especially for the ones which **don't** have `vsCodeConfiguration: null`.
 
+### Auto Insert
+
+`csharp|auto_insert`
+
+While typing in insert mode, the plugin asks the server for automatic edits:
+`///` generates a documentation comment, `"""` completes a raw string literal and
+`<CR>` between braces moves them onto separate lines.
+
+- `dotnet_enable_auto_insert`  
+  Enable auto insert.  
+  Expected values: `true`, `false`
+
 ### Background Analysis
 
 `csharp|background_analysis`
