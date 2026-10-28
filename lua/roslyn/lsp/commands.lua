@@ -57,6 +57,10 @@ local function offset_to_position(bufnr, offset)
 end
 
 return {
+    ["dotnet.test.run"] = function(data, ctx)
+        local client = assert(vim.lsp.get_client_by_id(ctx.client_id))
+        require("roslyn.testing").run(client, data.arguments[1])
+    end,
     ["roslyn.client.peekReferences"] = function(data, ctx)
         local client = assert(vim.lsp.get_client_by_id(ctx.client_id))
         local uri, position = unpack(data.arguments)

@@ -839,4 +839,109 @@ describe("LSP integration with mock server", function()
             )
         end)
     end
+
+    for _, case in ipairs({
+        {
+            name = "VSTest",
+            output = "[Passed] Bar.Foo.Works\n[Failed] Bar.Foo.Breaks(x: 1)\n[Passed] Bar.Foo.Breaks(x: 2)",
+        },
+        { name = "MTP", output = "[passed] Works\n[failed] Breaks(1)\n[passed] Breaks(2)" },
+    }) do
+        it("shows a sign per test result of " .. case.name, function()
+            create_file("Bar/Bar.csproj")
+            create_file(
+                "Bar/Program.cs",
+                "class Foo\n{\n    public void Works() { }\n    public void Breaks(int x) { }\n}\n"
+            )
+            command("edit " .. vim.fs.joinpath(helpers.scratch, "Bar", "Program.cs"))
+
+            local signs = helpers.exec_lua(function(output)
+                local mock_server = require("test.utils.mock_server")
+                local function method_symbol(name, row)
+                    local range = { start = { line = row, character = 4 }, ["end"] = { line = row, character = 30 } }
+                    return {
+                        name = name,
+                        kind = vim.lsp.protocol.SymbolKind.Method,
+                        range = range,
+                        selectionRange = range,
+                    }
+                end
+                mock_server.responses["textDocument/documentSymbol"] = function()
+                    local range = { start = { line = 0, character = 0 }, ["end"] = { line = 4, character = 1 } }
+                    return {
+                        {
+                            name = "Foo",
+                            kind = vim.lsp.protocol.SymbolKind.Class,
+                            range = range,
+                            selectionRange = range,
+                            children = { method_symbol("Works() : void", 2), method_symbol("Breaks(int) : void", 3) },
+                        },
+                    }
+                end
+                mock_server.responses["textDocument/runTests"] = function(params)
+                    mock_server.notify_client("$/progress", {
+                        token = params.partialResultToken,
+                        value = { stage = "Running tests", message = output },
+                    })
+                    return {}
+                end
+
+                vim.cmd("Roslyn test")
+
+                local namespace = vim.api.nvim_get_namespaces()["roslyn.test_signs"]
+                return vim.tbl_map(function(extmark)
+                    return { row = extmark[2], text = vim.trim(extmark[4].sign_text) }
+                end, vim.api.nvim_buf_get_extmarks(0, namespace, 0, -1, { details = true }))
+            end, case.output)
+
+            assert.are_same({ { row = 2, text = "✓" }, { row = 3, text = "✗" } }, signs)
+        end)
+    end
+
+    it("answers attach debugger with false without nvim-dap", function()
+        create_file("Bar/Bar.csproj")
+        create_file("Bar/Program.cs")
+        command("edit " .. vim.fs.joinpath(helpers.scratch, "Bar", "Program.cs"))
+
+        local response = helpers.exec_lua(function()
+            local response
+            require("test.utils.mock_server").request_client(
+                "workspace/attachDebugger",
+                { processId = 42 },
+                function(result)
+                    response = result
+                end
+            )
+            vim.wait(1000, function()
+                return response ~= nil
+            end, 10)
+            return response
+        end)
+
+        assert.are_same({ didAttach = false }, response)
+    end)
+
+    it("starts a new test run after the server refused one", function()
+        create_file("Bar/Bar.csproj")
+        create_file("Bar/Program.cs")
+        command("edit " .. vim.fs.joinpath(helpers.scratch, "Bar", "Program.cs"))
+
+        local notifications = helpers.exec_lua(function()
+            local notifications = {}
+            vim.notify = function(message)
+                table.insert(notifications, message)
+            end
+            local mock_server = require("test.utils.mock_server")
+            mock_server.responses["textDocument/runTests"] = function()
+                return mock_server.refuse
+            end
+            vim.cmd("Roslyn test")
+            mock_server.responses["textDocument/runTests"] = nil
+            vim.cmd("Roslyn test")
+            return notifications
+        end)
+
+        assert.are_equal(2, #wait_for_requests("textDocument/runTests", 2))
+        assert.are_equal("Test run failed, see roslyn://test-output", notifications[1])
+    end)
 end)

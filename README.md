@@ -142,6 +142,9 @@ opts = {
     -- This will always attach to the target in `vim.g.roslyn_nvim_selected_solution`.
     -- NOTE: You can use `:Roslyn target` to change the target
     lock_target = false,
+
+    -- Whether to show the result of each test as a sign next to it after running tests
+    test_signs = true,
 }
 ```
 
@@ -244,7 +247,7 @@ These settings control the LSP code lens.
   Expected values: `true`, `false`
 
 - `dotnet_enable_tests_code_lens`  
-  Enable tests code lens.  
+  Enable tests code lens. Its `Run Test` and `Debug Test` lenses run the tests through the server.  
   Expected values: `true`, `false`
 
 > [!TIP]
@@ -348,6 +351,12 @@ This setting controls how the language server should format code.
 ## 📚 Commands
 
 - `:Roslyn target` chooses a solution if there are multiple to chose from
+- `:Roslyn test` runs the test under the cursor (all of them if the cursor is on the class).
+    The output is shown in the `roslyn://test-output` buffer.  
+    All modified buffers are saved first. 
+    The indicators can be disabled with `test_signs = false`
+- `:Roslyn test debug` does the same but attaches [nvim-dap](https://github.com/mfussenegger/nvim-dap) to the test host
+  using its `coreclr` adapter (e.g. netcoredbg), so breakpoints in tests are hit.
 
 ## 🚀 Other usage
 
