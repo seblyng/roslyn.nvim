@@ -56,6 +56,7 @@ local function request_auto_insert(client, bufnr, trigger_character)
         _vs_options = vim.lsp.util.make_formatting_params().options,
     }
 
+    ---@diagnostic disable-next-line: param-type-mismatch
     client:request("textDocument/_vs_onAutoInsert", params, function(err, response, ctx)
         if err or not response or vim.lsp.util.buf_versions[bufnr] ~= ctx.version then
             return

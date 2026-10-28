@@ -108,6 +108,7 @@ function M.run(client, params)
     clients_running_tests[client.id] = true
 
     local sent = client:request(
+        ---@diagnostic disable-next-line: param-type-mismatch
         "textDocument/runTests",
         vim.tbl_extend("force", params, { partialResultToken = partial_result_token }),
         function(err, results)
