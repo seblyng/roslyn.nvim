@@ -27,7 +27,6 @@ A couple of additional things this plugin implements
 - Broad root_dir detection support. Meaning it will search for solutions upward in parent directories if `broad_search` option is set
 - Support for source generated files
 - `Roslyn target` command to switch between multiple solutions
-- Auto insert of documentation comments, raw string literals and braces while typing
 - Running and debugging tests through the server
 
 ## Demo
@@ -144,9 +143,6 @@ opts = {
     -- This will always attach to the target in `vim.g.roslyn_nvim_selected_solution`.
     -- NOTE: You can use `:Roslyn target` to change the target
     lock_target = false,
-
-    -- Whether to show the result of each test as a sign next to it after running tests
-    test_signs = true,
 }
 ```
 
@@ -212,18 +208,6 @@ are documented in the [wiki](https://github.com/seblyng/roslyn.nvim/wiki).
 > [!NOTE]  
 > These settings are not guaranteed to be up-to-date and new ones can appear in the future. Aditionally, not all settings are shown here, but only the most relevant ones for Neovim. For a full list, visit [this](https://github.com/dotnet/vscode-csharp/blob/main/test/lsptoolshost/unitTests/configurationMiddleware.test.ts) unit test from the vscode extension and look especially for the ones which **don't** have `vsCodeConfiguration: null`.
 
-### Auto Insert
-
-`csharp|auto_insert`
-
-While typing in insert mode, the plugin asks the server for automatic edits:
-`///` generates a documentation comment, `"""` completes a raw string literal and
-`<CR>` between braces moves them onto separate lines.
-
-- `dotnet_enable_auto_insert`  
-  Enable auto insert.  
-  Expected values: `true`, `false`
-
 ### Background Analysis
 
 `csharp|background_analysis`
@@ -245,11 +229,11 @@ These settings control the scope of background diagnostics.
 These settings control the LSP code lens.
 
 - `dotnet_enable_references_code_lens`  
-  Enable code lens references. 
+  Enable code lens references.
   Expected values: `true`, `false`
 
 - `dotnet_enable_tests_code_lens`  
-  Enable tests code lens. Its `Run Test` and `Debug Test` lenses run the tests through the server.  
+  Enable tests code lens. Its `Run Test` and `Debug Test` lenses run the tests through the server.
   Expected values: `true`, `false`
 
 > [!TIP]
@@ -354,28 +338,26 @@ This setting controls how the language server should format code.
 ## 📚 Commands
 
 - `:Roslyn target` chooses a solution if there are multiple to chose from
-- `:Roslyn test` runs the test under the cursor, or all tests of the class when the cursor is on the class.
-  It works without code lenses. All modified buffers are saved first.  
-  The output is shown in the `roslyn://test-output` buffer, and the result of each test as a sign next to it
-  (highlight groups `RoslynTestPassed`, `RoslynTestFailed` and `RoslynTestSkipped`, disable with `test_signs = false`).
-- `:Roslyn test debug` does the same but attaches [nvim-dap](https://github.com/mfussenegger/nvim-dap) to the test host
-  using its `coreclr` adapter, so breakpoints in tests are hit.  
-  nvim-dap doesn't define that adapter itself. Let [mason-nvim-dap](https://github.com/jay-babu/mason-nvim-dap.nvim)
-  set it up with `handlers = {}`, or define it for netcoredbg:
 
-  ```lua
-  require("dap").adapters.coreclr = {
-      type = "executable",
-      command = vim.fn.exepath("netcoredbg"),
-      args = { "--interpreter=vscode" },
-  }
-  ```
+## Running tests
 
-The plugin doesn't define keymaps. For example:
+Enable `dotnet_enable_tests_code_lens` under `csharp|code_lens` and call
+`vim.lsp.codelens.enable(true)`. Use `vim.lsp.codelens.run()` on a test's
+`Run Test` or `Debug Test` lens. Server messages and errors are streamed to a
+scratch buffer in a split. Each client has its own `roslyn://tests/<client-id>`
+buffer, cleared and reused for each run.
+
+`Debug Test` requires [nvim-dap](https://github.com/mfussenegger/nvim-dap)
+with a `coreclr` adapter. Let
+[mason-nvim-dap](https://github.com/jay-babu/mason-nvim-dap.nvim) set it up
+with `handlers = {}`, or define it for netcoredbg:
 
 ```lua
-vim.keymap.set("n", "<leader>tr", "<cmd>Roslyn test<cr>", { desc = "Run the test under the cursor" })
-vim.keymap.set("n", "<leader>td", "<cmd>Roslyn test debug<cr>", { desc = "Debug the test under the cursor" })
+require("dap").adapters.coreclr = {
+    type = "executable",
+    command = vim.fn.exepath("netcoredbg"),
+    args = { "--interpreter=vscode" },
+}
 ```
 
 ## 🚀 Other usage

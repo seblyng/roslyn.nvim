@@ -14,9 +14,6 @@ local default_responses = {
     ["workspace/textDocumentContent"] = function()
         return { text = "namespace Generated {}" }
     end,
-    ["textDocument/_vs_onAutoInsert"] = function()
-        return nil
-    end,
     ["textDocument/documentSymbol"] = function()
         return {}
     end,
@@ -64,9 +61,6 @@ function M.server(dispatchers)
                     diagnosticProvider = {
                         interFileDependencies = true,
                         workspaceDiagnostics = false,
-                    },
-                    _vs_onAutoInsertProvider = {
-                        _vs_triggerCharacters = { "'", "/", "\n", '"' },
                     },
                 },
             })

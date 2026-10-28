@@ -788,116 +788,6 @@ describe("LSP integration with mock server", function()
         assert.are_equal(to_uri(vim.fs.joinpath(scratch, "Foo.sln")), notifications[1].params.solution)
     end)
 
-    it("sends trigger character and caret position for auto insert", function()
-        create_file("Bar/Bar.csproj")
-        create_file("Bar/Program.cs", "class Foo\n{\n\n}\n")
-
-        local program = vim.fs.joinpath(helpers.scratch, "Bar", "Program.cs")
-        command("edit " .. program)
-        command("3")
-        helpers.feed("A    ")
-        local requests
-        for count = 1, 3 do
-            helpers.feed("/")
-            requests = wait_for_requests("textDocument/_vs_onAutoInsert", count)
-        end
-        helpers.feed("<Esc>")
-
-        assert.are_same(
-            {
-                { _vs_ch = "/", _vs_position = { line = 2, character = 5 } },
-                { _vs_ch = "/", _vs_position = { line = 2, character = 6 } },
-                { _vs_ch = "/", _vs_position = { line = 2, character = 7 } },
-            },
-            vim.tbl_map(function(request)
-                return { _vs_ch = request._vs_ch, _vs_position = request._vs_position }
-            end, requests)
-        )
-        assert.are_equal(to_uri(program), requests[1]._vs_textDocument.uri)
-    end)
-
-    for _, case in ipairs({
-        { name = "letters", keys = "Afoo<Esc>" },
-        { name = "whitespace", keys = "A   <Esc>" },
-        { name = "trigger character pasted in normal mode", keys = [[:let @a = '/'<CR>"ap]] },
-    }) do
-        it("does not request auto insert for " .. case.name, function()
-            create_file("Bar/Bar.csproj")
-            create_file("Bar/Program.cs", "class Foo\n{\n\n}\n")
-
-            command("edit " .. vim.fs.joinpath(helpers.scratch, "Bar", "Program.cs"))
-            command("3")
-            helpers.feed(case.keys)
-            helpers.feed("A'<Esc>")
-
-            local requests = wait_for_requests("textDocument/_vs_onAutoInsert", 1)
-            assert.are_same(
-                { "'" },
-                vim.tbl_map(function(request)
-                    return request._vs_ch
-                end, requests)
-            )
-        end)
-    end
-
-    for _, case in ipairs({
-        {
-            name = "VSTest",
-            output = "[Passed] Bar.Foo.Works\n[Failed] Bar.Foo.Breaks(x: 1)\n[Passed] Bar.Foo.Breaks(x: 2)",
-        },
-        { name = "MTP", output = "[passed] Works\n[failed] Breaks(1)\n[passed] Breaks(2)" },
-    }) do
-        it("shows a sign per test result of " .. case.name, function()
-            create_file("Bar/Bar.csproj")
-            create_file(
-                "Bar/Program.cs",
-                "class Foo\n{\n    public void Works() { }\n    public void Breaks(int x) { }\n}\n"
-            )
-            command("edit " .. vim.fs.joinpath(helpers.scratch, "Bar", "Program.cs"))
-
-            local signs = helpers.exec_lua(function(output)
-                local mock_server = require("test.utils.mock_server")
-                local function method_symbol(name, row)
-                    local range = { start = { line = row, character = 4 }, ["end"] = { line = row, character = 30 } }
-                    return {
-                        name = name,
-                        kind = vim.lsp.protocol.SymbolKind.Method,
-                        range = range,
-                        selectionRange = range,
-                    }
-                end
-                mock_server.responses["textDocument/documentSymbol"] = function()
-                    local range = { start = { line = 0, character = 0 }, ["end"] = { line = 4, character = 1 } }
-                    return {
-                        {
-                            name = "Foo",
-                            kind = vim.lsp.protocol.SymbolKind.Class,
-                            range = range,
-                            selectionRange = range,
-                            children = { method_symbol("Works() : void", 2), method_symbol("Breaks(int) : void", 3) },
-                        },
-                    }
-                end
-                mock_server.responses["textDocument/runTests"] = function(params)
-                    mock_server.notify_client("$/progress", {
-                        token = params.partialResultToken,
-                        value = { stage = "Running tests", message = output },
-                    })
-                    return {}
-                end
-
-                vim.cmd("Roslyn test")
-
-                local namespace = vim.api.nvim_get_namespaces()["roslyn.test_signs"]
-                return vim.tbl_map(function(extmark)
-                    return { row = extmark[2], text = vim.trim(extmark[4].sign_text) }
-                end, vim.api.nvim_buf_get_extmarks(0, namespace, 0, -1, { details = true }))
-            end, case.output)
-
-            assert.are_same({ { row = 2, text = "✓" }, { row = 3, text = "✗" } }, signs)
-        end)
-    end
-
     it("answers attach debugger with false without nvim-dap", function()
         create_file("Bar/Bar.csproj")
         create_file("Bar/Program.cs")
@@ -926,22 +816,35 @@ describe("LSP integration with mock server", function()
         create_file("Bar/Program.cs")
         command("edit " .. vim.fs.joinpath(helpers.scratch, "Bar", "Program.cs"))
 
-        local notifications = helpers.exec_lua(function()
-            local notifications = {}
-            vim.notify = function(message)
-                table.insert(notifications, message)
-            end
+        local output = helpers.exec_lua(function()
             local mock_server = require("test.utils.mock_server")
+            local client = vim.lsp.get_clients({ name = "roslyn", bufnr = 0 })[1]
+            local function run_tests()
+                client:exec_cmd({
+                    command = "dotnet.test.run",
+                    arguments = { {
+                        textDocument = { uri = vim.uri_from_bufnr(0) },
+                        range = { start = { line = 0, character = 0 }, ["end"] = { line = 0, character = 0 } },
+                        attachDebugger = false,
+                    } },
+                }, { bufnr = vim.api.nvim_get_current_buf() })
+            end
             mock_server.responses["textDocument/runTests"] = function()
                 return mock_server.refuse
             end
-            vim.cmd("Roslyn test")
+            run_tests()
+            local name = "roslyn://tests/" .. client.id
+            local bufnr = vim.fn.bufnr(name)
+            local output = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
             mock_server.responses["textDocument/runTests"] = nil
-            vim.cmd("Roslyn test")
-            return notifications
+            run_tests()
+            assert(vim.fn.bufnr(name) == bufnr)
+            assert(#vim.fn.win_findbuf(bufnr) == 1)
+            assert(vim.deep_equal(vim.api.nvim_buf_get_lines(bufnr, 0, -1, false), { "" }))
+            return output
         end)
 
         assert.are_equal(2, #wait_for_requests("textDocument/runTests", 2))
-        assert.are_equal("Test run failed, see roslyn://test-output", notifications[1])
+        assert.are_same({ "The server did not accept the test run request", "" }, output)
     end)
 end)

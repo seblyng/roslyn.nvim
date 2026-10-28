@@ -30,7 +30,6 @@ vim.api.nvim_create_autocmd("FileType", {
     pattern = { "cs", "razor" },
     callback = function()
         require("roslyn.commands").create_roslyn_commands()
-        require("roslyn.auto_insert").enable()
     end,
 })
 

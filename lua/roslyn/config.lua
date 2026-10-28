@@ -14,7 +14,6 @@ local M = {}
 ---@field ignore_target? fun(target: string): boolean
 ---@field broad_search boolean
 ---@field lock_target boolean
----@field test_signs boolean
 ---@field debug boolean
 
 ---@class RoslynNvimConfig
@@ -23,7 +22,6 @@ local M = {}
 ---@field ignore_target? fun(target: string): boolean
 ---@field broad_search? boolean
 ---@field lock_target? boolean
----@field test_signs? boolean
 ---@field debug? boolean
 
 ---@type InternalRoslynNvimConfig
@@ -33,7 +31,6 @@ local roslyn_config = {
     ignore_target = nil,
     broad_search = false,
     lock_target = false,
-    test_signs = true,
     debug = false,
 }
 

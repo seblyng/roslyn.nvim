@@ -26,16 +26,6 @@ end
 
 ---@type RoslynSubcommandTable[]
 local subcommand_tbl = {
-    test = {
-        impl = function(args)
-            require("roslyn.testing").run_at_cursor(args[1] == "debug")
-        end,
-        complete = function(subcmd_arg_lead)
-            return vim.tbl_filter(function(arg)
-                return arg:find(subcmd_arg_lead, 1, true) == 1
-            end, { "debug" })
-        end,
-    },
     target = {
         impl = function()
             local bufnr = vim.api.nvim_get_current_buf()
