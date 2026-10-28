@@ -57,6 +57,35 @@ local function offset_to_position(bufnr, offset)
 end
 
 return {
+    ["roslyn.client.peekReferences"] = function(data, ctx)
+        local client = assert(vim.lsp.get_client_by_id(ctx.client_id))
+        local uri, position = unpack(data.arguments)
+        local bufnr = vim.uri_to_bufnr(uri)
+
+        client:request("textDocument/references", {
+            textDocument = { uri = uri },
+            position = position,
+            context = { includeDeclaration = false },
+        }, function(err, result)
+            if err then
+                vim.notify(err.message, vim.log.levels.ERROR, { title = "roslyn.nvim" })
+                return
+            end
+
+            local items = vim.lsp.util.locations_to_items(result or {}, client.offset_encoding)
+            if vim.tbl_isempty(items) then
+                vim.notify("No references found", vim.log.levels.INFO, { title = "roslyn.nvim" })
+                return
+            end
+
+            vim.fn.setqflist({}, " ", {
+                title = "References",
+                items = items,
+                context = { method = "textDocument/references", bufnr = bufnr },
+            })
+            vim.cmd("botright copen")
+        end, bufnr)
+    end,
     ["roslyn.client.fixAllCodeAction"] = function(data, ctx)
         local client = assert(vim.lsp.get_client_by_id(ctx.client_id))
         handle_fix_all_code_action(client, data)

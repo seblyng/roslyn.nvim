@@ -803,13 +803,16 @@ describe("LSP integration with mock server", function()
         end
         helpers.feed("<Esc>")
 
-        assert.are_same({
-            { _vs_ch = "/", _vs_position = { line = 2, character = 5 } },
-            { _vs_ch = "/", _vs_position = { line = 2, character = 6 } },
-            { _vs_ch = "/", _vs_position = { line = 2, character = 7 } },
-        }, vim.tbl_map(function(request)
-            return { _vs_ch = request._vs_ch, _vs_position = request._vs_position }
-        end, requests))
+        assert.are_same(
+            {
+                { _vs_ch = "/", _vs_position = { line = 2, character = 5 } },
+                { _vs_ch = "/", _vs_position = { line = 2, character = 6 } },
+                { _vs_ch = "/", _vs_position = { line = 2, character = 7 } },
+            },
+            vim.tbl_map(function(request)
+                return { _vs_ch = request._vs_ch, _vs_position = request._vs_position }
+            end, requests)
+        )
         assert.are_equal(to_uri(program), requests[1]._vs_textDocument.uri)
     end)
 
