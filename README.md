@@ -228,11 +228,11 @@ These settings control the scope of background diagnostics.
 
 These settings control the LSP code lens.
 
-- `dotnet_enable_references_code_lens`  
+- `dotnet_enable_references_code_lens`
   Enable code lens references.
   Expected values: `true`, `false`
 
-- `dotnet_enable_tests_code_lens`  
+- `dotnet_enable_tests_code_lens`
   Enable tests code lens. Its `Run Test` and `Debug Test` lenses run the tests through the server.
   Expected values: `true`, `false`
 

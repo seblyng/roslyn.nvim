@@ -20,6 +20,9 @@ local default_responses = {
     ["textDocument/runTests"] = function()
         return {}
     end,
+    ["textDocument/references"] = function()
+        return {}
+    end,
 }
 
 ---@type vim.lsp.rpc.Dispatchers?
@@ -58,6 +61,7 @@ function M.server(dispatchers)
         if method == "initialize" then
             handler(nil, {
                 capabilities = {
+                    referencesProvider = true,
                     diagnosticProvider = {
                         interFileDependencies = true,
                         workspaceDiagnostics = false,

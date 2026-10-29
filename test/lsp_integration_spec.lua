@@ -811,6 +811,27 @@ describe("LSP integration with mock server", function()
         assert.are_same({ didAttach = false }, response)
     end)
 
+    it("uses the supplied position for peek references", function()
+        create_file("Bar/Bar.csproj")
+        create_file("Bar/Program.cs", "class First {}\nclass Target {}\n")
+        command("edit " .. vim.fs.joinpath(helpers.scratch, "Bar", "Program.cs"))
+
+        helpers.exec_lua(function()
+            local client = vim.lsp.get_clients({ name = "roslyn", bufnr = 0 })[1]
+            local uri = vim.uri_from_bufnr(0)
+            local requested = { line = 1, character = 7 }
+
+            vim.api.nvim_win_set_cursor(0, { 1, 1 })
+            client:exec_cmd({
+                command = "roslyn.client.peekReferences",
+                arguments = { uri, requested },
+            }, { bufnr = vim.api.nvim_get_current_buf() })
+        end)
+
+        local requests = wait_for_requests("textDocument/references", 1)
+        assert.are_same({ line = 1, character = 7 }, requests[1].position)
+    end)
+
     it("starts a new test run after the server refused one", function()
         create_file("Bar/Bar.csproj")
         create_file("Bar/Program.cs")
