@@ -25,6 +25,18 @@ local function get_lsp_clients(bufnr)
     end, bufnr)
 end
 
+---@param method string
+---@param count integer
+local function wait_for_requests(method, count)
+    return helpers.exec_lua(function(method0, count0)
+        local mock_server = require("test.utils.mock_server")
+        vim.wait(1000, function()
+            return #(mock_server.requests[method0] or {}) >= count0
+        end, 10)
+        return mock_server.requests[method0] or {}
+    end, method, count)
+end
+
 helpers.env()
 
 describe("LSP integration with mock server", function()
@@ -774,5 +786,86 @@ describe("LSP integration with mock server", function()
         assert.are_equal(1, #notifications)
         assert.are_equal("solution/open", notifications[1].method)
         assert.are_equal(to_uri(vim.fs.joinpath(scratch, "Foo.sln")), notifications[1].params.solution)
+    end)
+
+    it("answers attach debugger with false without nvim-dap", function()
+        create_file("Bar/Bar.csproj")
+        create_file("Bar/Program.cs")
+        command("edit " .. vim.fs.joinpath(helpers.scratch, "Bar", "Program.cs"))
+
+        local response = helpers.exec_lua(function()
+            local response
+            require("test.utils.mock_server").request_client(
+                "workspace/attachDebugger",
+                { processId = 42 },
+                function(result)
+                    response = result
+                end
+            )
+            vim.wait(1000, function()
+                return response ~= nil
+            end, 10)
+            return response
+        end)
+
+        assert.are_same({ didAttach = false }, response)
+    end)
+
+    it("uses the supplied position for peek references", function()
+        create_file("Bar/Bar.csproj")
+        create_file("Bar/Program.cs", "class First {}\nclass Target {}\n")
+        command("edit " .. vim.fs.joinpath(helpers.scratch, "Bar", "Program.cs"))
+
+        helpers.exec_lua(function()
+            local client = vim.lsp.get_clients({ name = "roslyn", bufnr = 0 })[1]
+            local uri = vim.uri_from_bufnr(0)
+            local requested = { line = 1, character = 7 }
+
+            vim.api.nvim_win_set_cursor(0, { 1, 1 })
+            client:exec_cmd({
+                command = "roslyn.client.peekReferences",
+                arguments = { uri, requested },
+            }, { bufnr = vim.api.nvim_get_current_buf() })
+        end)
+
+        local requests = wait_for_requests("textDocument/references", 1)
+        assert.are_same({ line = 1, character = 7 }, requests[1].position)
+    end)
+
+    it("starts a new test run after the server refused one", function()
+        create_file("Bar/Bar.csproj")
+        create_file("Bar/Program.cs")
+        command("edit " .. vim.fs.joinpath(helpers.scratch, "Bar", "Program.cs"))
+
+        local output = helpers.exec_lua(function()
+            local mock_server = require("test.utils.mock_server")
+            local client = vim.lsp.get_clients({ name = "roslyn", bufnr = 0 })[1]
+            local function run_tests()
+                client:exec_cmd({
+                    command = "dotnet.test.run",
+                    arguments = { {
+                        textDocument = { uri = vim.uri_from_bufnr(0) },
+                        range = { start = { line = 0, character = 0 }, ["end"] = { line = 0, character = 0 } },
+                        attachDebugger = false,
+                    } },
+                }, { bufnr = vim.api.nvim_get_current_buf() })
+            end
+            mock_server.responses["textDocument/runTests"] = function()
+                return mock_server.refuse
+            end
+            run_tests()
+            local name = "roslyn://tests/" .. client.id
+            local bufnr = vim.fn.bufnr(name)
+            local output = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+            mock_server.responses["textDocument/runTests"] = nil
+            run_tests()
+            assert(vim.fn.bufnr(name) == bufnr)
+            assert(#vim.fn.win_findbuf(bufnr) == 1)
+            assert(vim.deep_equal(vim.api.nvim_buf_get_lines(bufnr, 0, -1, false), { "" }))
+            return output
+        end)
+
+        assert.are_equal(2, #wait_for_requests("textDocument/runTests", 2))
+        assert.are_same({ "The server did not accept the test run request", "" }, output)
     end)
 end)

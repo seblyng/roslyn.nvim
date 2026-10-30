@@ -9,6 +9,15 @@ return {
         end
         return vim.lsp.handlers["client/registerCapability"](err, res, ctx)
     end,
+    ["$/progress"] = function(err, params, ctx)
+        if require("roslyn.testing").handle_partial_result(params.token, params.value) then
+            return
+        end
+        return vim.lsp.handlers["$/progress"](err, params, ctx)
+    end,
+    ["workspace/attachDebugger"] = function(_, params)
+        return { didAttach = require("roslyn.test_debugger").attach(params.processId) }
+    end,
     ["workspace/projectInitializationComplete"] = function(_, _, ctx)
         -- `vim.lsp.diagnostic._refresh` is not available in nightly. However, this is no longer needed
         -- in nightly after https://github.com/neovim/neovim/pull/40623

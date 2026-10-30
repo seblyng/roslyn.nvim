@@ -57,6 +57,40 @@ local function offset_to_position(bufnr, offset)
 end
 
 return {
+    ["dotnet.test.run"] = function(data, ctx)
+        local client = assert(vim.lsp.get_client_by_id(ctx.client_id))
+        require("roslyn.testing").run(client, data.arguments[1])
+    end,
+    ["roslyn.client.peekReferences"] = function(data, ctx)
+        local client = assert(vim.lsp.get_client_by_id(ctx.client_id))
+        local uri, position = unpack(data.arguments)
+        local bufnr = vim.uri_to_bufnr(uri)
+
+        -- TODO: Use vim.pos.lsp with vim.lsp.buf.references once Neovim 0.13 is released.
+        client:request("textDocument/references", {
+            textDocument = { uri = uri },
+            position = position,
+            context = { includeDeclaration = true },
+        }, function(err, result, request_ctx)
+            if err then
+                vim.notify(err.message, vim.log.levels.ERROR, { title = "roslyn.nvim" })
+                return
+            end
+
+            local items = vim.lsp.util.locations_to_items(result or {}, client.offset_encoding)
+            if vim.tbl_isempty(items) then
+                vim.notify("No references found", vim.log.levels.INFO)
+                return
+            end
+
+            vim.fn.setqflist({}, " ", {
+                title = "References",
+                items = items,
+                context = { bufnr = request_ctx.bufnr, method = "textDocument/references" },
+            })
+            vim.cmd("botright copen")
+        end, bufnr)
+    end,
     ["roslyn.client.fixAllCodeAction"] = function(data, ctx)
         local client = assert(vim.lsp.get_client_by_id(ctx.client_id))
         handle_fix_all_code_action(client, data)

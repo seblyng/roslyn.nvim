@@ -27,6 +27,7 @@ A couple of additional things this plugin implements
 - Broad root_dir detection support. Meaning it will search for solutions upward in parent directories if `broad_search` option is set
 - Support for source generated files
 - `Roslyn target` command to switch between multiple solutions
+- Running and debugging tests through the server
 
 ## Demo
 
@@ -227,16 +228,17 @@ These settings control the scope of background diagnostics.
 
 These settings control the LSP code lens.
 
-- `dotnet_enable_references_code_lens`  
-  Enable code lens references.  
+- `dotnet_enable_references_code_lens`
+  Enable code lens references.
   Expected values: `true`, `false`
 
-- `dotnet_enable_tests_code_lens`  
-  Enable tests code lens.  
+- `dotnet_enable_tests_code_lens`
+  Enable tests code lens. Its `Run Test` and `Debug Test` lenses run the tests through the server.
   Expected values: `true`, `false`
 
 > [!TIP]
-> You must refresh the code lens yourself. Check `:h vim.lsp.codelens.refresh()` and the example autocmd.
+> Enable code lenses with `vim.lsp.codelens.enable(true)`. `vim.lsp.codelens.run()` runs the lens on the
+> cursor line and shows a `vim.ui.select` menu when there are several.
 
 ### Completions
 
@@ -336,6 +338,27 @@ This setting controls how the language server should format code.
 ## 📚 Commands
 
 - `:Roslyn target` chooses a solution if there are multiple to chose from
+
+## Running tests
+
+Enable `dotnet_enable_tests_code_lens` under `csharp|code_lens` and call
+`vim.lsp.codelens.enable(true)`. Use `vim.lsp.codelens.run()` on a test's
+`Run Test` or `Debug Test` lens. Server messages and errors are streamed to a
+scratch buffer in a split. Each client has its own `roslyn://tests/<client-id>`
+buffer, cleared and reused for each run.
+
+`Debug Test` requires [nvim-dap](https://github.com/mfussenegger/nvim-dap)
+with a `coreclr` adapter. Let
+[mason-nvim-dap](https://github.com/jay-babu/mason-nvim-dap.nvim) set it up
+with `handlers = {}`, or define it for netcoredbg:
+
+```lua
+require("dap").adapters.coreclr = {
+    type = "executable",
+    command = vim.fn.exepath("netcoredbg"),
+    args = { "--interpreter=vscode" },
+}
+```
 
 ## 🚀 Other usage
 

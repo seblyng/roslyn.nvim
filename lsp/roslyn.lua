@@ -8,6 +8,8 @@ return {
         "--daemon-mode",
         "--clientProcessId",
         tostring(vim.uv.os_getpid()),
+        "--extensionLogDirectory",
+        vim.fs.joinpath(vim.fn.stdpath("log"), "roslyn"),
     },
     cmd_env = {
         Configuration = vim.env.Configuration or "Debug",
