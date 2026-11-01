@@ -41,7 +41,7 @@ local subcommand_tbl = {
                 end
 
                 local config = vim.tbl_deep_extend("force", vim.lsp.config["roslyn"], {
-                    root_dir = vim.fs.dirname(file),
+                    root_dir = require("roslyn.target").target_root_dir(file),
                     on_init = function(client)
                         require("roslyn.lsp.on_init").sln(client, file)
                     end,

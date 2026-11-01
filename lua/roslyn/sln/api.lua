@@ -20,8 +20,6 @@ local function sln_match(line, target)
         if path and path:match("%.csproj$") then
             return path
         end
-    elseif ext == "slnf" then
-        return line:match('"(.*%.csproj)"')
     else
         error(string.format("Unknown extension `%s` for solution: `%s`", ext, target))
     end
@@ -33,6 +31,44 @@ function M.projects(target)
     local file = io.open(target, "r")
     if not file then
         return {}
+    end
+
+    local ext = vim.fn.fnamemodify(target, ":e")
+
+    if ext == "slnf" then
+        local content = file:read("*a")
+        file:close()
+
+        local ok, data = pcall(vim.json.decode, content)
+        if
+            not ok
+            or type(data) ~= "table"
+            or type(data.solution) ~= "table"
+            or type(data.solution.projects) ~= "table"
+        then
+            return {}
+        end
+
+        local slnf_dir = vim.fs.dirname(target)
+        local sln_path = data.solution.path
+        local sln_dir = slnf_dir
+
+        if type(sln_path) == "string" and sln_path ~= "" then
+            local normalized_sln = iswin and sln_path or sln_path:gsub("\\", "/")
+            local full_sln = vim.fs.normalize(vim.fs.joinpath(slnf_dir, normalized_sln))
+            sln_dir = vim.fs.dirname(full_sln)
+        end
+
+        local paths = {}
+        for _, proj in ipairs(data.solution.projects) do
+            if type(proj) == "string" and proj:match("%.csproj$") then
+                local normalized_path = iswin and proj or proj:gsub("\\", "/")
+                local fullpath = vim.fs.normalize(vim.fs.joinpath(sln_dir, normalized_path))
+                table.insert(paths, fullpath)
+            end
+        end
+
+        return paths
     end
 
     local paths = {}

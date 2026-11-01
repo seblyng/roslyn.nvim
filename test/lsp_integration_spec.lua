@@ -324,6 +324,31 @@ describe("LSP integration with mock server", function()
         assert.are_equal(to_uri(vim.fs.joinpath(scratch, "src", "Bar", "Bar.slnf")), notifications[1].params.solution)
     end)
 
+    it("starts LSP client with correct root_dir for solution filter in subdirectory", function()
+        helpers.exec_lua(function()
+            require("roslyn.config").setup({ broad_search = true })
+        end)
+
+        create_file("src/Foo/Program.cs")
+        create_file("src/Foo/Foo.csproj")
+        create_slnf_file("filters/Foo.slnf", {
+            { name = "Foo", path = [[src\Foo\Foo.csproj]] },
+        }, [[..\Foo.sln]])
+
+        command("edit " .. vim.fs.joinpath(helpers.scratch, "src", "Foo", "Program.cs"))
+
+        local clients = get_lsp_clients()
+        assert.are_equal(1, #clients)
+        assert.are_equal(scratch, clients[1].root_dir)
+
+        local notifications = helpers.exec_lua(function()
+            return require("test.utils.mock_server").notifications
+        end)
+        assert.are_equal(1, #notifications)
+        assert.are_equal("solution/open", notifications[1].method)
+        assert.are_equal(to_uri(vim.fs.joinpath(scratch, "filters", "Foo.slnf")), notifications[1].params.solution)
+    end)
+
     it("uses choose_target to select solution when multiple exist", function()
         helpers.exec_lua(function()
             require("roslyn.config").setup({

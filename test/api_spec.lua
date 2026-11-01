@@ -40,7 +40,7 @@ describe("api", function()
             { name = "Foo", path = "Foo.csproj" },
             { name = "Baz", path = [[Foo\Bar\Baz.csproj]] },
             { name = "Bar", path = [[..\..\Bar.csproj]] },
-        })
+        }, "Foo.sln")
 
         local sln = vim.fs.joinpath(scratch, "Foo.slnf")
         local projects = helpers.exec_lua(function(target0)
@@ -53,7 +53,7 @@ describe("api", function()
         }, projects)
     end)
 
-    it("finds projects in solution filter file", function()
+    it("finds projects in slnx file", function()
         create_slnx_file("Foo.slnx", {
             { name = "Foo", path = "Foo.csproj" },
             { name = "Baz", path = [[Foo\Bar\Baz.csproj]] },
