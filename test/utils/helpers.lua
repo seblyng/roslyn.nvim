@@ -75,25 +75,29 @@ function M.create_sln_file(path, projects)
     return M.create_file(path, sln_string)
 end
 
-function M.create_slnf_file(path, projects)
+function M.create_slnf_file(path, projects, sln_path)
     local lines = {}
 
     local function append(line)
         table.insert(lines, line)
     end
 
+    local solution_path = sln_path or "Dummy.sln"
+
     -- Header section
     append("{")
-    append(string.format('  "path": %s,', path))
-    append('  "projects": [')
+    append('  "solution": {')
+    append(string.format('    "path": "%s",', solution_path:gsub("\\", "\\\\")))
+    append('    "projects": [')
 
-    for _, proj in ipairs(projects) do
-        append(string.format('    "%s"', proj.path))
+    for i, proj in ipairs(projects) do
+        local comma = (i == #projects) and "" or ","
+        append(string.format('      "%s"%s', proj.path:gsub("\\", "\\\\"), comma))
     end
 
-    append("  ]")
+    append("    ]")
+    append("  }")
     append("}")
-    --     ]
 
     -- Combine all lines into one string.
     local sln_string = table.concat(lines, "\n")

@@ -5,6 +5,41 @@ local M = {}
 
 local pending_by_root = {}
 
+---@param target string
+---@return string
+function M.target_root_dir(target)
+    local ext = vim.fn.fnamemodify(target, ":e")
+    if ext ~= "slnf" then
+        return vim.fs.dirname(target)
+    end
+
+    local file = io.open(target, "r")
+    if not file then
+        return vim.fs.dirname(target)
+    end
+
+    local content = file:read("*a")
+    file:close()
+
+    local ok, data = pcall(vim.json.decode, content)
+    if
+        not ok
+        or type(data) ~= "table"
+        or type(data.solution) ~= "table"
+        or type(data.solution.path) ~= "string"
+        or data.solution.path == ""
+    then
+        return vim.fs.dirname(target)
+    end
+
+    local slnf_dir = vim.fs.dirname(target)
+    local sysname = vim.uv.os_uname().sysname:lower()
+    local iswin = not not (sysname:find("windows") or sysname:find("mingw"))
+    local sln_path = iswin and data.solution.path or data.solution.path:gsub("\\", "/")
+    local full_sln = vim.fs.normalize(vim.fs.joinpath(slnf_dir, sln_path))
+    return vim.fs.dirname(full_sln)
+end
+
 ---@param targets string[]
 ---@param csproj? string
 ---@return string[]
@@ -30,7 +65,7 @@ local function predict_target(targets)
     local config = require("roslyn.config").get()
     local chosen = config.choose_target and config.choose_target(targets)
     if chosen then
-        return { kind = "solution", root_dir = vim.fs.dirname(chosen), target = chosen }
+        return { kind = "solution", root_dir = M.target_root_dir(chosen), target = chosen }
     end
 
     local possible_targets = vim.iter(vim.lsp.get_clients({ name = "roslyn" }))
@@ -41,7 +76,7 @@ local function predict_target(targets)
         :totable()
 
     if #possible_targets == 1 then
-        return { kind = "solution", root_dir = vim.fs.dirname(possible_targets[1]), target = possible_targets[1] }
+        return { kind = "solution", root_dir = M.target_root_dir(possible_targets[1]), target = possible_targets[1] }
     end
 
     return { kind = "ambiguous", targets = targets }
@@ -61,12 +96,12 @@ local function resolve_root(bufnr)
     end
 
     if #filtered_targets == 1 then
-        return { kind = "solution", root_dir = vim.fs.dirname(filtered_targets[1]), target = filtered_targets[1] }
+        return { kind = "solution", root_dir = M.target_root_dir(filtered_targets[1]), target = filtered_targets[1] }
     end
 
     local selected_solution = store.get_selected_target()
     if selected_solution then
-        return { kind = "solution", root_dir = vim.fs.dirname(selected_solution), target = selected_solution }
+        return { kind = "solution", root_dir = M.target_root_dir(selected_solution), target = selected_solution }
     end
 
     if csproj then
@@ -82,7 +117,7 @@ function M.resolve(bufnr)
     local config = require("roslyn.config").get()
     local selected_solution = store.get_selected_target()
     if config.lock_target and selected_solution then
-        return { kind = "solution", root_dir = vim.fs.dirname(selected_solution), target = selected_solution }
+        return { kind = "solution", root_dir = M.target_root_dir(selected_solution), target = selected_solution }
     end
 
     local existing_client = vim.api.nvim_buf_get_name(bufnr):match("^roslyn%-source%-generated://")
