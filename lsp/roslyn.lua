@@ -26,19 +26,18 @@ return {
     on_init = {
         --- @param client vim.lsp.Client
         function(client)
-            if not client.config.root_dir then
-                return
-            end
             require("roslyn.log").log(string.format("lsp on_init root_dir: %s", client.config.root_dir))
 
             local on_init = require("roslyn.lsp.on_init")
             local target = require("roslyn.target")
 
-            local decision = target.consume(client.config.root_dir) or target.resolve(vim.api.nvim_get_current_buf())
+            local decision = (client.config.root_dir and target.consume(client.config.root_dir)) or target.resolve(vim.api.nvim_get_current_buf())
             if decision.kind == "solution" then
                 return on_init.sln(client, decision.target)
             elseif decision.kind == "project" then
                 return on_init.project(client, decision.projects)
+            elseif decision.kind == "none" then
+                return on_init.single_file(client)
             end
         end,
     },
